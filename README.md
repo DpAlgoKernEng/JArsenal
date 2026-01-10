@@ -1,2 +1,2 @@
-# tour_java
-java tour
+# JArsenal
+Java Core Arsenal Collections
