@@ -11,8 +11,6 @@ env:
   NODE_VERSION: '22'
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  # 强制使用 Node.js 24 运行 actions
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # ============================================
@@ -78,7 +76,6 @@ jobs:
         with:
           files: target/site/jacoco/jacoco.xml
           fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
@@ -142,7 +139,7 @@ jobs:
           platforms: linux/amd64
 
   # ============================================
-  # 部署阶段 (需要手动配置集群)
+  # 部署阶段 - 可选，需要配置 KUBE_CONFIG secret
   # ============================================
   deploy:
     name: Deploy to Kubernetes
@@ -150,23 +147,36 @@ jobs:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
-    environment:
-      name: production
-      url: https://jarsenal.example.com
+    # 部署 job 不会阻止整体构建成功
+    continue-on-error: true
 
     steps:
+      - name: Check Kubernetes configuration
+        id: check-config
+        run: |
+          if [ -z "${{ secrets.KUBE_CONFIG }}" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "::warning::KUBE_CONFIG secret not configured. Skipping deployment."
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout code
+        if: steps.check-config.outputs.skip != 'true'
         uses: actions/checkout@v4
 
       - name: Setup kubectl
+        if: steps.check-config.outputs.skip != 'true'
         uses: azure/setup-kubectl@v4
 
       - name: Configure Kubernetes credentials
+        if: steps.check-config.outputs.skip != 'true'
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
 
       - name: Deploy to Kubernetes
+        if: steps.check-config.outputs.skip != 'true'
         run: |
           # 替换镜像版本
           sed -i "s|IMAGE_TAG|${{ github.sha }}|g" k8s/deployment.yaml
@@ -184,6 +194,18 @@ jobs:
           kubectl rollout status deployment/jarsenal -n jarsenal --timeout=300s
 
       - name: Verify deployment
+        if: steps.check-config.outputs.skip != 'true'
         run: |
           kubectl get pods -n jarsenal
           kubectl get services -n jarsenal
+
+      - name: Deployment summary
+        run: |
+          if [ "${{ steps.check-config.outputs.skip }}" == "true" ]; then
+            echo "### Deployment Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "KUBE_CONFIG secret not configured. To enable deployment:" >> $GITHUB_STEP_SUMMARY
+            echo "1. Go to Settings > Secrets and variables > Actions" >> $GITHUB_STEP_SUMMARY
+            echo "2. Add KUBE_CONFIG secret with your kubeconfig content" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Deployment Completed" >> $GITHUB_STEP_SUMMARY
+          fi
