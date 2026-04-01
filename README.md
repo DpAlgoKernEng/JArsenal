@@ -75,21 +75,43 @@ mvn clean package -DskipTests
 
 ## API 接口
 
-| 方法 | 路径 | 说明 |
-|-----|------|------|
-| GET | `/api/users` | 分页查询用户列表 |
-| GET | `/api/users/{id}` | 查询单个用户 |
-| POST | `/api/users` | 创建用户 |
-| PUT | `/api/users/{id}` | 更新用户 |
-| DELETE | `/api/users/{id}` | 删除用户 |
+### 认证模块 `/api/auth`
 
-### 分页查询示例
+| 方法 | 路径 | 说明 | 认证 |
+|-----|------|------|------|
+| POST | `/api/auth/login` | 用户登录，返回 JWT Token | 无需 |
+| POST | `/api/auth/register` | 用户注册 | 无需 |
+
+### 用户模块 `/api/users` (需要 JWT Token)
+
+| 方法 | 赯径 | 说明 | 认证 |
+|-----|------|------|------|
+| GET | `/api/users` | 分页查询用户列表 | Bearer Token |
+| GET | `/api/users/{id}` | 查询单个用户 | Bearer Token |
+| POST | `/api/users` | 创建用户 | Bearer Token |
+| PUT | `/api/users/{id}` | 更新用户 | Bearer Token |
+| DELETE | `/api/users/{id}` | 删除用户 | Bearer Token |
+
+### 接口测试示例
+
 ```bash
-# 基础分页
-curl "http://localhost:8080/api/users?pageNum=1&pageSize=5"
+# 用户登录 (密码: 123456)
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"张三","password":"123456"}'
+
+# 用户注册
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"newuser","password":"123456","email":"user@example.com"}'
+
+# 查询用户列表 (需要 Token)
+curl "http://localhost:8080/api/users?pageNum=1&pageSize=5" \
+  -H "Authorization: Bearer <token>"
 
 # 条件查询
-curl "http://localhost:8080/api/users?pageNum=1&pageSize=5&username=张&status=1"
+curl "http://localhost:8080/api/users?pageNum=1&pageSize=5&username=张&status=1" \
+  -H "Authorization: Bearer <token>"
 ```
 
 ### 响应格式
