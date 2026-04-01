@@ -16,6 +16,41 @@ CREATE TABLE IF NOT EXISTS user (
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
+-- 创建 Refresh Token 表
+CREATE TABLE IF NOT EXISTS refresh_token (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    token VARCHAR(500) NOT NULL COMMENT 'Refresh Token',
+    expires_at DATETIME NOT NULL COMMENT '过期时间',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    revoked TINYINT DEFAULT 0 COMMENT '是否已撤销：0-有效，1-已撤销',
+    INDEX idx_user_id (user_id),
+    INDEX idx_token (token),
+    INDEX idx_expires_at (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Refresh Token表';
+
+-- 创建审计日志表
+CREATE TABLE IF NOT EXISTS audit_log (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id BIGINT COMMENT '操作用户ID',
+    username VARCHAR(50) COMMENT '操作用户名',
+    operation VARCHAR(50) NOT NULL COMMENT '操作类型：LOGIN, REGISTER, CREATE, UPDATE, DELETE等',
+    module VARCHAR(50) NOT NULL COMMENT '模块：AUTH, USER等',
+    description VARCHAR(500) COMMENT '操作描述',
+    target_id BIGINT COMMENT '操作目标ID',
+    ip VARCHAR(50) COMMENT '客户端IP',
+    trace_id VARCHAR(50) COMMENT '链路追踪ID',
+    status TINYINT DEFAULT 1 COMMENT '状态：1-成功，0-失败',
+    error_msg VARCHAR(500) COMMENT '错误信息',
+    duration BIGINT COMMENT '操作耗时(ms)',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    INDEX idx_user_id (user_id),
+    INDEX idx_operation (operation),
+    INDEX idx_module (module),
+    INDEX idx_created_at (created_at),
+    INDEX idx_trace_id (trace_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='审计日志表';
+
 -- 插入测试数据 (密码使用BCrypt加密，明文均为123456)
 INSERT INTO user (username, password, email, status) VALUES
 ('张三', '$2a$10$3c61Gjb1U1EjuM8Zuy/pDOHH61ekT2thzyGqid/D1p2mmRKQniRcC', 'zhangsan@example.com', 1),

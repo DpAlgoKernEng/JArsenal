@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.AuditLogMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.demo.entity.AuditLogEntity">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="username" property="username"/>
+        <result column="operation" property="operation"/>
+        <result column="module" property="module"/>
+        <result column="description" property="description"/>
+        <result column="target_id" property="targetId"/>
+        <result column="ip" property="ip"/>
+        <result column="trace_id" property="traceId"/>
+        <result column="status" property="status"/>
+        <result column="error_msg" property="errorMsg"/>
+        <result column="duration" property="duration"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, username, operation, module, description, target_id,
+        ip, trace_id, status, error_msg, duration, created_at
+    </sql>
+
+    <insert id="insert" parameterType="com.example.demo.entity.AuditLogEntity">
+        INSERT INTO audit_log (user_id, username, operation, module, description,
+                               target_id, ip, trace_id, status, error_msg, duration, created_at)
+        VALUES (#{userId}, #{username}, #{operation}, #{module}, #{description},
+                #{targetId}, #{ip}, #{traceId}, #{status}, #{errorMsg}, #{duration}, NOW())
+    </insert>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM audit_log
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByTimeRange" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM audit_log
+        WHERE created_at BETWEEN #{startTime} AND #{endTime}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByOperation" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM audit_log
+        WHERE operation = #{operation}
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

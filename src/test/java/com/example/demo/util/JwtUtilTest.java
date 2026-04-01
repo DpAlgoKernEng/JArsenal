@@ -20,14 +20,15 @@ class JwtUtilTest {
         // 设置测试用的 secret 和 expiration
         ReflectionTestUtils.setField(jwtUtil, "secret",
             "test-secret-key-at-least-256-bits-long-for-hs256-algorithm");
-        ReflectionTestUtils.setField(jwtUtil, "expiration", 3600000L); // 1小时
+        ReflectionTestUtils.setField(jwtUtil, "accessExpiration", 1800000L); // 30分钟
+        ReflectionTestUtils.setField(jwtUtil, "refreshExpiration", 604800000L); // 7天
     }
 
     @Test
-    @DisplayName("生成 Token - 成功")
-    void generateToken_shouldSucceed() {
+    @DisplayName("生成 Access Token - 成功")
+    void generateAccessToken_shouldSucceed() {
         // when
-        String token = jwtUtil.generateToken(1L, "testuser");
+        String token = jwtUtil.generateAccessToken(1L, "testuser");
 
         // then
         assertNotNull(token);
@@ -36,13 +37,38 @@ class JwtUtilTest {
     }
 
     @Test
-    @DisplayName("验证 Token - 有效 Token")
-    void validateToken_validToken_shouldReturnTrue() {
+    @DisplayName("生成 Refresh Token - 成功")
+    void generateRefreshToken_shouldSucceed() {
+        // when
+        String token = jwtUtil.generateRefreshToken(1L);
+
+        // then
+        assertNotNull(token);
+        assertTrue(token.length() > 0);
+        assertTrue(token.split("\\.").length == 3);
+    }
+
+    @Test
+    @DisplayName("验证 Access Token - 有效 Token")
+    void validateAccessToken_validToken_shouldReturnTrue() {
         // given
-        String token = jwtUtil.generateToken(1L, "testuser");
+        String token = jwtUtil.generateAccessToken(1L, "testuser");
 
         // when
-        boolean isValid = jwtUtil.validateToken(token);
+        boolean isValid = jwtUtil.validateAccessToken(token);
+
+        // then
+        assertTrue(isValid);
+    }
+
+    @Test
+    @DisplayName("验证 Refresh Token - 有效 Token")
+    void validateRefreshToken_validToken_shouldReturnTrue() {
+        // given
+        String token = jwtUtil.generateRefreshToken(1L);
+
+        // when
+        boolean isValid = jwtUtil.validateRefreshToken(token);
 
         // then
         assertTrue(isValid);
@@ -54,28 +80,48 @@ class JwtUtilTest {
         // given
         String invalidToken = "invalid.token.here";
 
-        // when
-        boolean isValid = jwtUtil.validateToken(invalidToken);
-
-        // then
-        assertFalse(isValid);
+        // when & then
+        assertFalse(jwtUtil.validateAccessToken(invalidToken));
+        assertFalse(jwtUtil.validateRefreshToken(invalidToken));
     }
 
     @Test
     @DisplayName("验证 Token - 空 Token")
     void validateToken_emptyToken_shouldReturnFalse() {
+        // when & then
+        assertFalse(jwtUtil.validateAccessToken(""));
+        assertFalse(jwtUtil.validateRefreshToken(""));
+    }
+
+    @Test
+    @DisplayName("验证 Token - null Token")
+    void validateToken_nullToken_shouldReturnFalse() {
+        // when & then
+        assertFalse(jwtUtil.validateAccessToken(null));
+        assertFalse(jwtUtil.validateRefreshToken(null));
+    }
+
+    @Test
+    @DisplayName("Access Token 不能通过 Refresh Token 验证")
+    void validateAccessToken_withRefreshToken_shouldReturnFalse() {
+        // given
+        String refreshToken = jwtUtil.generateRefreshToken(1L);
+
         // when
-        boolean isValid = jwtUtil.validateToken("");
+        boolean isValid = jwtUtil.validateAccessToken(refreshToken);
 
         // then
         assertFalse(isValid);
     }
 
     @Test
-    @DisplayName("验证 Token - null Token")
-    void validateToken_nullToken_shouldReturnFalse() {
+    @DisplayName("Refresh Token 不能通过 Access Token 验证")
+    void validateRefreshToken_withAccessToken_shouldReturnFalse() {
+        // given
+        String accessToken = jwtUtil.generateAccessToken(1L, "testuser");
+
         // when
-        boolean isValid = jwtUtil.validateToken(null);
+        boolean isValid = jwtUtil.validateRefreshToken(accessToken);
 
         // then
         assertFalse(isValid);
@@ -86,7 +132,7 @@ class JwtUtilTest {
     void getUserIdFromToken_shouldReturnCorrectId() {
         // given
         Long userId = 12345L;
-        String token = jwtUtil.generateToken(userId, "testuser");
+        String token = jwtUtil.generateAccessToken(userId, "testuser");
 
         // when
         Long extractedId = jwtUtil.getUserIdFromToken(token);
@@ -100,7 +146,7 @@ class JwtUtilTest {
     void getUsernameFromToken_shouldReturnCorrectUsername() {
         // given
         String username = "testuser";
-        String token = jwtUtil.generateToken(1L, username);
+        String token = jwtUtil.generateAccessToken(1L, username);
 
         // when
         String extractedUsername = jwtUtil.getUsernameFromToken(token);
@@ -113,8 +159,8 @@ class JwtUtilTest {
     @DisplayName("不同用户生成不同 Token")
     void generateToken_differentUsers_shouldGenerateDifferentTokens() {
         // when
-        String token1 = jwtUtil.generateToken(1L, "user1");
-        String token2 = jwtUtil.generateToken(2L, "user2");
+        String token1 = jwtUtil.generateAccessToken(1L, "user1");
+        String token2 = jwtUtil.generateAccessToken(2L, "user2");
 
         // then
         assertNotEquals(token1, token2);

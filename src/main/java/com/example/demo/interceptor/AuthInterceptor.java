@@ -37,8 +37,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // 验证 Token 有效性
-        if (!jwtUtil.validateToken(token)) {
+        // 验证 Access Token 有效性
+        if (!jwtUtil.validateAccessToken(token)) {
             log.warn("Token无效: {} {}", request.getMethod(), request.getRequestURI());
             sendError(response, 401, "Token无效或已过期");
             return false;

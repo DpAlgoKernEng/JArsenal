@@ -47,7 +47,8 @@ pagehelper:
 # JWT 配置
 jwt:
   secret: ${JWT_SECRET:defaultSecretKey}
-  expiration: ${JWT_EXPIRATION:86400000}
+  access-expiration: ${JWT_ACCESS_EXPIRATION:1800000}   # Access Token 30分钟
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # Refresh Token 7天
 
 # CORS 配置
 cors:

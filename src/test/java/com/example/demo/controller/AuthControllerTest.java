@@ -4,6 +4,7 @@ import com.example.demo.dto.LoginRequest;
 import com.example.demo.dto.LoginResponse;
 import com.example.demo.dto.RegisterRequest;
 import com.example.demo.exception.BusinessException;
+import com.example.demo.service.AuditLogService;
 import com.example.demo.service.AuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +38,9 @@ class AuthControllerTest {
     @MockBean
     private AuthService authService;
 
+    @MockBean
+    private AuditLogService auditLogService;
+
     @Test
     @DisplayName("登录接口 - 成功")
     void login_success_shouldReturnToken() throws Exception {
@@ -45,7 +49,7 @@ class AuthControllerTest {
         request.setUsername("testuser");
         request.setPassword("password123");
 
-        LoginResponse response = new LoginResponse("test-token", 1L, "testuser");
+        LoginResponse response = new LoginResponse("test-token", "test-refresh-token", 1800000L, 1L, "testuser");
 
         when(authService.login(any(LoginRequest.class))).thenReturn(response);
 
@@ -56,7 +60,8 @@ class AuthControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200))
             .andExpect(jsonPath("$.message").value("success"))
-            .andExpect(jsonPath("$.data.token").value("test-token"))
+            .andExpect(jsonPath("$.data.accessToken").value("test-token"))
+            .andExpect(jsonPath("$.data.refreshToken").value("test-refresh-token"))
             .andExpect(jsonPath("$.data.userId").value(1))
             .andExpect(jsonPath("$.data.username").value("testuser"));
     }

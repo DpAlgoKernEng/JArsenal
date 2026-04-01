@@ -3,8 +3,10 @@ package com.example.demo.service;
 import com.example.demo.dto.LoginRequest;
 import com.example.demo.dto.LoginResponse;
 import com.example.demo.dto.RegisterRequest;
+import com.example.demo.entity.RefreshToken;
 import com.example.demo.entity.User;
 import com.example.demo.exception.BusinessException;
+import com.example.demo.mapper.RefreshTokenMapper;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.service.impl.AuthServiceImpl;
 import com.example.demo.util.JwtUtil;
@@ -29,6 +31,9 @@ class AuthServiceTest {
 
     @Mock
     private UserMapper userMapper;
+
+    @Mock
+    private RefreshTokenMapper refreshTokenMapper;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -66,24 +71,30 @@ class AuthServiceTest {
 
     @Test
     @DisplayName("登录 - 成功")
-    void login_success_shouldReturnToken() {
+    void login_success_shouldReturnTokens() {
         // given
         when(userMapper.selectByUsername("testuser")).thenReturn(testUser);
         when(passwordEncoder.matches("password123", "encodedPassword")).thenReturn(true);
-        when(jwtUtil.generateToken(1L, "testuser")).thenReturn("test-token");
+        when(jwtUtil.generateAccessToken(1L, "testuser")).thenReturn("access-token");
+        when(jwtUtil.generateRefreshToken(1L)).thenReturn("refresh-token");
+        when(jwtUtil.getRefreshExpiration()).thenReturn(604800000L);
+        when(refreshTokenMapper.insert(any(RefreshToken.class))).thenReturn(1);
 
         // when
         LoginResponse response = authService.login(loginRequest);
 
         // then
         assertNotNull(response);
-        assertEquals("test-token", response.getToken());
+        assertEquals("access-token", response.getAccessToken());
+        assertEquals("refresh-token", response.getRefreshToken());
         assertEquals(1L, response.getUserId());
         assertEquals("testuser", response.getUsername());
 
         verify(userMapper).selectByUsername("testuser");
         verify(passwordEncoder).matches("password123", "encodedPassword");
-        verify(jwtUtil).generateToken(1L, "testuser");
+        verify(jwtUtil).generateAccessToken(1L, "testuser");
+        verify(jwtUtil).generateRefreshToken(1L);
+        verify(refreshTokenMapper).insert(any(RefreshToken.class));
     }
 
     @Test

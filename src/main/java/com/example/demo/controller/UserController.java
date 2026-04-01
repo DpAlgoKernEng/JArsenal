@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.annotation.AuditLog;
 import com.example.demo.annotation.RateLimit;
 import com.example.demo.common.Result;
 import com.example.demo.dto.PageResult;
@@ -7,6 +8,8 @@ import com.example.demo.dto.UserCreateRequest;
 import com.example.demo.dto.UserQueryRequest;
 import com.example.demo.dto.UserUpdateRequest;
 import com.example.demo.entity.User;
+import com.example.demo.enums.ModuleType;
+import com.example.demo.enums.OperationType;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -61,6 +64,7 @@ public class UserController {
      */
     @Operation(summary = "创建用户", description = "新增一个用户")
     @RateLimit(key = "userCreate", time = 60, count = 10)
+    @AuditLog(operation = OperationType.CREATE, module = ModuleType.USER, description = "创建用户")
     @PostMapping
     public Result<User> createUser(@Valid @RequestBody UserCreateRequest request) {
         User user = new User();
@@ -77,6 +81,7 @@ public class UserController {
      */
     @Operation(summary = "更新用户", description = "修改用户信息")
     @RateLimit(key = "userUpdate", time = 60, count = 20)
+    @AuditLog(operation = OperationType.UPDATE, module = ModuleType.USER, description = "更新用户")
     @PutMapping("/{id}")
     public Result<User> updateUser(
             @Parameter(description = "用户ID") @PathVariable Long id,
@@ -95,6 +100,7 @@ public class UserController {
      */
     @Operation(summary = "删除用户", description = "根据ID删除用户")
     @RateLimit(key = "userDelete", time = 60, count = 10)
+    @AuditLog(operation = OperationType.DELETE, module = ModuleType.USER, description = "删除用户")
     @DeleteMapping("/{id}")
     public Result<Void> deleteUser(
             @Parameter(description = "用户ID") @PathVariable Long id) {

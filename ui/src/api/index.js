@@ -4,20 +4,25 @@ import router from '../router'
 import { useUserStore } from '../stores/user'
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 10000
 })
+
+// 是否正在刷新 Token
+let isRefreshing = false
+// 等待刷新的请求队列
+let requestQueue = []
 
 // 请求拦截器：自动添加 Token
 api.interceptors.request.use(config => {
   const userStore = useUserStore()
-  if (userStore.token) {
-    config.headers.Authorization = `Bearer ${userStore.token}`
+  if (userStore.accessToken) {
+    config.headers.Authorization = `Bearer ${userStore.accessToken}`
   }
   return config
 })
 
-// 响应拦截器：处理错误
+// 响应拦截器：处理错误和自动刷新 Token
 api.interceptors.response.use(
   response => {
     const { code, message, data } = response.data
@@ -28,17 +33,76 @@ api.interceptors.response.use(
       return Promise.reject(new Error(message))
     }
   },
-  error => {
-    if (error.response?.status === 401) {
+  async error => {
+    const originalRequest = error.config
+
+    // 401 错误且未重试过，尝试刷新 Token
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      const userStore = useUserStore()
+
+      // 如果有 Refresh Token，尝试刷新
+      if (userStore.refreshToken) {
+        if (isRefreshing) {
+          // 正在刷新，将请求加入队列等待
+          return new Promise((resolve, reject) => {
+            requestQueue.push({ resolve, reject, config: originalRequest })
+          })
+        }
+
+        originalRequest._retry = true
+        isRefreshing = true
+
+        try {
+          // 调用刷新 Token 接口
+          const response = await axios.post(
+            import.meta.env.VITE_API_BASE_URL || '/api' + '/auth/refresh',
+            { refreshToken: userStore.refreshToken }
+          )
+
+          const { accessToken, refreshToken } = response.data
+
+          // 更新 Token
+          userStore.setTokens(accessToken, refreshToken)
+
+          // 重试队列中的请求
+          requestQueue.forEach(({ resolve, reject, config }) => {
+            config.headers.Authorization = `Bearer ${accessToken}`
+            api(config).then(resolve).catch(reject)
+          })
+          requestQueue = []
+
+          // 重试原始请求
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`
+          return api(originalRequest)
+        } catch (refreshError) {
+          // 刷新失败，清空队列并登出
+          requestQueue.forEach(({ reject }) => reject(refreshError))
+          requestQueue = []
+          userStore.logout()
+          router.push('/login')
+          ElMessage.error('登录已过期，请重新登录')
+          return Promise.reject(refreshError)
+        } finally {
+          isRefreshing = false
+        }
+      } else {
+        // 没有 Refresh Token，直接登出
+        userStore.logout()
+        router.push('/login')
+        ElMessage.error('登录已过期，请重新登录')
+      }
+    } else if (error.response?.status === 429) {
+      ElMessage.error('请求过于频繁，请稍后再试')
+    } else if (error.response?.status === 401) {
+      // 已重试过仍然 401
       const userStore = useUserStore()
       userStore.logout()
       router.push('/login')
       ElMessage.error('登录已过期，请重新登录')
-    } else if (error.response?.status === 429) {
-      ElMessage.error('请求过于频繁，请稍后再试')
     } else {
       ElMessage.error(error.response?.data?.message || '网络错误')
     }
+
     return Promise.reject(error)
   }
 )
@@ -46,7 +110,9 @@ api.interceptors.response.use(
 // 认证 API
 export const authApi = {
   login: (username, password) => api.post('/auth/login', { username, password }),
-  register: (username, password, email) => api.post('/auth/register', { username, password, email })
+  register: (username, password, email) => api.post('/auth/register', { username, password, email }),
+  refresh: (refreshToken) => api.post('/auth/refresh', { refreshToken }),
+  logout: (refreshToken) => api.post('/auth/logout', { refreshToken })
 }
 
 // 用户 API

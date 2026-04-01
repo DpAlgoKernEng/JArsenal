@@ -5,6 +5,7 @@ import com.example.demo.dto.UserCreateRequest;
 import com.example.demo.dto.UserUpdateRequest;
 import com.example.demo.entity.User;
 import com.example.demo.exception.BusinessException;
+import com.example.demo.service.AuditLogService;
 import com.example.demo.service.UserService;
 import com.example.demo.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,6 +46,9 @@ class UserControllerTest {
     @MockBean
     private JwtUtil jwtUtil;
 
+    @MockBean
+    private AuditLogService auditLogService;
+
     private User testUser;
     private String validToken;
 
@@ -62,7 +66,7 @@ class UserControllerTest {
     }
 
     private void mockValidAuth() {
-        when(jwtUtil.validateToken(validToken)).thenReturn(true);
+        when(jwtUtil.validateAccessToken(validToken)).thenReturn(true);
         when(jwtUtil.getUserIdFromToken(validToken)).thenReturn(1L);
         when(jwtUtil.getUsernameFromToken(validToken)).thenReturn("testuser");
     }
