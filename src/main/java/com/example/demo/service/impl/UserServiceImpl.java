@@ -9,6 +9,7 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -19,6 +20,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
 
     @Override
+    @Transactional(readOnly = true)
     public PageResult<User> listUsers(UserQueryRequest request) {
         // 1. 调用 PageHelper.startPage() 设置分页参数
         //    必须在查询语句紧挨着的前面调用，只对紧接着的第一个查询生效
@@ -44,23 +46,27 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public User getUserById(Long id) {
         return userMapper.selectById(id);
     }
 
     @Override
+    @Transactional
     public User createUser(User user) {
         userMapper.insert(user);
         return user;
     }
 
     @Override
+    @Transactional
     public User updateUser(User user) {
         userMapper.update(user);
         return userMapper.selectById(user.getId());
     }
 
     @Override
+    @Transactional
     public void deleteUser(Long id) {
         userMapper.deleteById(id);
     }
