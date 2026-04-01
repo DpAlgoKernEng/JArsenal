@@ -8,6 +8,7 @@
 | Maven | 3.6+ | 构建工具 |
 | MySQL | 8.x | 数据库 |
 | Redis | 6.x+ | 分布式限流（可选，未启动时自动降级） |
+| Node.js | 18+ | 前端运行环境 |
 
 ## 初始化步骤
 
@@ -49,7 +50,7 @@ spring:
     password: root      # 你的 MySQL 密码
 ```
 
-### 4. 构建 and 运行
+### 4. 启动后端
 
 ```bash
 # 编译项目
@@ -62,35 +63,43 @@ mvn test
 mvn spring-boot:run
 ```
 
-### 5. 验证启动
+### 5. 启动前端
 
 ```bash
-# 健康检查
-curl http://localhost:8080/actuator/health
+cd ui
 
-# 期望输出: {"status":"UP"}
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
 ```
 
-### 6. 测试登录
+### 6. 验证启动
 
 ```bash
-# 使用测试用户登录（密码: 123456）
+# 后端健康检查
+curl http://localhost:8080/actuator/health
+# 期望输出: {"status":"UP"}
+
+# 前端访问
+open http://localhost:3000
+```
+
+### 7. 测试登录
+
+在浏览器打开 http://localhost:3000，使用以下账号登录：
+
+| 用户名 | 密码 |
+|--------|------|
+| 张三 | 123456 |
+| 李四 | 123456 |
+
+或使用 curl 测试 API：
+```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"张三","password":"123456"}'
-```
-
-成功返回：
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "token": "eyJhbGci...",
-    "userId": 1,
-    "username": "张三"
-  }
-}
 ```
 
 ## 测试数据
@@ -146,6 +155,7 @@ redis-server
 
 | 地址 | 说明 |
 |------|------|
+| http://localhost:3000 | 前端管理界面 |
 | http://localhost:8080/swagger-ui.html | Swagger API 文档 |
 | http://localhost:8080/actuator/health | 健康检查 |
 | http://localhost:8080/actuator/metrics | 性能指标 |

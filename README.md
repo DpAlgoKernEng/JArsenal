@@ -4,9 +4,11 @@ Java Core Arsenal Collections - 企业级 Spring Boot MVC 分页示例项目
 
 ## 项目简介
 
-基于 Spring Boot 3.2.0 + MyBatis + PageHelper 的企业级 REST API 示例，包含完整的 MVC 架构和企业级配置。
+基于 Spring Boot 3.2.0 + MyBatis + PageHelper 的企业级 REST API 示例，包含完整的 MVC 架构、企业级配置和 Vue 3 前端界面。
 
 ## 技术栈
+
+### 后端
 
 | 技术 | 版本 | 说明 |
 |-----|------|------|
@@ -15,27 +17,51 @@ Java Core Arsenal Collections - 企业级 Spring Boot MVC 分页示例项目
 | MyBatis | 3.0.3 | ORM 框架 |
 | PageHelper | 2.1.0 | 分页插件 |
 | MySQL | 8.x | 数据库 |
+| JWT (jjwt) | 0.12.3 | Token 认证 |
+| Redis | - | 分布式限流 |
 | Springdoc | 2.3.0 | OpenAPI 文档 |
 | Lombok | - | 简化代码 |
+
+### 前端
+
+| 技术 | 版本 | 说明 |
+|-----|------|------|
+| Vue | 3.4.x | 前端框架 |
+| Element Plus | 2.4.x | UI 组件库 |
+| Vite | 5.x | 构建工具 |
+| Pinia | 2.x | 状态管理 |
+| Vue Router | 4.x | 路由管理 |
+| Axios | 1.x | HTTP 请求 |
 
 **注意**: Spring Boot 3.x 使用 Jakarta EE 9+，所有 `javax.*` 包名改为 `jakarta.*`
 
 ## 项目结构
 
 ```
-src/main/java/com/example/demo/
-├── annotation/          # 自定义注解（限流等）
-├── aspect/              # AOP 切面（性能、日志、限流）
-├── common/              # 公共类（统一响应 Result）
-├── config/              # 配置类（跨域、拦截器、Swagger）
-├── controller/          # REST 控制器
-├── dto/                 # 数据传输对象（请求/响应）
-├── entity/              # 实体类
-├── exception/           # 异常处理（全局异常处理器）
-├── interceptor/         # 拦截器（请求日志、认证）
-├── mapper/              # MyBatis Mapper 接口
-├── monitor/             # 监控指标（健康检查）
-└── service/             # 服务层接口和实现
+├── src/main/java/com/example/demo/   # 后端代码
+│   ├── annotation/          # 自定义注解（限流等）
+│   ├── aspect/              # AOP 切面（性能、日志、限流）
+│   ├── common/              # 公共类（统一响应 Result）
+│   ├── config/              # 配置类（跨域、拦截器、Swagger）
+│   ├── controller/          # REST 控制器
+│   ├── dto/                 # 数据传输对象（请求/响应）
+│   ├── entity/              # 实体类
+│   ├── exception/           # 异常处理（全局异常处理器）
+│   ├── interceptor/         # 拦截器（请求日志、认证）
+│   ├── mapper/              # MyBatis Mapper 接口
+│   ├── monitor/             # 监控指标（健康检查）
+│   ├── security/            # 安全认证（JWT、用户上下文）
+│   ├── service/             # 服务层接口和实现
+│   └── util/                # 工具类（JwtUtil）
+│
+└── ui/                               # 前端代码
+    ├── src/
+    │   ├── api/             # API 调用封装
+    │   ├── components/      # 公共组件
+    │   ├── router/          # 路由配置
+    │   ├── stores/          # Pinia 状态管理
+    │   └── views/           # 页面组件
+    └── vite.config.js       # Vite 配置
 ```
 
 ## 快速开始
@@ -44,24 +70,15 @@ src/main/java/com/example/demo/
 - JDK 17+
 - Maven 3.6+
 - MySQL 8.x
+- Node.js 18+ (前端)
 
 ### 2. 数据库配置
 ```bash
 # 创建数据库并导入测试数据
-mysql -h localhost -P 3306 -u root -proot < src/main/resources/schema.sql
+mysql -h localhost -P 3306 -u root -proot demo < src/main/resources/schema.sql
 ```
 
-### 3. 修改配置
-编辑 `src/main/resources/application.yml` 中的数据库连接信息：
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/demo
-    username: root
-    password: root
-```
-
-### 4. 运行项目
+### 3. 启动后端
 ```bash
 # 编译
 mvn clean compile
@@ -72,6 +89,28 @@ mvn spring-boot:run
 # 打包
 mvn clean package -DskipTests
 ```
+
+### 4. 启动前端
+```bash
+cd ui
+
+# 安装依赖
+npm install
+
+# 开发模式
+npm run dev
+
+# 生产构建
+npm run build
+```
+
+### 5. 访问地址
+
+| 地址 | 说明 |
+|------|------|
+| http://localhost:3000 | 前端界面 |
+| http://localhost:8080/swagger-ui.html | Swagger API 文档 |
+| http://localhost:8080/actuator/health | 健康检查 |
 
 ## API 接口
 
@@ -137,12 +176,12 @@ curl "http://localhost:8080/api/users?pageNum=1&pageSize=5&username=张&status=1
 
 | 功能 | 说明 |
 |-----|------|
+| JWT 认证 | Token 无状态认证，BCrypt 密码加密 |
+| Redis 限流 | `@RateLimit` 注解，滑动窗口算法，支持 IP/USER/DEFAULT |
 | 全局异常处理 | 统一异常响应，参数校验异常捕获 |
-| 请求日志拦截器 | 记录请求耗时、IP、慢请求告警（>3s） |
-| 认证拦截器 | Token 验证示例（可扩展 JWT） |
-| 跨域配置 | CORS 跨域支持 |
+| 请求日志拦截器 | 记录请求耗时、IP、traceId、慢请求告警（>3s） |
+| 跨域配置 | CORS 白名单配置化 |
 | 接口性能监控 | AOP 记录接口耗时 |
-| 请求限流 | `@RateLimit` 注解（内存版，生产建议 Redis） |
 | 参数校验 | Jakarta Validation + `@Valid` |
 | Swagger 文档 | OpenAPI 3.0 规范 |
 | Actuator 监控 | 健康检查、性能指标 |
@@ -181,12 +220,11 @@ pageInfo.getPageNum();    // 当前页
 ## 扩展建议
 
 - **Redis 缓存** - 分布式缓存
-- **Redis 限流** - 分布式限流
-- **Spring Security** - 安全认证框架
-- **JWT** - 无状态认证
+- **Prometheus + Grafana** - 监控告警
 - **链路追踪** - Spring Cloud Sleuth + Zipkin
 - **消息队列** - RabbitMQ/Kafka
 - **定时任务** - Quartz/XXL-Job
+- **容器化** - Docker + Kubernetes
 
 ## License
 
