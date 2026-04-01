@@ -22,7 +22,7 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      password: ${REDIS_PASSWORD:root}
       database: ${REDIS_DATABASE:0}
       lettuce:
         pool:
@@ -46,7 +46,7 @@ pagehelper:
 
 # JWT 配置
 jwt:
-  secret: ${JWT_SECRET:}
+  secret: ${JWT_SECRET:defaultSecretKey}
   expiration: ${JWT_EXPIRATION:86400000}
 
 # CORS 配置
@@ -85,7 +85,7 @@ logging:
     root: INFO
     com.example.demo: DEBUG
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}] %-5level %logger{36} - %msg%n"
   file:
     name: logs/demo.log
     max-size: 10MB
