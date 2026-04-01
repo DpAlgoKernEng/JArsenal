@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jarsenal
+  namespace: jarsenal
+  labels:
+    app: jarsenal
+spec:
+  type: ClusterIP
+  selector:
+    app: jarsenal
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+    - name: backend
+      port: 8080
+      targetPort: 8080
+      protocol: TCP

@@ -138,6 +138,7 @@ class UserControllerTest {
 
         UserCreateRequest request = new UserCreateRequest();
         request.setUsername("newuser");
+        request.setPassword("password123"); // 必填字段
         request.setEmail("new@example.com");
 
         User newUser = new User();
@@ -165,6 +166,7 @@ class UserControllerTest {
 
         UserCreateRequest request = new UserCreateRequest();
         request.setUsername(""); // 空用户名
+        request.setPassword("123"); // 密码太短（少于6位）
         request.setEmail("invalid-email"); // 无效邮箱
 
         // when & then

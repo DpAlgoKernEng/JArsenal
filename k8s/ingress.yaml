@@ -1,0 +1,45 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jarsenal-ingress
+  namespace: jarsenal
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - jarsenal.example.com
+      secretName: jarsenal-tls
+  rules:
+    - host: jarsenal.example.com
+      http:
+        paths:
+          # API 路由
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: jarsenal
+                port:
+                  number: 8080
+          # Actuator 健康检查
+          - path: /actuator
+            pathType: Prefix
+            backend:
+              service:
+                name: jarsenal
+                port:
+                  number: 8080
+          # 前端静态文件
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jarsenal
+                port:
+                  number: 80

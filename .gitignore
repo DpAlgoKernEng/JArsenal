@@ -26,3 +26,20 @@ replay_pid*
 /target
 
 /ui/node_modules
+/ui/dist
+
+# 环境配置 (包含敏感信息)
+.env
+.env.local
+.env.production
+
+# 日志目录
+/logs
+
+# IDE 配置
+.idea
+*.iml
+.vscode
+
+# macOS
+.DS_Store
