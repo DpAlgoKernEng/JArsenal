@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build Commands
 
+### Backend (Java/Spring Boot)
+
 ```bash
 # Build project
 mvn clean compile
@@ -27,11 +29,26 @@ mvn test -Dtest=UserControllerTest#testListUsers
 mysql -u root -proot demo < src/main/resources/schema.sql
 ```
 
+### Frontend (Vue 3)
+
+```bash
+cd ui
+
+# Install dependencies
+npm install
+
+# Run dev server (http://localhost:3000)
+npm run dev
+
+# Build for production
+npm run build
+```
+
 ## Architecture
 
-Spring Boot 3.2.0 + Java 17 enterprise REST API with MyBatis + PageHelper + JWT Auth + Redis Rate Limiting.
+Full-stack application: Spring Boot 3.2.0 + Java 17 REST API with Vue 3 + Element Plus frontend.
 
-### Key Tech Stack
+### Backend Tech Stack
 - **Spring Boot 3.x** - Uses Jakarta EE 9+ namespace (`jakarta.*` instead of `javax.*`)
 - **MyBatis 3.x** - XML mapper files in `src/main/resources/mapper/`
 - **PageHelper** - Pagination plugin, `PageHelper.startPage()` must be called immediately before query
@@ -39,7 +56,14 @@ Spring Boot 3.2.0 + Java 17 enterprise REST API with MyBatis + PageHelper + JWT 
 - **Redis** - Distributed rate limiting with Lua scripts (graceful degradation when unavailable)
 - **Springdoc OpenAPI 2.x** - Swagger UI at `/swagger-ui.html`
 
-### Package Structure
+### Frontend Tech Stack
+- **Vue 3** - Composition API
+- **Element Plus** - UI components
+- **Vite** - Build tool, dev server on port 3000 with API proxy to backend
+- **Pinia** - State management (user token storage)
+- **Vue Router** - Navigation with auth guard
+
+### Backend Package Structure
 ```
 com.example.demo/
 ├── annotation/     # Custom annotations (@RateLimit)
@@ -56,6 +80,21 @@ com.example.demo/
 ├── security/       # UserContext (holds current user from JWT)
 ├── service/        # Service layer (AuthService, UserService)
 └── util/           # JwtUtil
+```
+
+### Frontend Structure
+```
+ui/src/
+├── api/index.js        # Axios instance with auto JWT injection
+├── stores/user.js      # Pinia store for token/userId persistence
+├── router/index.js     # Routes + auth guard (redirect to /login)
+├── views/
+│   ├── Login.vue       # Login page
+│   ├── Register.vue    # Register page
+│   ├── UserList.vue    # User CRUD table with pagination
+│   └── UserEdit.vue    # Edit user details
+└── components/
+    └── Navbar.vue      # Header with logout
 ```
 
 ### Configuration
