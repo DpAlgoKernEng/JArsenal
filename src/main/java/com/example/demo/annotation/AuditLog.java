@@ -1,7 +1,7 @@
 package com.example.demo.annotation;
 
-import com.example.demo.enums.ModuleType;
-import com.example.demo.enums.OperationType;
+import com.example.demo.domain.audit.valueobject.ModuleType;
+import com.example.demo.domain.audit.valueobject.OperationType;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

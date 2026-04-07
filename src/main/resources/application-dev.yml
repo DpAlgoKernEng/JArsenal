@@ -13,10 +13,27 @@ spring:
       password: root
       database: 1
 
+  # Kafka 配置 (领域事件)
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
+    consumer:
+      group-id: jarsenal-audit-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.example.demo.domain
+
 # JWT 配置 (开发环境使用固定密钥)
 jwt:
   secret: dev-secret-key-at-least-256-bits-long-for-hs256-algorithm
   expiration: 86400000  # 24小时
+  refresh-expiration: 604800000  # 7天
 
 # CORS 配置 (开发环境允许本地前端)
 cors:

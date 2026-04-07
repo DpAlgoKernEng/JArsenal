@@ -1,11 +1,14 @@
 package com.example.demo.aspect;
 
-import com.example.demo.annotation.AuditLog;
 import com.example.demo.common.Result;
-import com.example.demo.dto.LoginResponse;
-import com.example.demo.entity.AuditLogEntity;
+import com.example.demo.domain.audit.repository.AuditLogRepository;
+import com.example.demo.domain.audit.valueobject.ModuleType;
+import com.example.demo.domain.audit.valueobject.OperationType;
+import com.example.demo.domain.audit.valueobject.TraceInfo;
+import com.example.demo.domain.user.valueobject.UserId;
+import com.example.demo.domain.user.valueobject.Username;
+import com.example.demo.interfaces.dto.response.LoginResponse;
 import com.example.demo.security.UserContext;
-import com.example.demo.service.AuditLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +17,7 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.MDC;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -22,6 +26,7 @@ import java.lang.reflect.Method;
 
 /**
  * 审计日志切面
+ * 使用 DDD 领域模型记录审计日志
  */
 @Slf4j
 @Aspect
@@ -29,7 +34,7 @@ import java.lang.reflect.Method;
 @RequiredArgsConstructor
 public class AuditLogAspect {
 
-    private final AuditLogService auditLogService;
+    private final AuditLogRepository auditLogRepository;
 
     @Around("@annotation(com.example.demo.annotation.AuditLog)")
     public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -38,65 +43,83 @@ public class AuditLogAspect {
         // 获取注解信息
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
-        AuditLog auditLogAnnotation = method.getAnnotation(AuditLog.class);
+        com.example.demo.annotation.AuditLog auditLogAnnotation = method.getAnnotation(com.example.demo.annotation.AuditLog.class);
 
-        // 构建审计日志
-        AuditLogEntity auditLog = new AuditLogEntity();
-        auditLog.setOperation(auditLogAnnotation.operation().name());
-        auditLog.setModule(auditLogAnnotation.module().name());
-        auditLog.setDescription(auditLogAnnotation.description());
+        // 获取操作类型和模块
+        OperationType operationType = auditLogAnnotation.operation();
+        ModuleType moduleType = auditLogAnnotation.module();
+        String description = auditLogAnnotation.description();
 
         // 获取请求信息
         HttpServletRequest request = getCurrentRequest();
-        if (request != null) {
-            auditLog.setIp(getClientIp(request));
-        }
-
-        // 获取 traceId
+        String ip = request != null ? getClientIp(request) : "unknown";
         String traceId = MDC.get("traceId");
-        auditLog.setTraceId(traceId);
 
-        // 尝试获取目标 ID（如果有 id 参数）
-        Object[] args = joinPoint.getArgs();
-        for (Object arg : args) {
-            if (arg instanceof Long id) {
-                auditLog.setTargetId(id);
-                break;
-            }
-        }
+        // 尝试获取目标 ID
+        Long targetId = extractTargetId(joinPoint.getArgs());
 
         try {
             // 执行方法
             Object result = joinPoint.proceed();
 
-            // 方法执行后获取用户信息（优先从 UserContext，其次从返回值）
-            fillUserInfo(auditLog, result);
+            // 获取用户信息
+            UserInfo userInfo = extractUserInfo(result);
 
-            // 记录成功
-            auditLog.setStatus(1);
-            auditLog.setDuration(System.currentTimeMillis() - startTime);
+            // 记录成功日志
+            long duration = System.currentTimeMillis() - startTime;
+            saveAuditLogAsync(userInfo.userId, userInfo.username, operationType, moduleType,
+                description, targetId, ip, traceId, true, null, duration);
 
             return result;
         } catch (Throwable e) {
-            // 失败时也尝试获取用户信息
-            fillUserInfoFromContext(auditLog);
+            // 获取用户信息
+            Long userId = UserContext.getCurrentUserId();
+            String username = UserContext.getCurrentUsername();
 
-            // 记录失败
-            auditLog.setStatus(0);
-            auditLog.setErrorMsg(e.getMessage());
-            auditLog.setDuration(System.currentTimeMillis() - startTime);
+            // 记录失败日志
+            long duration = System.currentTimeMillis() - startTime;
+            saveAuditLogAsync(userId, username, operationType, moduleType,
+                description, targetId, ip, traceId, false, e.getMessage(), duration);
+
             throw e;
-        } finally {
-            // 异步保存审计日志
-            auditLogService.saveAsync(auditLog);
         }
     }
 
     /**
-     * 填充用户信息
+     * 异步保存审计日志
      */
-    private void fillUserInfo(AuditLogEntity auditLog, Object result) {
-        // 先从 UserContext 获取
+    @Async
+    public void saveAuditLogAsync(Long userId, String username, OperationType operation,
+                                   ModuleType module, String description, Long targetId,
+                                   String ip, String traceId, boolean success,
+                                   String errorMsg, long duration) {
+        try {
+            com.example.demo.domain.audit.aggregate.AuditLog auditLog;
+            if (success) {
+                auditLog = com.example.demo.domain.audit.aggregate.AuditLog.success(
+                    userId != null ? new UserId(userId) : null,
+                    username != null ? new Username(username) : null,
+                    operation, module, description, targetId,
+                    TraceInfo.of(ip, traceId), duration
+                );
+            } else {
+                auditLog = com.example.demo.domain.audit.aggregate.AuditLog.failure(
+                    userId != null ? new UserId(userId) : null,
+                    username != null ? new Username(username) : null,
+                    operation, module, description, targetId,
+                    TraceInfo.of(ip, traceId), errorMsg, duration
+                );
+            }
+            auditLogRepository.save(auditLog);
+        } catch (Exception e) {
+            log.error("Failed to save audit log", e);
+        }
+    }
+
+    /**
+     * 提取用户信息
+     */
+    private UserInfo extractUserInfo(Object result) {
         Long userId = UserContext.getCurrentUserId();
         String username = UserContext.getCurrentUsername();
 
@@ -109,18 +132,20 @@ public class AuditLogAspect {
             }
         }
 
-        auditLog.setUserId(userId);
-        auditLog.setUsername(username);
+        return new UserInfo(userId, username);
     }
 
     /**
-     * 从 UserContext 获取用户信息
+     * 提取目标 ID
      */
-    private void fillUserInfoFromContext(AuditLogEntity auditLog) {
-        Long userId = UserContext.getCurrentUserId();
-        String username = UserContext.getCurrentUsername();
-        auditLog.setUserId(userId);
-        auditLog.setUsername(username);
+    private Long extractTargetId(Object[] args) {
+        if (args == null) return null;
+        for (Object arg : args) {
+            if (arg instanceof Long id) {
+                return id;
+            }
+        }
+        return null;
     }
 
     private HttpServletRequest getCurrentRequest() {
@@ -144,4 +169,6 @@ public class AuditLogAspect {
         }
         return ip;
     }
+
+    private record UserInfo(Long userId, String username) {}
 }

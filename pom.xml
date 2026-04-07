@@ -109,6 +109,12 @@
             <artifactId>commons-pool2</artifactId>
         </dependency>
 
+        <!-- Kafka for Domain Events -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
         <!-- BCrypt -->
         <dependency>
             <groupId>org.springframework.security</groupId>
