@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS refresh_token (
     user_id BIGINT NOT NULL COMMENT '用户ID',
     token VARCHAR(500) NOT NULL COMMENT 'Refresh Token',
     expires_at DATETIME NOT NULL COMMENT '过期时间',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     revoked TINYINT DEFAULT 0 COMMENT '是否已撤销：0-有效，1-已撤销',
     INDEX idx_user_id (user_id),
     INDEX idx_token (token),
@@ -43,13 +43,29 @@ CREATE TABLE IF NOT EXISTS audit_log (
     status TINYINT DEFAULT 1 COMMENT '状态：1-成功，0-失败',
     error_msg VARCHAR(500) COMMENT '错误信息',
     duration BIGINT COMMENT '操作耗时(ms)',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     INDEX idx_user_id (user_id),
     INDEX idx_operation (operation),
     INDEX idx_module (module),
-    INDEX idx_created_at (created_at),
+    INDEX idx_create_time (create_time),
     INDEX idx_trace_id (trace_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='审计日志表';
+
+-- 创建事件 Outbox 表 (用于可靠的事件发布)
+CREATE TABLE IF NOT EXISTS event_outbox (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    event_id VARCHAR(50) NOT NULL COMMENT '事件唯一标识',
+    event_type VARCHAR(50) NOT NULL COMMENT '事件类型',
+    payload TEXT NOT NULL COMMENT '事件内容(JSON)',
+    status VARCHAR(20) DEFAULT 'PENDING' COMMENT '状态：PENDING-待发送, SENT-已发送, FAILED-失败',
+    retry_count INT DEFAULT 0 COMMENT '重试次数',
+    error_message TEXT COMMENT '错误信息',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    sent_time DATETIME COMMENT '发送时间',
+    INDEX idx_status (status),
+    INDEX idx_event_id (event_id),
+    INDEX idx_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='事件Outbox表';
 
 -- 插入测试数据 (密码使用BCrypt加密，明文均为123456)
 INSERT INTO user (username, password, email, status) VALUES

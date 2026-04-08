@@ -20,5 +20,5 @@ public class AuditLogPO {
     private Integer status;  // 1-成功，0-失败
     private String errorMsg;
     private Long duration;
-    private LocalDateTime createdAt;
+    private LocalDateTime createTime;  // 对应数据库 create_time
 }

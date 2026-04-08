@@ -35,7 +35,7 @@ public class AuditLogConverter {
         po.setStatus(log.isSuccess() ? 1 : 0);
         po.setErrorMsg(log.getErrorMessage());
         po.setDuration(log.getDuration());
-        po.setCreatedAt(log.getCreatedAt());
+        po.setCreateTime(log.getCreatedAt());
         return po;
     }
 }

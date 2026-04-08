@@ -19,6 +19,22 @@ spring:
       password: ${REDIS_PASSWORD}
       database: ${REDIS_DATABASE:0}
 
+  # Kafka 配置 (领域事件)
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
+    consumer:
+      group-id: jarsenal-audit-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.example.demo.domain
+
 # JWT 配置 (生产环境必须设置强密钥)
 jwt:
   secret: ${JWT_SECRET}

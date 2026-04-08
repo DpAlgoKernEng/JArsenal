@@ -24,7 +24,7 @@ public class RefreshTokenConverter {
             new UserId(po.getUserId()),
             po.getToken(),
             po.getExpiresAt(),
-            po.getCreatedAt(),
+            po.getCreateTime(),
             po.getRevoked() == 1
         );
     }
@@ -41,7 +41,7 @@ public class RefreshTokenConverter {
         po.setUserId(token.getUserId().value());
         po.setToken(token.getToken());
         po.setExpiresAt(token.getExpiresAt());
-        po.setCreatedAt(token.getCreatedAt());
+        po.setCreateTime(token.getCreatedAt());
         po.setRevoked(token.isRevoked() ? 1 : 0);
         return po;
     }
