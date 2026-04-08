@@ -1,6 +1,69 @@
 # ============================================
-# Kafka Deployment for Kubernetes
-# 使用 KRaft 模式（无需 Zookeeper）
+# Zookeeper Deployment for Kubernetes
+# ============================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookeeper
+  namespace: jarsenal
+  labels:
+    app: zookeeper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zookeeper
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+    spec:
+      containers:
+        - name: zookeeper
+          image: confluentinc/cp-zookeeper:7.6.0
+          ports:
+            - containerPort: 2181
+              name: zookeeper
+          env:
+            - name: ZOOKEEPER_CLIENT_PORT
+              value: "2181"
+            - name: ZOOKEEPER_TICK_TIME
+              value: "2000"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "200m"
+          livenessProbe:
+            tcpSocket:
+              port: 2181
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 2181
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+  namespace: jarsenal
+spec:
+  type: ClusterIP
+  selector:
+    app: zookeeper
+  ports:
+    - port: 2181
+      targetPort: 2181
+
+---
+# ============================================
+# Kafka StatefulSet for Kubernetes
 # ============================================
 apiVersion: apps/v1
 kind: StatefulSet
@@ -22,38 +85,23 @@ spec:
     spec:
       containers:
         - name: kafka
-          image: bitnami/kafka:latest
+          image: confluentinc/cp-kafka:7.6.0
           ports:
             - containerPort: 9092
-              name: kafka-client
-            - containerPort: 9093
-              name: kafka-internal
+              name: kafka
           env:
-            # KRaft 模式配置（无需 Zookeeper）
-            - name: KAFKA_CFG_NODE_ID
-              value: "0"
-            - name: KAFKA_CFG_PROCESS_ROLES
-              value: "broker,controller"
-            - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
-              value: "0@kafka-0.kafka:9093"
-            - name: KAFKA_CFG_LISTENERS
-              value: "PLAINTEXT://:9092,CONTROLLER://:9093"
-            - name: KAFKA_CFG_ADVERTISED_LISTENERS
+            - name: KAFKA_BROKER_ID
+              value: "1"
+            - name: KAFKA_ZOOKEEPER_CONNECT
+              value: "zookeeper:2181"
+            - name: KAFKA_ADVERTISED_LISTENERS
               value: "PLAINTEXT://kafka:9092"
-            - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
-              value: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
-            - name: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
-              value: "CONTROLLER"
-            - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
-              value: "PLAINTEXT"
-            # 自动创建 topic
-            - name: KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
               value: "true"
-            # 日志保留配置
-            - name: KAFKA_CFG_LOG_RETENTION_HOURS
+            - name: KAFKA_LOG_RETENTION_HOURS
               value: "168"
-            - name: KAFKA_CFG_LOG_RETENTION_BYTES
-              value: "1073741824"
           resources:
             requests:
               memory: "512Mi"
@@ -63,7 +111,7 @@ spec:
               cpu: "500m"
           volumeMounts:
             - name: kafka-data
-              mountPath: /bitnami/kafka
+              mountPath: /var/lib/kafka/data
           livenessProbe:
             tcpSocket:
               port: 9092
@@ -100,12 +148,8 @@ spec:
   selector:
     app: kafka
   ports:
-    - name: kafka-client
-      port: 9092
+    - port: 9092
       targetPort: 9092
-    - name: kafka-internal
-      port: 9093
-      targetPort: 9093
 
 ---
 # Kafka Headless Service (for StatefulSet)
@@ -120,9 +164,5 @@ spec:
   selector:
     app: kafka
   ports:
-    - name: kafka-client
-      port: 9092
+    - port: 9092
       targetPort: 9092
-    - name: kafka-internal
-      port: 9093
-      targetPort: 9093
