@@ -17,8 +17,8 @@ public class OutboxMessage {
     private String payload;
     private Integer status;  // 0-待发送，1-已发送，2-发送失败
     private Integer retryCount;
-    private LocalDateTime createdAt;
-    private LocalDateTime sentAt;
+    private LocalDateTime createTime;  // 对应数据库 create_time
+    private LocalDateTime sentTime;
     private String errorMsg;
 
     // 状态常量
