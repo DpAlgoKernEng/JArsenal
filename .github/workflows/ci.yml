@@ -119,6 +119,10 @@ jobs:
         working-directory: ui
         run: npm ci
 
+      - name: Run frontend tests
+        working-directory: ui
+        run: npm test
+
       - name: Build frontend
         working-directory: ui
         run: npm run build
