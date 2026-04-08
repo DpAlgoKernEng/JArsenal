@@ -38,6 +38,36 @@ services:
       timeout: 5s
       retries: 5
 
+  # Kafka 消息队列 (KRaft 模式，无需 Zookeeper)
+  kafka:
+    image: bitnami/kafka:3.7
+    container_name: jarsenal-kafka
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+    environment:
+      # KRaft 模式配置
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # 自动创建 topic
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # 日志保留
+      KAFKA_CFG_LOG_RETENTION_HOURS: 168
+    volumes:
+      - kafka_data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
   # 后端应用
   backend:
     build:
@@ -50,6 +80,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:mysql://mysql:3306/demo?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
@@ -58,6 +90,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redispassword}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       JWT_SECRET: ${JWT_SECRET:-change-this-to-a-strong-random-secret-key-at-least-256-bits}
       JWT_EXPIRATION: 3600000
       CORS_ALLOWED_ORIGINS: http://localhost,http://localhost:80
@@ -74,6 +107,7 @@ services:
 volumes:
   mysql_data:
   redis_data:
+  kafka_data:
 
 networks:
   default:

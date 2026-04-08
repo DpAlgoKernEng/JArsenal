@@ -1,0 +1,128 @@
+# ============================================
+# Kafka Deployment for Kubernetes
+# 使用 KRaft 模式（无需 Zookeeper）
+# ============================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  namespace: jarsenal
+  labels:
+    app: kafka
+spec:
+  serviceName: kafka
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+        - name: kafka
+          image: bitnami/kafka:3.7
+          ports:
+            - containerPort: 9092
+              name: kafka-client
+            - containerPort: 9093
+              name: kafka-internal
+          env:
+            # KRaft 模式配置（无需 Zookeeper）
+            - name: KAFKA_CFG_NODE_ID
+              value: "0"
+            - name: KAFKA_CFG_PROCESS_ROLES
+              value: "broker,controller"
+            - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
+              value: "0@kafka-0.kafka:9093"
+            - name: KAFKA_CFG_LISTENERS
+              value: "PLAINTEXT://:9092,CONTROLLER://:9093"
+            - name: KAFKA_CFG_ADVERTISED_LISTENERS
+              value: "PLAINTEXT://kafka:9092"
+            - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
+              value: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+            - name: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
+              value: "CONTROLLER"
+            - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
+              value: "PLAINTEXT"
+            # 自动创建 topic
+            - name: KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE
+              value: "true"
+            # 日志保留配置
+            - name: KAFKA_CFG_LOG_RETENTION_HOURS
+              value: "168"
+            - name: KAFKA_CFG_LOG_RETENTION_BYTES
+              value: "1073741824"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          volumeMounts:
+            - name: kafka-data
+              mountPath: /bitnami/kafka
+          livenessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+      volumes:
+        - name: kafka-data
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: kafka-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: standard
+        resources:
+          requests:
+            storage: 5Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: jarsenal
+spec:
+  type: ClusterIP
+  selector:
+    app: kafka
+  ports:
+    - name: kafka-client
+      port: 9092
+      targetPort: 9092
+    - name: kafka-internal
+      port: 9093
+      targetPort: 9093
+
+---
+# Kafka Headless Service (for StatefulSet)
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-headless
+  namespace: jarsenal
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: kafka
+  ports:
+    - name: kafka-client
+      port: 9092
+      targetPort: 9092
+    - name: kafka-internal
+      port: 9093
+      targetPort: 9093

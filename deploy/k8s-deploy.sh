@@ -34,17 +34,21 @@ fi
 echo ">>> 创建命名空间..."
 kubectl apply -f k8s/namespace.yaml
 
-# 部署基础设施 (MySQL, Redis)
+# 部署基础设施 (MySQL, Redis, Kafka)
 echo ">>> 部署 MySQL..."
 kubectl apply -f k8s/mysql.yaml
 
 echo ">>> 部署 Redis..."
 kubectl apply -f k8s/redis.yaml
 
+echo ">>> 部署 Kafka..."
+kubectl apply -f k8s/kafka.yaml
+
 # 等待基础设施就绪
 echo ">>> 等待基础设施就绪..."
 kubectl wait --for=condition=ready pod -l app=mysql -n $NAMESPACE --timeout=120s || true
 kubectl wait --for=condition=ready pod -l app=redis -n $NAMESPACE --timeout=60s || true
+kubectl wait --for=condition=ready pod -l app=kafka -n $NAMESPACE --timeout=120s || true
 
 # 部署配置
 echo ">>> 部署 ConfigMap..."
