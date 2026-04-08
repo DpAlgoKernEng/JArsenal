@@ -140,3 +140,45 @@ data:
         INDEX idx_username (username),
         INDEX idx_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+    CREATE TABLE IF NOT EXISTS refresh_token (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+        user_id BIGINT NOT NULL COMMENT '用户ID',
+        token VARCHAR(500) NOT NULL COMMENT '刷新Token',
+        expires_at DATETIME NOT NULL COMMENT '过期时间',
+        revoked TINYINT DEFAULT 0 COMMENT '是否已撤销',
+        create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+        INDEX idx_user_id (user_id),
+        INDEX idx_token (token)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+    CREATE TABLE IF NOT EXISTS audit_log (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+        user_id BIGINT COMMENT '用户ID',
+        username VARCHAR(50) COMMENT '用户名',
+        operation_type VARCHAR(20) NOT NULL COMMENT '操作类型',
+        module_type VARCHAR(20) NOT NULL COMMENT '模块类型',
+        description VARCHAR(200) COMMENT '操作描述',
+        request_params TEXT COMMENT '请求参数',
+        response_result TEXT COMMENT '响应结果',
+        duration_ms INT DEFAULT 0 COMMENT '执行耗时(ms)',
+        trace_id VARCHAR(50) COMMENT '链路追踪ID',
+        create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+        INDEX idx_user_id (user_id),
+        INDEX idx_operation_type (operation_type),
+        INDEX idx_create_time (create_time)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+    CREATE TABLE IF NOT EXISTS event_outbox (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+        event_id VARCHAR(50) NOT NULL COMMENT '事件唯一标识',
+        event_type VARCHAR(50) NOT NULL COMMENT '事件类型',
+        payload TEXT NOT NULL COMMENT '事件内容(JSON)',
+        status VARCHAR(20) DEFAULT 'PENDING' COMMENT '状态:PENDING,SENT,FAILED',
+        retry_count INT DEFAULT 0 COMMENT '重试次数',
+        error_message TEXT COMMENT '错误信息',
+        create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+        sent_time DATETIME COMMENT '发送时间',
+        INDEX idx_status (status),
+        INDEX idx_event_id (event_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

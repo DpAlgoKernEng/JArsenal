@@ -28,10 +28,7 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
-              name: backend
-              protocol: TCP
-            - containerPort: 80
-              name: frontend
+              name: http
               protocol: TCP
           envFrom:
             - configMapRef:

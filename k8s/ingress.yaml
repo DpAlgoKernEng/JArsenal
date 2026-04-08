@@ -19,27 +19,11 @@ spec:
     - host: jarsenal.example.com
       http:
         paths:
-          # API 路由
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: jarsenal
-                port:
-                  number: 8080
-          # Actuator 健康检查
-          - path: /actuator
-            pathType: Prefix
-            backend:
-              service:
-                name: jarsenal
-                port:
-                  number: 8080
-          # 前端静态文件
+          # 所有请求统一路由到 8080 端口 (nginx + spring boot 同容器)
           - path: /
             pathType: Prefix
             backend:
               service:
                 name: jarsenal
                 port:
-                  number: 80
+                  number: 8080

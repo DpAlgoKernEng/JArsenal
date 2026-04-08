@@ -178,15 +178,16 @@ jobs:
       - name: Deploy to Kubernetes
         if: steps.check-config.outputs.skip != 'true'
         run: |
-          # 替换镜像版本
-          sed -i "s|IMAGE_TAG|${{ github.sha }}|g" k8s/deployment.yaml
-          sed -i "s|IMAGE_REGISTRY|${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}|g" k8s/deployment.yaml
+          # 使用 envsubst 动态替换镜像版本，不修改源文件
+          export IMAGE_REGISTRY="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          export IMAGE_TAG="${{ github.sha }}"
+          export KAFKA_BOOTSTRAP="kafka:9092"
 
           # 应用配置
           kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/configmap.yaml
+          envsubst < k8s/configmap.yaml | kubectl apply -f -
           kubectl apply -f k8s/secret.yaml
-          kubectl apply -f k8s/deployment.yaml
+          envsubst < k8s/deployment.yaml | kubectl apply -f -
           kubectl apply -f k8s/service.yaml
           kubectl apply -f k8s/ingress.yaml
 
