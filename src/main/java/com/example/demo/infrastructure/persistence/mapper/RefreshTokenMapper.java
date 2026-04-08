@@ -11,10 +11,10 @@ import java.util.List;
 @Mapper
 public interface RefreshTokenMapper {
 
-    @Select("SELECT id, user_id, token, expires_at, created_at, revoked FROM refresh_token WHERE token = #{token}")
+    @Select("SELECT id, user_id, token, expires_at, create_time, revoked FROM refresh_token WHERE token = #{token}")
     RefreshTokenPO selectByToken(@Param("token") String token);
 
-    @Insert("INSERT INTO refresh_token(user_id, token, expires_at, created_at, revoked) " +
+    @Insert("INSERT INTO refresh_token(user_id, token, expires_at, create_time, revoked) " +
             "VALUES(#{userId}, #{token}, #{expiresAt}, NOW(), 0)")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(RefreshTokenPO token);
@@ -31,6 +31,6 @@ public interface RefreshTokenMapper {
     @Delete("DELETE FROM refresh_token WHERE expires_at < NOW()")
     int deleteExpired();
 
-    @Select("SELECT id, user_id, token, expires_at, created_at, revoked FROM refresh_token WHERE user_id = #{userId} AND revoked = 0")
+    @Select("SELECT id, user_id, token, expires_at, create_time, revoked FROM refresh_token WHERE user_id = #{userId} AND revoked = 0")
     List<RefreshTokenPO> selectValidByUserId(@Param("userId") Long userId);
 }
