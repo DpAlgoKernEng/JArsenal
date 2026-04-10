@@ -58,7 +58,7 @@ class AuditLogConverterTest {
         assertTrue(domain.isSuccess());
         assertNull(domain.getErrorMessage());
         assertEquals(150L, domain.getDuration());
-        assertNotNull(domain.getCreatedAt());
+        assertEquals(LocalDateTime.of(2024, 1, 1, 10, 0), domain.getCreatedAt());
     }
 
     @Test

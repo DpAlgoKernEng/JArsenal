@@ -78,7 +78,36 @@ public class AuditLog extends BaseEntity<String> {
             operation.description(), null, traceInfo, 0);
     }
 
+    /**
+     * 工厂方法：重建已存在的审计日志（从数据库加载时使用）
+     */
+    public static AuditLog rebuild(String id, UserId userId, Username username,
+                                   OperationType operation, ModuleType module,
+                                   String description, Long targetId,
+                                   TraceInfo traceInfo, boolean success,
+                                   String errorMessage, long duration,
+                                   LocalDateTime createdAt) {
+        AuditLog log = new AuditLog();
+        log.setId(id);
+        log.userId = userId;
+        log.username = username;
+        log.operation = operation;
+        log.module = module;
+        log.description = description;
+        log.targetId = targetId;
+        log.traceInfo = traceInfo;
+        log.success = success;
+        log.errorMessage = errorMessage;
+        log.duration = duration;
+        log.createdAt = createdAt;
+        return log;
+    }
+
     // Getters
+
+    public String getId() {
+        return (String) super.getId();
+    }
 
     public UserId getUserId() {
         return userId;

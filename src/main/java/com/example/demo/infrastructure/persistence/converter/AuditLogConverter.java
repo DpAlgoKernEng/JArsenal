@@ -67,19 +67,19 @@ public class AuditLogConverter {
         TraceInfo traceInfo = (po.getIp() != null || po.getTraceId() != null)
             ? new TraceInfo(po.getIp(), po.getTraceId()) : null;
 
-        if (po.getStatus() != null && po.getStatus() == 1) {
-            return AuditLog.success(
-                userId, username, operation, module,
-                po.getDescription(), po.getTargetId(),
-                traceInfo, po.getDuration() != null ? po.getDuration() : 0L
-            );
-        } else {
-            return AuditLog.failure(
-                userId, username, operation, module,
-                po.getDescription(), po.getTargetId(),
-                traceInfo, po.getErrorMsg(),
-                po.getDuration() != null ? po.getDuration() : 0L
-            );
-        }
+        return AuditLog.rebuild(
+            String.valueOf(po.getId()),
+            userId,
+            username,
+            operation,
+            module,
+            po.getDescription(),
+            po.getTargetId(),
+            traceInfo,
+            po.getStatus() != null && po.getStatus() == 1,
+            po.getErrorMsg(),
+            po.getDuration() != null ? po.getDuration() : 0L,
+            po.getCreateTime()
+        );
     }
 }
