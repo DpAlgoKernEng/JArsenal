@@ -40,19 +40,13 @@ public class AuditLogRepositoryImpl implements AuditLogRepository {
     public List<AuditLog> findByUserId(String userId, int pageNum, int pageSize) {
         List<AuditLogPO> pos = auditLogMapper.selectByUserId(Long.parseLong(userId));
         return pos.stream()
-            .map(po -> {
-                // 这里简化处理，实际应该完整转换
-                return AuditLog.success(
-                    null, null, null, null, null, null, null, 0
-                );
-            })
+            .map(auditLogConverter::toDomain)
             .collect(Collectors.toList());
     }
 
     @Override
     public AuditLog findByTraceId(String traceId) {
         AuditLogPO po = auditLogMapper.selectByTraceId(traceId);
-        // 简化处理
-        return null;
+        return auditLogConverter.toDomain(po);
     }
 }
