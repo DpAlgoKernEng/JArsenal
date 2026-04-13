@@ -65,6 +65,11 @@ kafka:
   topic:
     domain-events: ${KAFKA_TOPIC_DOMAIN_EVENTS:domain-events}
 
+# Outbox 分布式锁配置
+outbox:
+  lock:
+    enabled: ${OUTBOX_LOCK_ENABLED:true}  # 生产环境多实例部署时应启用
+
 # Actuator 监控配置
 management:
   endpoints:
