@@ -1,0 +1,29 @@
+// Element Plus 变量覆盖
+@forward 'element-plus/theme-chalk/src/common/var.scss' with (
+  $colors: (
+    'primary': ('base': #3b82f6),
+    'success': ('base': #10b981),
+    'warning': ('base': #f59e0b),
+    'danger': ('base': #ef4444),
+  ),
+  $font-size: (
+    'extra-small': 12px,
+    'small': 14px,
+    'base': 14px,
+    'medium': 16px,
+    'large': 18px,
+    'extra-large': 20px
+  ),
+  $border-radius: (
+    'base': 8px,
+    'small': 4px,
+    'round': 16px,
+    'circle': 50%
+  ),
+  $box-shadow: (
+    '': 0 4px 24px rgba(0, 0, 0, 0.08),
+    'light': 0 2px 12px rgba(0, 0, 0, 0.04),
+    'lighter': 0 1px 6px rgba(0, 0, 0, 0.02),
+    'dark': 0 8px 32px rgba(0, 0, 0, 0.12)
+  )
+);
