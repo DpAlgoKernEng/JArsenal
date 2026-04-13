@@ -18,7 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -76,7 +78,14 @@ class UserApplicationServiceTest {
 
         doNothing().when(userDomainService).ensureUsernameUnique(any(Username.class));
         when(passwordEncoder.encode("password123")).thenReturn("$2a$10$encryptedPassword");
-        doNothing().when(userRepository).save(any(User.class));
+
+        // 模拟 save 方法设置用户 ID
+        doAnswer((Answer<Void>) invocation -> {
+            User user = invocation.getArgument(0);
+            ReflectionTestUtils.setField(user, "id", new UserId(100L));
+            return null;
+        }).when(userRepository).save(any(User.class));
+
         doNothing().when(eventPublisher).setAggregateContext(anyString(), anyString());
         doNothing().when(eventPublisher).publishAll(anyList());
         doNothing().when(eventPublisher).clearAggregateContext();
@@ -86,6 +95,7 @@ class UserApplicationServiceTest {
 
         // then
         assertNotNull(userId);
+        assertEquals(100L, userId);
 
         verify(userDomainService).ensureUsernameUnique(any(Username.class));
         verify(passwordEncoder).encode("password123");

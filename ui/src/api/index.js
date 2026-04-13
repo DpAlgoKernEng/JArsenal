@@ -5,7 +5,8 @@ import { useUserStore } from '../stores/user'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
-  timeout: 10000
+  timeout: 10000,
+  withCredentials: true  // 确保发送 Cookie（用于 Refresh Token）
 })
 
 // 是否正在刷新 Token
@@ -40,8 +41,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       const userStore = useUserStore()
 
-      // 如果有 Refresh Token，尝试刷新
-      if (userStore.refreshToken) {
+      // 尝试刷新 Token（Refresh Token 通过 Cookie 自动发送）
+      if (userStore.accessToken) {
         if (isRefreshing) {
           // 正在刷新，将请求加入队列等待
           return new Promise((resolve, reject) => {
@@ -53,16 +54,17 @@ api.interceptors.response.use(
         isRefreshing = true
 
         try {
-          // 调用刷新 Token 接口
+          // 调用刷新 Token 接口（Refresh Token 通过 Cookie 自动发送）
           const response = await axios.post(
-            import.meta.env.VITE_API_BASE_URL || '/api' + '/auth/refresh',
-            { refreshToken: userStore.refreshToken }
+            (import.meta.env.VITE_API_BASE_URL || '/api') + '/auth/refresh',
+            {},
+            { withCredentials: true }  // 确保发送 Cookie
           )
 
-          const { accessToken, refreshToken } = response.data
+          const { accessToken } = response.data
 
-          // 更新 Token
-          userStore.setTokens(accessToken, refreshToken)
+          // 更新 Access Token（Refresh Token 已通过 HttpOnly Cookie 更新）
+          userStore.setAccessToken(accessToken)
 
           // 重试队列中的请求
           requestQueue.forEach(({ resolve, reject, config }) => {
@@ -86,7 +88,7 @@ api.interceptors.response.use(
           isRefreshing = false
         }
       } else {
-        // 没有 Refresh Token，直接登出
+        // 没有 Access Token，直接登出
         userStore.logout()
         router.push('/login')
         ElMessage.error('登录已过期，请重新登录')
@@ -111,8 +113,10 @@ api.interceptors.response.use(
 export const authApi = {
   login: (username, password) => api.post('/auth/login', { username, password }),
   register: (username, password, email) => api.post('/auth/register', { username, password, email }),
-  refresh: (refreshToken) => api.post('/auth/refresh', { refreshToken }),
-  logout: (refreshToken) => api.post('/auth/logout', { refreshToken })
+  // Refresh Token 通过 HttpOnly Cookie 自动发送
+  refresh: () => api.post('/auth/refresh', {}),
+  // Refresh Token 通过 HttpOnly Cookie 自动发送
+  logout: () => api.post('/auth/logout', {})
 }
 
 // 用户 API

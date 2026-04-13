@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ServiceLogAspect {
 
-    @Pointcut("execution(* com.example.demo.service.*.*(..))")
+    @Pointcut("execution(* com.example.demo.application.service.*.*(..)) || execution(* com.example.demo.service.*.*(..))")
     public void serviceMethods() {}
 
     @Before("serviceMethods()")

@@ -1,5 +1,6 @@
 package com.example.demo.interfaces.dto.request;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -19,6 +20,7 @@ public class UserCreateRequest {
     @Size(min = 6, max = 100, message = "密码长度必须在6-100字符之间")
     private String password;
 
+    @Email(message = "邮箱格式不正确")
     private String email;
 
     @Min(value = 0, message = "状态值必须大于等于0")

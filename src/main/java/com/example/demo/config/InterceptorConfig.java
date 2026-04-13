@@ -30,6 +30,8 @@ public class InterceptorConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/auth/login",
                         "/api/auth/register",
+                        "/api/auth/refresh",
+                        "/api/auth/logout",
                         "/api/public/**",
                         "/api-docs/**",
                         "/swagger-ui/**"

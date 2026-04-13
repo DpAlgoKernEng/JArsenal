@@ -47,12 +47,14 @@ public class UserApplicationService {
     public Long register(RegisterCommand command) {
         Username username = new Username(command.getUsername());
         Email email = new Email(command.getEmail());
+
+        // 领域服务校验唯一性（先校验，避免不必要的密码加密）
+        userDomainService.ensureUsernameUnique(username);
+
+        // 加密密码
         EncryptedPassword password = new EncryptedPassword(
             passwordEncoder.encode(command.getPassword())
         );
-
-        // 领域服务校验唯一性
-        userDomainService.ensureUsernameUnique(username);
 
         // 创建用户聚合根
         User user = User.register(username, email, password);

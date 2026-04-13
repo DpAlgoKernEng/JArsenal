@@ -205,7 +205,6 @@ class AuthApplicationServiceTest {
         RefreshTokenCommand command = new RefreshTokenCommand("expired-token");
 
         RefreshToken expiredToken = mock(RefreshToken.class);
-        when(expiredToken.getUserId()).thenReturn(new UserId(1L));
         doThrow(new DomainException("Token已过期")).when(expiredToken).validate();
 
         when(tokenRepository.findByToken("expired-token")).thenReturn(expiredToken);

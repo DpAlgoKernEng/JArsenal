@@ -9,13 +9,17 @@ import com.example.demo.domain.user.valueobject.Username;
 import com.example.demo.domain.user.valueobject.UserStatus;
 import com.example.demo.interfaces.assembler.UserAssembler;
 import com.example.demo.interfaces.dto.response.UserResponse;
+import com.example.demo.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -31,7 +35,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * 用户查询控制器测试
  */
-@WebMvcTest(UserQueryController.class)
+@SpringBootTest
+@AutoConfigureMockMvc
+@TestPropertySource(properties = {
+    "rate-limit.fail-open=true",
+    "jwt.secret=test-secret-key-at-least-256-bits-long-for-hs256-algorithm"
+})
 class UserQueryControllerTest {
 
     @Autowired
@@ -45,6 +54,17 @@ class UserQueryControllerTest {
 
     @MockBean
     private UserAssembler userAssembler;
+
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @BeforeEach
+    void setUp() {
+        // Mock JwtUtil 让所有 token 都有效
+        when(jwtUtil.validateAccessToken(anyString())).thenReturn(true);
+        when(jwtUtil.getUserIdFromToken(anyString())).thenReturn(1L);
+        when(jwtUtil.getUsernameFromToken(anyString())).thenReturn("testuser");
+    }
 
     private User createTestUser(Long id, String username, String email, UserStatus status) {
         return User.rebuild(
@@ -78,6 +98,7 @@ class UserQueryControllerTest {
                 .param("pageNum", "1")
                 .param("pageSize", "10")
                 .param("username", "张")
+                .header("Authorization", "Bearer test-token")
                 .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200))
@@ -101,7 +122,8 @@ class UserQueryControllerTest {
         // when & then
         mockMvc.perform(get("/api/users")
                 .param("pageNum", "1")
-                .param("pageSize", "10"))
+                .param("pageSize", "10")
+                .header("Authorization", "Bearer test-token"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200))
             .andExpect(jsonPath("$.data.total").value(0))
@@ -124,7 +146,8 @@ class UserQueryControllerTest {
         mockMvc.perform(get("/api/users")
                 .param("pageNum", "1")
                 .param("pageSize", "10")
-                .param("status", "1"))
+                .param("status", "1")
+                .header("Authorization", "Bearer test-token"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.total").value(1));
     }
@@ -141,6 +164,7 @@ class UserQueryControllerTest {
 
         // when & then
         mockMvc.perform(get("/api/users/1")
+                .header("Authorization", "Bearer test-token")
                 .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200))
@@ -158,6 +182,7 @@ class UserQueryControllerTest {
 
         // when & then
         mockMvc.perform(get("/api/users/999")
+                .header("Authorization", "Bearer test-token")
                 .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(404))
@@ -177,7 +202,8 @@ class UserQueryControllerTest {
         when(userAssembler.toResponseList(any())).thenReturn(Collections.emptyList());
 
         // when & then - 不传参数时，应使用默认值
-        mockMvc.perform(get("/api/users"))
+        mockMvc.perform(get("/api/users")
+                .header("Authorization", "Bearer test-token"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200));
     }

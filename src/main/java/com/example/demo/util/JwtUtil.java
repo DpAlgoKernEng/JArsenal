@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -30,6 +31,22 @@ public class JwtUtil {
 
     private static final String TOKEN_TYPE_ACCESS = "access";
     private static final String TOKEN_TYPE_REFRESH = "refresh";
+
+    /**
+     * 启动时校验密钥安全性
+     * HS256 算法要求密钥长度 >= 256 bits (32 字符)
+     */
+    @PostConstruct
+    public void validateSecretKey() {
+        if (secret == null || secret.length() < 32) {
+            throw new IllegalStateException(
+                "JWT Secret 密钥长度不足！HS256 算法要求密钥长度 >= 32 字符。" +
+                "当前密钥长度: " + (secret != null ? secret.length() : 0) + "。" +
+                "请通过 JWT_SECRET 环境变量设置强密钥，或检查 application.yml 配置。"
+            );
+        }
+        log.info("JWT Secret 密钥校验通过，长度: {} 字符", secret.length());
+    }
 
     /**
      * 获取签名密钥

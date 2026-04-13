@@ -1,6 +1,7 @@
 package com.example.demo.exception;
 
 import com.example.demo.common.Result;
+import com.example.demo.domain.shared.exception.DomainException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
@@ -28,6 +29,15 @@ public class GlobalExceptionHandler {
     public Result<Void> handleBusinessException(BusinessException e) {
         log.warn("业务异常: {}", e.getMessage());
         return Result.error(e.getCode(), e.getMessage());
+    }
+
+    /**
+     * 领域异常
+     */
+    @ExceptionHandler(DomainException.class)
+    public Result<Void> handleDomainException(DomainException e) {
+        log.warn("领域异常: {}", e.getMessage());
+        return Result.error(400, e.getMessage());
     }
 
     /**

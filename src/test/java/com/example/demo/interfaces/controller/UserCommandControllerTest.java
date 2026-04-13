@@ -14,14 +14,18 @@ import com.example.demo.interfaces.assembler.UserAssembler;
 import com.example.demo.interfaces.dto.request.UserCreateRequest;
 import com.example.demo.interfaces.dto.request.UserUpdateRequest;
 import com.example.demo.interfaces.dto.response.UserResponse;
+import com.example.demo.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -34,7 +38,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * 用户命令控制器测试
  */
-@WebMvcTest(UserCommandController.class)
+@SpringBootTest
+@AutoConfigureMockMvc
+@TestPropertySource(properties = {
+    "rate-limit.fail-open=true",
+    "jwt.secret=test-secret-key-at-least-256-bits-long-for-hs256-algorithm"
+})
 class UserCommandControllerTest {
 
     @Autowired
@@ -51,6 +60,17 @@ class UserCommandControllerTest {
 
     @MockBean
     private PasswordEncoder passwordEncoder;
+
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @BeforeEach
+    void setUp() {
+        // Mock JwtUtil 让所有 token 都有效
+        when(jwtUtil.validateAccessToken(anyString())).thenReturn(true);
+        when(jwtUtil.getUserIdFromToken(anyString())).thenReturn(1L);
+        when(jwtUtil.getUsernameFromToken(anyString())).thenReturn("testuser");
+    }
 
     private User createTestUser(Long id, String username, String email, UserStatus status) {
         return User.rebuild(
@@ -78,6 +98,7 @@ class UserCommandControllerTest {
 
         // when & then
         mockMvc.perform(post("/api/users")
+                .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
@@ -99,10 +120,12 @@ class UserCommandControllerTest {
 
         // when & then
         mockMvc.perform(post("/api/users")
+                .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value(500));
+            .andExpect(jsonPath("$.code").value(400))
+            .andExpect(jsonPath("$.message").value("用户名已存在"));
     }
 
     @Test
@@ -113,6 +136,7 @@ class UserCommandControllerTest {
 
         // when & then
         mockMvc.perform(post("/api/users")
+                .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest())
@@ -129,6 +153,7 @@ class UserCommandControllerTest {
 
         // when & then
         mockMvc.perform(post("/api/users")
+                .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest())
@@ -151,6 +176,7 @@ class UserCommandControllerTest {
 
         // when & then
         mockMvc.perform(put("/api/users/1")
+                .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
@@ -172,10 +198,12 @@ class UserCommandControllerTest {
 
         // when & then
         mockMvc.perform(put("/api/users/999")
+                .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value(500));
+            .andExpect(jsonPath("$.code").value(400))
+            .andExpect(jsonPath("$.message").value("用户不存在"));
     }
 
     @Test
@@ -192,6 +220,7 @@ class UserCommandControllerTest {
 
         // when & then
         mockMvc.perform(put("/api/users/1")
+                .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
@@ -212,6 +241,7 @@ class UserCommandControllerTest {
 
         // when & then
         mockMvc.perform(put("/api/users/1")
+                .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
@@ -225,7 +255,8 @@ class UserCommandControllerTest {
         doNothing().when(userApplicationService).deleteUser(1L);
 
         // when & then
-        mockMvc.perform(delete("/api/users/1"))
+        mockMvc.perform(delete("/api/users/1")
+                .header("Authorization", "Bearer test-token"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200));
 
@@ -239,7 +270,8 @@ class UserCommandControllerTest {
         doNothing().when(userApplicationService).deleteUser(999L);
 
         // when & then
-        mockMvc.perform(delete("/api/users/999"))
+        mockMvc.perform(delete("/api/users/999")
+                .header("Authorization", "Bearer test-token"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200));
 
