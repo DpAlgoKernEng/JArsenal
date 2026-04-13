@@ -9,8 +9,9 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Component;
@@ -27,11 +28,19 @@ import java.util.Collections;
 @Component
 public class RateLimitAspect {
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
     private final DefaultRedisScript<Long> rateLimitScript;
 
-    public RateLimitAspect(RedisTemplate<String, Object> redisTemplate) {
-        this.redisTemplate = redisTemplate;
+    /**
+     * Redis 异常时的降级策略
+     * true: 放行请求 (fail-open)
+     * false: 拒绝请求 (fail-closed) - 更安全
+     */
+    @Value("${rate-limit.fail-open:false}")
+    private boolean failOpen;
+
+    public RateLimitAspect(StringRedisTemplate stringRedisTemplate) {
+        this.stringRedisTemplate = stringRedisTemplate;
         this.rateLimitScript = new DefaultRedisScript<>();
         this.rateLimitScript.setScriptSource(
                 new ResourceScriptSource(new ClassPathResource("scripts/rate_limit.lua")));
@@ -77,7 +86,7 @@ public class RateLimitAspect {
      */
     private boolean executeRateLimit(String key, int limit, int window) {
         try {
-            Long result = redisTemplate.execute(
+            Long result = stringRedisTemplate.execute(
                     rateLimitScript,
                     Collections.singletonList(key),
                     String.valueOf(limit),
@@ -86,9 +95,15 @@ public class RateLimitAspect {
             );
             return result != null && result == 1L;
         } catch (Exception e) {
-            log.error("Redis限流执行失败，降级为放行: {}", e.getMessage());
-            // Redis 异常时降级为放行，避免影响业务
-            return true;
+            log.error("Redis限流执行失败: key={}, error={}", key, e.getMessage());
+            // 根据配置决定降级策略：默认拒绝更安全
+            if (failOpen) {
+                log.warn("限流降级为放行模式 (fail-open): key={}", key);
+                return true;
+            } else {
+                log.warn("限流降级为拒绝模式 (fail-closed): key={}", key);
+                return false;
+            }
         }
     }
 
