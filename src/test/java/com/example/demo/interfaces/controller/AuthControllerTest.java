@@ -3,19 +3,22 @@ package com.example.demo.interfaces.controller;
 import com.example.demo.application.command.LoginCommand;
 import com.example.demo.application.command.RefreshTokenCommand;
 import com.example.demo.application.service.AuthApplicationService;
+import com.example.demo.application.service.UserApplicationService;
 import com.example.demo.domain.auth.valueobject.AccessToken;
 import com.example.demo.domain.auth.valueobject.TokenPair;
-import com.example.demo.interfaces.assembler.AuthAssembler;
 import com.example.demo.interfaces.dto.request.LoginRequest;
 import com.example.demo.interfaces.dto.request.RefreshTokenRequest;
 import com.example.demo.interfaces.dto.request.RegisterRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import jakarta.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -26,7 +29,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * 认证控制器测试
  */
-@WebMvcTest(AuthController.class)
+@SpringBootTest
+@AutoConfigureMockMvc
+@TestPropertySource(properties = {
+    "rate-limit.fail-open=true",
+    "jwt.secret=test-secret-key-at-least-256-bits-long-for-hs256-algorithm"
+})
 class AuthControllerTest {
 
     @Autowired
@@ -39,7 +47,7 @@ class AuthControllerTest {
     private AuthApplicationService authApplicationService;
 
     @MockBean
-    private AuthAssembler authAssembler;
+    private UserApplicationService userApplicationService;
 
     @Test
     @DisplayName("登录成功 - 返回Token")
@@ -61,7 +69,9 @@ class AuthControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200))
             .andExpect(jsonPath("$.data.accessToken").value("access-token-value"))
-            .andExpect(jsonPath("$.data.refreshToken").value("refresh-token-value"));
+            // refreshToken 现在通过 HttpOnly Cookie 返回，不在响应体中
+            .andExpect(jsonPath("$.data.refreshToken").isEmpty())
+            .andExpect(cookie().exists("refreshToken"));
 
         verify(authApplicationService).login(any(LoginCommand.class));
     }
@@ -102,7 +112,6 @@ class AuthControllerTest {
     @DisplayName("刷新Token成功")
     void refreshToken_success_shouldReturnNewTokens() throws Exception {
         // given
-        RefreshTokenRequest request = new RefreshTokenRequest("old-refresh-token");
         AccessToken accessToken = mock(AccessToken.class);
         when(accessToken.token()).thenReturn("new-access-token");
         when(accessToken.remainingTimeMillis()).thenReturn(1800000L);
@@ -111,15 +120,27 @@ class AuthControllerTest {
 
         when(authApplicationService.refreshToken(any(RefreshTokenCommand.class))).thenReturn(tokenPair);
 
-        // when & then
+        // when & then - refreshToken 通过 Cookie 发送，不需要 request body
         mockMvc.perform(post("/api/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                .cookie(new Cookie("refreshToken", "old-refresh-token")))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200))
-            .andExpect(jsonPath("$.data.accessToken").value("new-access-token"));
+            .andExpect(jsonPath("$.data.accessToken").value("new-access-token"))
+            .andExpect(cookie().exists("refreshToken"));
 
         verify(authApplicationService).refreshToken(any(RefreshTokenCommand.class));
+    }
+
+    @Test
+    @DisplayName("刷新Token失败 - 无Cookie")
+    void refreshToken_noCookie_shouldReturnError() throws Exception {
+        // when & then
+        mockMvc.perform(post("/api/auth/refresh"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value(401))
+            .andExpect(jsonPath("$.message").value("Refresh Token 不存在"));
+
+        verify(authApplicationService, never()).refreshToken(any());
     }
 
     @Test
@@ -154,29 +175,46 @@ class AuthControllerTest {
     @DisplayName("登出成功")
     void logout_success_shouldReturnSuccess() throws Exception {
         // given
-        RefreshTokenRequest request = new RefreshTokenRequest("refresh-token");
-        doNothing().when(authApplicationService).logout("refresh-token");
+        doNothing().when(authApplicationService).logout("refresh-token-value");
 
-        // when & then
+        // when & then - refreshToken 通过 Cookie 发送
         mockMvc.perform(post("/api/auth/logout")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                .cookie(new Cookie("refreshToken", "refresh-token-value")))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value(200));
+            .andExpect(jsonPath("$.code").value(200))
+            .andExpect(cookie().maxAge("refreshToken", 0));  // Cookie 被清除
 
-        verify(authApplicationService).logout("refresh-token");
+        verify(authApplicationService).logout("refresh-token-value");
     }
 
     @Test
-    @DisplayName("登出 - 无Token时也返回成功")
-    void logout_noToken_shouldReturnSuccess() throws Exception {
+    @DisplayName("登出 - 无Cookie时也返回成功")
+    void logout_noCookie_shouldReturnSuccess() throws Exception {
         // when & then
-        mockMvc.perform(post("/api/auth/logout")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
+        mockMvc.perform(post("/api/auth/logout"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200));
 
         verify(authApplicationService, never()).logout(any());
+    }
+
+    @Test
+    @DisplayName("登录 - Refresh Token Cookie 应包含 SameSite=Strict")
+    void login_shouldSetSameSiteStrictOnRefreshTokenCookie() throws Exception {
+        // Given
+        LoginRequest request = new LoginRequest("张三", "123456");
+        AccessToken accessToken = mock(AccessToken.class);
+        when(accessToken.token()).thenReturn("access-token-value");
+        when(accessToken.remainingTimeMillis()).thenReturn(1800000L);
+        TokenPair tokenPair = new TokenPair(accessToken, "refresh-token-value");
+        when(authApplicationService.login(any(LoginCommand.class))).thenReturn(tokenPair);
+
+        // When & Then
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(cookie().exists("refreshToken"))
+            .andExpect(cookie().attribute("refreshToken", "SameSite", "Strict"));
     }
 }
