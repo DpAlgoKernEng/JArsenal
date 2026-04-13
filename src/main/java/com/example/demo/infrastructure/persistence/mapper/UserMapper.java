@@ -50,6 +50,13 @@ public interface UserMapper {
             "</script>")
     long countByCondition(@Param("username") String username, @Param("status") Integer status);
 
+    /**
+     * 查询所有用户（无分页）
+     * @deprecated 该方法无分页限制，大数据量可能导致 OOM。
+     *             请使用 {@link #selectByCondition(String, Integer)} 配合 PageHelper 进行分页查询。
+     * @return 所有用户列表
+     */
+    @Deprecated
     @Select("SELECT id, username, password, email, status, create_time, update_time FROM user ORDER BY create_time DESC")
     List<UserPO> selectAll();
 }
