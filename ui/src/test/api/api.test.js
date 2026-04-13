@@ -23,22 +23,31 @@ vi.mock('element-plus', () => ({
   }
 }))
 
-// Mock vue-router
+// Mock vue-router - 需要导出 createRouter
 vi.mock('vue-router', () => ({
-  default: {
+  createRouter: vi.fn(() => ({
+    beforeEach: vi.fn(),
     push: vi.fn()
-  }
+  })),
+  createWebHistory: vi.fn()
+}))
+
+// Mock pinia store
+vi.mock('../stores/user', () => ({
+  useUserStore: vi.fn(() => ({
+    accessToken: '',
+    isLoggedIn: vi.fn(() => false),
+    setAccessToken: vi.fn(),
+    logout: vi.fn()
+  }))
 }))
 
 describe('API Module', () => {
   let axios
-  let api
 
   beforeEach(async () => {
     vi.clearAllMocks()
-    // 重新导入以获取新的实例
     axios = (await import('axios')).default
-    // 清除模块缓存
     vi.resetModules()
   })
 
@@ -48,17 +57,15 @@ describe('API Module', () => {
         data: {
           code: 200,
           data: {
-            accessToken: 'test-token',
-            refreshToken: 'refresh-token'
+            accessToken: 'test-token'
           }
         }
       }
       axios.post.mockResolvedValueOnce(mockResponse)
 
-      // 动态导入 API
       const { authApi } = await import('../../api/index.js')
 
-      const result = await authApi.login('testuser', 'password123')
+      await authApi.login('testuser', 'password123')
 
       expect(axios.post).toHaveBeenCalledWith('/auth/login', {
         username: 'testuser',
@@ -85,19 +92,16 @@ describe('API Module', () => {
         data: {
           code: 200,
           data: {
-            accessToken: 'new-access',
-            refreshToken: 'new-refresh'
+            accessToken: 'new-access'
           }
         }
       })
 
       const { authApi } = await import('../../api/index.js')
 
-      await authApi.refresh('old-refresh-token')
+      await authApi.refresh()
 
-      expect(axios.post).toHaveBeenCalledWith('/auth/refresh', {
-        refreshToken: 'old-refresh-token'
-      })
+      expect(axios.post).toHaveBeenCalledWith('/auth/refresh', {})
     })
 
     it('logout 应该发送 POST 请求到 /auth/logout', async () => {
@@ -105,11 +109,9 @@ describe('API Module', () => {
 
       const { authApi } = await import('../../api/index.js')
 
-      await authApi.logout('refresh-token')
+      await authApi.logout()
 
-      expect(axios.post).toHaveBeenCalledWith('/auth/logout', {
-        refreshToken: 'refresh-token'
-      })
+      expect(axios.post).toHaveBeenCalledWith('/auth/logout', {})
     })
   })
 
