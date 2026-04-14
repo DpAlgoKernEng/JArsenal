@@ -1,0 +1,64 @@
+// 玻璃态卡片
+@mixin glass-card {
+  background: var(--color-bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-glass);
+}
+
+// 霓虹渐变边框
+@mixin neon-border {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--color-bg-elevated), var(--color-bg-elevated)) padding-box,
+    linear-gradient(135deg, var(--color-primary), var(--color-accent)) border-box;
+  border-radius: 8px;
+}
+
+// 渐变按钮
+@mixin gradient-button {
+  background: var(--gradient-primary);
+  border: none;
+  color: white;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: var(--shadow-glow);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// 渐变文字
+@mixin gradient-text {
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+// 透明输入框
+@mixin transparent-input {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--color-border);
+  border-radius: 0;
+  transition: border-color 0.3s ease;
+
+  &:focus {
+    border-bottom-color: var(--color-primary);
+  }
+}
+
+// 平滑过渡
+@mixin smooth-transition($properties: all) {
+  transition-property: $properties;
+  transition-duration: 0.3s;
+  transition-timing-function: ease;
+}
