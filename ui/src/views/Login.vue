@@ -1,26 +1,46 @@
 <template>
   <div class="login-container">
-    <el-card class="login-card">
-      <template #header>
-        <h2>JArsenal 用户登录</h2>
-      </template>
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" placeholder="请输入用户名" />
+    <div class="login-card">
+      <div class="login-header">
+        <h1 class="login-title">JArsenal</h1>
+        <p class="login-subtitle">用户登录</p>
+      </div>
+      <el-form ref="formRef" :model="form" :rules="rules" class="login-form">
+        <el-form-item prop="username">
+          <el-input
+            v-model="form.username"
+            placeholder="请输入用户名"
+            size="large"
+            :prefix-icon="User"
+          />
         </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password />
+        <el-form-item prop="password">
+          <el-input
+            v-model="form.password"
+            type="password"
+            placeholder="请输入密码"
+            size="large"
+            show-password
+            :prefix-icon="Lock"
+          />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleLogin" :loading="loading" style="width: 100%">
+          <el-button
+            class="login-button"
+            size="large"
+            @click="handleLogin"
+            :loading="loading"
+          >
             登录
           </el-button>
         </el-form-item>
-        <el-form-item>
-          <el-button text @click="router.push('/register')">没有账号？点击注册</el-button>
-        </el-form-item>
       </el-form>
-    </el-card>
+      <div class="login-footer">
+        <el-button text @click="router.push('/register')">
+          没有账号？点击注册
+        </el-button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -28,6 +48,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { User, Lock } from '@element-plus/icons-vue'
 import { authApi } from '../api'
 import { useUserStore } from '../stores/user'
 
@@ -62,18 +83,74 @@ const handleLogin = async () => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
+  background: var(--gradient-bg);
+  padding: 20px;
+
+  // 深色模式下的额外渐变层
+  html.dark & {
+    background: linear-gradient(135deg, var(--color-bg-base) 0%, #1e1b4b 50%, #0f172a 100%);
+  }
 }
+
 .login-card {
-  width: 400px;
-}
-.login-card h2 {
-  text-align: center;
-  margin: 0;
+  width: 420px;
+  @include glass-card;
+  padding: 40px;
+
+  .login-header {
+    text-align: center;
+    margin-bottom: 32px;
+
+    .login-title {
+      font-size: 32px;
+      font-weight: 700;
+      @include gradient-text;
+      margin-bottom: 8px;
+    }
+
+    .login-subtitle {
+      color: var(--color-text-secondary);
+      font-size: 14px;
+    }
+  }
+
+  .login-form {
+    .el-form-item {
+      margin-bottom: 24px;
+    }
+
+    .el-input {
+      --el-input-bg-color: var(--color-bg-glass);
+      --el-input-border-color: var(--color-border);
+      --el-input-text-color: var(--color-text-primary);
+      --el-input-placeholder-color: var(--color-text-muted);
+    }
+
+    .login-button {
+      width: 100%;
+      @include gradient-button;
+      height: 44px;
+      font-size: 16px;
+    }
+  }
+
+  .login-footer {
+    text-align: center;
+    margin-top: 16px;
+
+    .el-button {
+      color: var(--color-text-secondary);
+
+      &:hover {
+        color: var(--color-primary);
+      }
+    }
+  }
 }
 </style>
