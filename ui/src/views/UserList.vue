@@ -1,14 +1,17 @@
 <template>
   <Navbar />
   <div class="user-list-container">
-    <el-card>
+    <div class="content-card">
       <!-- 搜索表单 -->
       <UserSearchForm ref="searchFormRef" @search="handleSearch" @reset="handleReset" />
 
       <!-- 操作按钮 -->
-      <el-button type="primary" @click="showCreateDialog" style="margin-bottom: 16px">
-        新增用户
-      </el-button>
+      <div class="action-bar">
+        <el-button class="create-button" @click="showCreateDialog">
+          <el-icon><Plus /></el-icon>
+          新增用户
+        </el-button>
+      </div>
 
       <!-- 用户列表 -->
       <UserTable
@@ -19,17 +22,18 @@
       />
 
       <!-- 分页 -->
-      <el-pagination
-        v-model:current-page="pageNum"
-        v-model:page-size="pageSize"
-        :total="total"
-        :page-sizes="[5, 10, 20, 50]"
-        layout="total, sizes, prev, pager, next"
-        @size-change="fetchUsers"
-        @current-change="fetchUsers"
-        style="margin-top: 16px; justify-content: flex-end"
-      />
-    </el-card>
+      <div class="pagination-wrapper">
+        <el-pagination
+          v-model:current-page="pageNum"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[5, 10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
+          @size-change="fetchUsers"
+          @current-change="fetchUsers"
+        />
+      </div>
+    </div>
 
     <!-- 创建/编辑弹窗 -->
     <UserDialog
@@ -45,6 +49,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { Plus } from '@element-plus/icons-vue'
 import { usePagination } from '../composables/usePagination'
 import { userApi } from '../api'
 import Navbar from '../components/Navbar.vue'
@@ -108,7 +113,7 @@ const showCreateDialog = () => {
   dialogVisible.value = true
 }
 
-// 编辑用户（跳转到编辑页面）
+// 编辑用户
 const handleEdit = (id) => {
   router.push(`/users/${id}`)
 }
@@ -118,8 +123,38 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .user-list-container {
-  padding: 20px;
+  padding: 84px 24px 24px 24px; // 顶部留出 Navbar 空间
+  min-height: 100vh;
+  background: var(--color-bg-base);
+}
+
+.content-card {
+  max-width: 1200px;
+  margin: 0 auto;
+  @include glass-card;
+  padding: 24px;
+}
+
+.action-bar {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: flex-start;
+
+  .create-button {
+    @include gradient-button;
+    padding: 10px 20px;
+
+    .el-icon {
+      margin-right: 4px;
+    }
+  }
+}
+
+.pagination-wrapper {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
 }
 </style>
