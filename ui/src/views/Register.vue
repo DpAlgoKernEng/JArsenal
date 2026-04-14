@@ -1,29 +1,54 @@
 <template>
   <div class="register-container">
-    <el-card class="register-card">
-      <template #header>
-        <h2>用户注册</h2>
-      </template>
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" placeholder="请输入用户名 (2-50字符)" />
+    <div class="register-card">
+      <div class="register-header">
+        <h1 class="register-title">JArsenal</h1>
+        <p class="register-subtitle">用户注册</p>
+      </div>
+      <el-form ref="formRef" :model="form" :rules="rules" class="register-form">
+        <el-form-item prop="username">
+          <el-input
+            v-model="form.username"
+            placeholder="请输入用户名 (2-50字符)"
+            size="large"
+            :prefix-icon="User"
+          />
         </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="form.password" type="password" placeholder="请输入密码 (6-100字符)" show-password />
+        <el-form-item prop="password">
+          <el-input
+            v-model="form.password"
+            type="password"
+            placeholder="请输入密码 (6-100字符)"
+            size="large"
+            show-password
+            :prefix-icon="Lock"
+          />
         </el-form-item>
-        <el-form-item label="邮箱" prop="email">
-          <el-input v-model="form.email" placeholder="请输入邮箱" />
+        <el-form-item prop="email">
+          <el-input
+            v-model="form.email"
+            placeholder="请输入邮箱"
+            size="large"
+            :prefix-icon="Message"
+          />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleRegister" :loading="loading" style="width: 100%">
+          <el-button
+            class="register-button"
+            size="large"
+            @click="handleRegister"
+            :loading="loading"
+          >
             注册
           </el-button>
         </el-form-item>
-        <el-form-item>
-          <el-button text @click="router.push('/login')">已有账号？点击登录</el-button>
-        </el-form-item>
       </el-form>
-    </el-card>
+      <div class="register-footer">
+        <el-button text @click="router.push('/login')">
+          已有账号？点击登录
+        </el-button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -31,6 +56,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { User, Lock, Message } from '@element-plus/icons-vue'
 import { authApi } from '../api'
 
 const router = useRouter()
@@ -73,18 +99,73 @@ const handleRegister = async () => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .register-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
+  background: var(--gradient-bg);
+  padding: 20px;
+
+  html.dark & {
+    background: linear-gradient(135deg, var(--color-bg-base) 0%, #1e1b4b 50%, #0f172a 100%);
+  }
 }
+
 .register-card {
-  width: 400px;
-}
-.register-card h2 {
-  text-align: center;
-  margin: 0;
+  width: 480px;
+  @include glass-card;
+  padding: 40px;
+
+  .register-header {
+    text-align: center;
+    margin-bottom: 32px;
+
+    .register-title {
+      font-size: 32px;
+      font-weight: 700;
+      @include gradient-text;
+      margin-bottom: 8px;
+    }
+
+    .register-subtitle {
+      color: var(--color-text-secondary);
+      font-size: 14px;
+    }
+  }
+
+  .register-form {
+    .el-form-item {
+      margin-bottom: 24px;
+    }
+
+    .el-input {
+      --el-input-bg-color: var(--color-bg-glass);
+      --el-input-border-color: var(--color-border);
+      --el-input-text-color: var(--color-text-primary);
+      --el-input-placeholder-color: var(--color-text-muted);
+    }
+
+    .register-button {
+      width: 100%;
+      @include gradient-button;
+      height: 44px;
+      font-size: 16px;
+    }
+  }
+
+  .register-footer {
+    text-align: center;
+    margin-top: 16px;
+
+    .el-button {
+      color: var(--color-text-secondary);
+
+      &:hover {
+        color: var(--color-primary);
+      }
+    }
+  }
 }
 </style>
