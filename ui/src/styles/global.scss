@@ -5,7 +5,7 @@
 @use './themes/dark.scss';
 
 // Element Plus 深色模式支持
-@use 'element-plus/theme-chalk/dark/css-vars.scss' as *;
+@use 'element-plus/theme-chalk/dark/css-vars.css' as *;
 
 // 全局基础样式
 * {
