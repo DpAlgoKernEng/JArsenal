@@ -171,7 +171,7 @@ CREATE TABLE role_permission (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色权限关联表';
 ```
 
-#### 3.1.5 菜单表 (menu) - 可选，用于前端菜单权限
+#### 3.1.5 菜单表 (menu) - **必需**，用于前端菜单权限
 
 ```sql
 CREATE TABLE menu (
@@ -191,6 +191,65 @@ CREATE TABLE menu (
     deleted TINYINT DEFAULT 0 COMMENT '逻辑删除',
     INDEX idx_parent_id (parent_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='菜单表';
+```
+
+#### 3.1.6 部门表 (department) - **必需**，用于数据权限隔离
+
+```sql
+CREATE TABLE department (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    name VARCHAR(50) NOT NULL COMMENT '部门名称',
+    parent_id BIGINT DEFAULT 0 COMMENT '父部门ID',
+    level INT DEFAULT 1 COMMENT '层级: 1-一级, 2-二级...',
+    path VARCHAR(200) COMMENT '层级路径: /1/2/3，用于快速查询子部门',
+    sort_order INT DEFAULT 0 COMMENT '排序',
+    status TINYINT DEFAULT 1 COMMENT '状态: 1-启用, 0-禁用',
+    leader_id BIGINT COMMENT '部门负责人ID',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted TINYINT DEFAULT 0 COMMENT '逻辑删除',
+    INDEX idx_parent_id (parent_id),
+    INDEX idx_path (path),
+    INDEX idx_leader_id (leader_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='部门表';
+```
+
+#### 3.1.7 用户部门关联表 (user_department) - **必需**，用于数据权限隔离
+
+```sql
+CREATE TABLE user_department (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    dept_id BIGINT NOT NULL COMMENT '部门ID',
+    is_primary TINYINT DEFAULT 1 COMMENT '是否主部门: 1-是, 0-否',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    UNIQUE KEY uk_user_dept (user_id, dept_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_dept_id (dept_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户部门关联表';
+```
+
+#### 3.1.8 审计日志表 (audit_log) - **必需**，用于权限操作审计
+
+```sql
+CREATE TABLE audit_log (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id BIGINT COMMENT '操作人ID',
+    username VARCHAR(50) COMMENT '操作人用户名',
+    operation VARCHAR(50) NOT NULL COMMENT '操作类型: ASSIGN_ROLE, REVOKE_ROLE, GRANT_PERMISSION, REVOKE_PERMISSION',
+    target_type VARCHAR(50) NOT NULL COMMENT '目标类型: USER, ROLE, PERMISSION',
+    target_id BIGINT COMMENT '目标ID',
+    target_name VARCHAR(100) COMMENT '目标名称',
+    before_value VARCHAR(500) COMMENT '操作前值(JSON)',
+    after_value VARCHAR(500) COMMENT '操作后值(JSON)',
+    ip_address VARCHAR(50) COMMENT 'IP地址',
+    request_id VARCHAR(50) COMMENT '请求ID(链路追踪)',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    INDEX idx_user_id (user_id),
+    INDEX idx_operation (operation),
+    INDEX idx_target (target_type, target_id),
+    INDEX idx_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='审计日志表';
 ```
 
 ### 3.2 初始数据
@@ -468,74 +527,195 @@ public class PermissionAspect {
 }
 ```
 
-### 5.3 权限缓存策略
+### 5.3 权限缓存策略（含继承缓存）
 
 ```java
 @Component
 public class RedisPermissionCache {
 
-    private static final String USER_PERMISSIONS_KEY = "auth:user:permissions:";
+    // 缓存 Key 设计
+    private static final String USER_PERMISSIONS_KEY = "auth:user:permissions:";       // 直接权限
+    private static final String USER_EFFECTIVE_PERMS_KEY = "auth:user:effective_perms:"; // 继承后的所有权限
     private static final String USER_ROLES_KEY = "auth:user:roles:";
+    private static final String USER_PERM_VERSION_KEY = "auth:user:perm_version:";    // 权限版本号
+    private static final String CRITICAL_PERMS_KEY = "auth:critical_permissions";     // 关键权限列表
     private static final Duration CACHE_TTL = Duration.ofHours(2);
 
     /**
-     * 获取用户权限（缓存优先）
+     * 获取用户有效权限（包含继承后的所有权限）
+     * 权限继承规则：拥有父权限自动拥有所有子权限
      */
-    public Set<String> getUserPermissions(Long userId) {
-        String key = USER_PERMISSIONS_KEY + userId;
+    public Set<String> getEffectivePermissions(Long userId) {
+        String key = USER_EFFECTIVE_PERMS_KEY + userId;
 
         // 1. 先查缓存
-        Set<String> permissions = redisTemplate.opsForSet().members(key);
-        if (permissions != null && !permissions.isEmpty()) {
-            return permissions;
+        Set<String> effectivePerms = redisTemplate.opsForSet().members(key);
+        if (effectivePerms != null && !effectivePerms.isEmpty()) {
+            return effectivePerms;
         }
 
-        // 2. 查数据库
-        permissions = permissionRepository.findPermissionsByUserId(userId);
+        // 2. 查数据库获取直接权限
+        Set<String> directPerms = permissionRepository.findPermissionCodesByUserId(userId);
 
-        // 3. 写入缓存
-        if (!permissions.isEmpty()) {
-            redisTemplate.opsForSet().add(key, permissions.toArray(new String[0]));
+        // 3. 计算继承后的所有权限（递归查询子权限）
+        Set<String> allPerms = new HashSet<>(directPerms);
+        for (String permCode : directPerms) {
+            // 查询该权限的所有子权限
+            allPerms.addAll(permissionRepository.findSubPermissionCodes(permCode));
+        }
+
+        // 4. 写入缓存
+        if (!allPerms.isEmpty()) {
+            redisTemplate.opsForSet().add(key, allPerms.toArray(new String[0]));
             redisTemplate.expire(key, CACHE_TTL);
         }
 
-        return permissions;
+        return allPerms;
     }
 
     /**
-     * 清除用户权限缓存（权限变更时调用）
+     * 检查权限（含继承逻辑）
      */
-    public void evictUserPermissionCache(Long userId) {
+    public boolean hasPermission(Long userId, String permissionCode) {
+        Set<String> effectivePerms = getEffectivePermissions(userId);
+        return effectivePerms.contains(permissionCode);
+    }
+
+    /**
+     * 权限变更时清除缓存（含版本号更新）
+     */
+    public void onPermissionChange(Long userId) {
+        // 1. 更新版本号（用于 Token 校验）
+        Long newVersion = redisTemplate.opsForValue().increment(USER_PERM_VERSION_KEY + userId);
+
+        // 2. 清除缓存
         redisTemplate.delete(USER_PERMISSIONS_KEY + userId);
+        redisTemplate.delete(USER_EFFECTIVE_PERMS_KEY + userId);
         redisTemplate.delete(USER_ROLES_KEY + userId);
+
+        // 3. 发布变更消息（供其他节点同步）
+        redisTemplate.convertAndSend("auth:perm_change", userId + ":" + newVersion);
+    }
+
+    /**
+     * 角色权限变更时，清除所有拥有该角色的用户缓存
+     */
+    public void onRolePermissionChange(Long roleId) {
+        List<Long> userIds = userRoleRepository.findUserIdsByRoleId(roleId);
+        for (Long userId : userIds) {
+            onPermissionChange(userId);
+        }
+    }
+
+    /**
+     * 获取当前权限版本号（用于 Token 校验）
+     */
+    public Long getCurrentPermVersion(Long userId) {
+        String version = redisTemplate.opsForValue().get(USER_PERM_VERSION_KEY + userId);
+        return version != null ? Long.parseLong(version) : 0L;
     }
 }
 ```
 
-### 5.4 JWT Token 优化
+### 5.4 混合模式 Token 方案
+
+**设计目标**: 关键权限实时生效，普通权限允许延迟生效
 
 ```java
-// 登录时将角色和权限信息写入 Token
+/**
+ * JWT Token Payload 结构
+ */
+{
+  "sub": "userId",
+  "username": "testuser",
+  "roles": ["ROLE_ADMIN", "ROLE_USER"],           // 角色列表（延迟生效）
+  "perm_version": 123,                             // 权限版本号（用于校验）
+  "iat": 1234567890,
+  "exp": 1234570890
+}
+```
+
+**关键权限定义**（实时校验）:
+- `user:enable`, `user:disable` - 用户启禁用
+- `user:delete`, `role:delete` - 删除操作
+- `role:assign-permission`, `user:assign-role` - 权限分配操作
+- `role:create`, `permission:create` - 创建操作
+
+```java
+// 登录时生成 Token（仅携带角色，不携带权限）
 public LoginResponse login(LoginCommand command) {
     // ... 验证逻辑 ...
 
-    // 获取用户角色和权限
+    // 获取用户角色
     Set<String> roles = roleRepository.findRoleCodesByUserId(user.getId().value());
-    Set<String> permissions = permissionRepository.findPermissionCodesByUserId(user.getId().value());
 
-    // 生成包含角色和权限的 Token
+    // 获取当前权限版本号
+    Long permVersion = permissionCache.getCurrentPermVersion(user.getId().value());
+
+    // 生成 Token（携带角色 + 权限版本号）
     String accessToken = jwtTokenGenerator.generateAccessToken(
         user.getId().value(),
         user.getUsername().value(),
         roles,
-        permissions
+        permVersion
     );
 
-    // 权限缓存预热
-    permissionCache.cacheUserPermissions(user.getId().value(), permissions);
-    permissionCache.cacheUserRoles(user.getId().value(), roles);
+    // 权限缓存预热（计算继承后的所有权限）
+    Set<String> effectivePerms = permissionRepository.findEffectivePermissions(user.getId().value());
+    permissionCache.cacheEffectivePermissions(user.getId().value(), effectivePerms);
 
     return new LoginResponse(accessToken, refreshToken, ...);
+}
+```
+
+**权限检查切面（混合模式）**:
+
+```java
+@Around("@annotation(requirePermission)")
+public Object checkPermission(ProceedingJoinPoint joinPoint, RequirePermission requirePermission) {
+    Long userId = UserContext.getCurrentUserId();
+    UserInfo user = UserContext.getCurrentUser();
+
+    String[] requiredPerms = requirePermission.value();
+
+    // 判断是否关键权限
+    boolean isCritical = Arrays.stream(requiredPerms)
+        .anyMatch(this::isCriticalPermission);
+
+    if (isCritical) {
+        // 关键权限：实时从 Redis 查询（含继承）
+        Set<String> effectivePerms = permissionCache.getEffectivePermissions(userId);
+        boolean hasPerm = Arrays.stream(requiredPerms).allMatch(effectivePerms::contains);
+        if (!hasPerm) {
+            throw new BusinessException(403, "权限不足");
+        }
+    } else {
+        // 普通权限：先校验版本号，不一致则回源 Redis
+        Long currentVersion = permissionCache.getCurrentPermVersion(userId);
+        if (user.getPermVersion() != currentVersion) {
+            // 版本不一致，从 Redis 重新获取
+            Set<String> effectivePerms = permissionCache.getEffectivePermissions(userId);
+            boolean hasPerm = Arrays.stream(requiredPerms).allMatch(effectivePerms::contains);
+            if (!hasPerm) {
+                throw new BusinessException(403, "权限不足");
+            }
+        } else {
+            // 版本一致，使用 Token 中的角色判断（简化逻辑）
+            // 或仍然从缓存查询，确保继承逻辑正确
+            Set<String> effectivePerms = permissionCache.getEffectivePermissions(userId);
+            boolean hasPerm = Arrays.stream(requiredPerms).allMatch(effectivePerms::contains);
+            if (!hasPerm) {
+                throw new BusinessException(403, "权限不足");
+            }
+        }
+    }
+
+    return joinPoint.proceed();
+}
+
+private boolean isCriticalPermission(String permCode) {
+    Set<String> criticalPerms = redisTemplate.opsForSet().members(CRITICAL_PERMS_KEY);
+    return criticalPerms != null && criticalPerms.contains(permCode);
 }
 ```
 
@@ -582,51 +762,99 @@ public LoginResponse login(LoginCommand command) {
 
 ## 七、实施计划
 
-### 7.1 阶段划分
+### 7.1 阶段划分（调整后）
 
 | 阶段 | 内容 | 工期 | 产出 |
 |------|------|------|------|
-| **Phase 1** | 数据库设计与基础设施 | 1天 | 表结构、DO/PO/Converter |
-| **Phase 2** | Domain 层实现 | 2天 | 聚合根、值对象、领域服务、仓储接口 |
-| **Phase 3** | Infrastructure 层实现 | 2天 | 仓储实现、缓存、切面 |
-| **Phase 4** | Application 层实现 | 1天 | 应用服务、命令、DTO |
-| **Phase 5** | Interfaces 层实现 | 1天 | Controller、请求响应对象 |
-| **Phase 6** | 前端实现 | 2天 | 权限管理页面、组件 |
-| **Phase 7** | 测试与文档 | 1天 | 单元测试、集成测试、API文档 |
-| **总计** | | **10天** | |
+| **Phase 1** | 数据库设计与基础设施 | 1天 | 表结构（含部门表）、PO/Mapper/Converter |
+| **Phase 2** | Domain 层实现（含继承逻辑） | 2天 | 聚合根、值对象、权限继承检查服务 |
+| **Phase 3** | Infrastructure 层实现 | 2天 | 仓储实现、继承缓存、权限注解/切面 |
+| **Phase 4** | **数据权限切面实现** | 2天 | 部门级 DataScopeAspect、SQL改写 |
+| **Phase 5** | Application/Interfaces 层 | 2天 | 应用服务、Controller、混合Token方案 |
+| **Phase 6** | 前端实现（含部门管理） | 2天 | 权限管理、部门管理页面 |
+| **Phase 7** | 测试与文档 | 2天 | 单元测试、集成测试、压测、API文档 |
+| **总计** | | **13天** | 原10天 + 部门权限新增3天 |
 
 ### 7.2 详细任务清单
 
 #### Phase 1: 数据库设计与基础设施 (Day 1)
 
-- [ ] 创建数据库表 (role, permission, user_role, role_permission, menu)
-- [ ] 插入初始数据 (预置角色、权限、角色权限关联)
-- [ ] 创建 PO 类 (RolePO, PermissionPO, UserRolePO, RolePermissionPO, MenuPO)
-- [ ] 创建 MyBatis Mapper (RoleMapper, PermissionMapper, UserRoleMapper, RolePermissionMapper)
-- [ ] 创建 Converter (RoleConverter, PermissionConverter)
+- [ ] 创建数据库表 (role, permission, user_role, role_permission, menu, **department, user_department, audit_log**)
+- [ ] 插入初始数据 (预置角色、权限、角色权限关联、**预置部门**)
+- [ ] 创建 PO 类 (RolePO, PermissionPO, UserRolePO, RolePermissionPO, MenuPO, **DepartmentPO, UserDepartmentPO, AuditLogPO**)
+- [ ] 创建 MyBatis Mapper (RoleMapper, PermissionMapper, UserRoleMapper, RolePermissionMapper, MenuMapper, **DepartmentMapper, UserDepartmentMapper, AuditLogMapper**)
+- [ ] 创建 Converter (RoleConverter, PermissionConverter, **DepartmentConverter**)
 
 #### Phase 2: Domain 层实现 (Day 2-3)
 
 - [ ] 创建权限聚合根 Permission.java
 - [ ] 创建角色聚合根 Role.java
+- [ ] **创建部门聚合根 Department.java**
 - [ ] 创建值对象 PermissionCode.java, RoleCode.java
-- [ ] 创建领域服务 PermissionChecker.java
-- [ ] 创建领域服务 PermissionCacheManager.java
-- [ ] 创建领域事件
-- [ ] 创建仓储接口
+- [ ] 创建领域服务 PermissionChecker.java **（含权限继承检查逻辑）**
+- [ ] 创建领域服务 PermissionCacheManager.java **（含继承缓存设计）**
+- [ ] 创建领域事件 (PermissionGranted, RoleAssigned, **PermissionInherited**)
+- [ ] 创建仓储接口 (PermissionRepository, RoleRepository, **DepartmentRepository**)
 
 #### Phase 3: Infrastructure 层实现 (Day 4-5)
 
 - [ ] 实现 PermissionRepositoryImpl
 - [ ] 实现 RoleRepositoryImpl
 - [ ] 实现 UserPermissionRepositoryImpl
-- [ ] 实现 RedisPermissionCache
+- [ ] **实现 DepartmentRepositoryImpl**
+- [ ] 实现 RedisPermissionCache **（含继承权限缓存、版本号机制、Pub/Sub广播）**
 - [ ] 创建权限注解 (@RequirePermission, @RequireRole, @DataScope)
-- [ ] 实现 PermissionAspect
-- [ ] 实现 DataScopeAspect
-- [ ] 配置 Redis 缓存
+- [ ] 实现 PermissionAspect **（混合模式：关键权限实时校验）**
+- [ ] 配置 Redis 缓存 + Pub/Sub 监听
 
-#### Phase 4: Application 层实现 (Day 6)
+#### Phase 4: 数据权限切面实现 (Day 6-7)
+
+- [ ] 实现 DataScopeAspect **（部门级数据权限）**
+- [ ] 实现 SQL 改写逻辑（MyBatis 拦截器或参数注入）
+- [ ] 实现部门层级查询（path 字段优化）
+- [ ] 实现用户部门关联查询
+- [ ] 测试数据权限隔离（SELF/DEPT/DEPT_AND_SUB/ALL）
+
+#### Phase 5: Application/Interfaces 层实现 (Day 8-9)
+
+- [ ] 实现 PermissionApplicationService
+- [ ] 实现 RoleApplicationService
+- [ ] 实现 UserPermissionApplicationService
+- [ ] **实现 DepartmentApplicationService**
+- [ ] 创建 Command 类 (AssignRoleCommand, AssignPermissionCommand, **AssignDeptCommand**)
+- [ ] 创建 DTO 类
+- [ ] 实现 RoleController
+- [ ] 实现 PermissionController
+- [ ] 实现 UserPermissionController
+- [ ] **实现 DepartmentController**
+- [ ] 实现审计日志切面 AuditLogAspect
+- [ ] 更新 JwtUtil **（混合Token方案：携带角色+版本号）**
+- [ ] 更新现有 Controller 添加权限注解
+- [ ] 更新 Swagger 文档
+
+#### Phase 6: 前端实现 (Day 10-11)
+
+- [ ] 创建角色管理页面 RoleList.vue
+- [ ] 创建权限管理页面 PermissionList.vue
+- [ ] 创建用户角色分配页面 UserRole.vue
+- [ ] **创建部门管理页面 DepartmentList.vue**
+- [ ] 创建权限树组件 PermissionTree.vue
+- [ ] 创建角色选择组件 RoleSelect.vue
+- [ ] **创建部门选择组件 DeptSelect.vue**
+- [ ] 实现 API 接口 (role.js, permission.js, **department.js**)
+- [ ] 更新路由和导航
+- [ ] 前端权限指令 v-permission
+- [ ] 实现 /api/me/menus 菜单树返回
+
+#### Phase 7: 测试与文档 (Day 12-13)
+
+- [ ] 编写单元测试（PermissionChecker、**权限继承逻辑**）
+- [ ] 编写集成测试（RoleController, PermissionController）
+- [ ] **编写数据权限隔离测试（DataScopeAspect）**
+- [ ] **编写性能压测（权限检查 QPS）**
+- [ ] 更新 API 文档
+- [ ] 编写用户手册
+- [ ] 代码审查与优化
 
 - [ ] 实现 PermissionApplicationService
 - [ ] 实现 RoleApplicationService
@@ -755,3 +983,291 @@ public LoginResponse login(LoginCommand command) {
 - Spring Security 官方文档
 - RBAC 权限模型规范
 - 企业级权限系统最佳实践
+
+---
+
+## 十二、补充设计（根据评估调整）
+
+### 12.1 权限继承规则
+
+**规则定义**：拥有父权限自动拥有所有子权限
+
+```
+权限树结构示例：
+user (父权限，parent_id=0)
+├── user:list (子权限，parent_id=1)
+├── user:view (子权限，parent_id=1)
+├── user:create (子权限，parent_id=1)
+├── user:update (子权限，parent_id=1)
+├── user:delete (子权限，parent_id=1)
+│   ├── user:enable (孙权限，parent_id=6)
+│   └── user:disable (孙权限，parent_id=6)
+└── user:assign-role (子权限，parent_id=1)
+```
+
+**继承检查逻辑**：
+
+```java
+/**
+ * 检查用户是否拥有某权限（含继承）
+ * 如果用户拥有 "user" 权限，则自动拥有 "user:list", "user:view" 等所有子权限
+ */
+public boolean checkPermissionWithInheritance(Long userId, String permissionCode) {
+    // 1. 获取用户所有有效权限（已包含继承）
+    Set<String> effectivePerms = getEffectivePermissions(userId);
+
+    // 2. 直接匹配
+    return effectivePerms.contains(permissionCode);
+}
+
+/**
+ * 计算有效权限：直接权限 + 所有子权限
+ */
+public Set<String> computeEffectivePermissions(Set<String> directPerms) {
+    Set<String> allPerms = new HashSet<>(directPerms);
+
+    // 递归查询每个直接权限的所有子权限
+    for (String permCode : directPerms) {
+        Permission perm = permissionRepository.findByCode(permCode);
+        if (perm != null) {
+            // 查询该权限的所有后代权限
+            allPerms.addAll(findAllDescendants(perm.getId()));
+        }
+    }
+
+    return allPerms;
+}
+
+/**
+ * 递归查询所有后代权限
+ */
+private Set<String> findAllDescendants(Long parentId) {
+    List<Permission> children = permissionRepository.findByParentId(parentId);
+    Set<String> descendants = new HashSet<>();
+
+    for (Permission child : children) {
+        descendants.add(child.getCode());
+        descendants.addAll(findAllDescendants(child.getId()));
+    }
+
+    return descendants;
+}
+```
+
+### 12.2 部门级数据权限隔离
+
+**数据权限类型**：
+
+| 类型 | 说明 | SQL 过滤条件 |
+|------|------|-------------|
+| ALL | 全部数据 | 无限制 |
+| DEPT | 本部门数据 | `WHERE dept_id IN (用户所属部门)` |
+| DEPT_AND_SUB | 本部门及子部门数据 | `WHERE dept_id IN (用户部门及其所有子部门)` |
+| SELF | 仅本人数据 | `WHERE user_id = 当前用户ID` |
+
+**实现方案**（MyBatis 拦截器 + 参数注入）：
+
+```java
+/**
+ * 数据权限切面 - 在查询方法执行前注入数据权限条件
+ */
+@Aspect
+@Component
+public class DataScopeAspect {
+
+    @Around("@annotation(dataScope)")
+    public Object applyDataScope(ProceedingJoinPoint joinPoint, DataScope dataScope) throws Throwable {
+        Long userId = UserContext.getCurrentUserId();
+
+        // 1. 获取用户的数据权限范围
+        DataScopeType scope = getUserDataScope(userId);
+
+        // 2. 将权限范围存入 ThreadLocal，供 MyBatis 拦截器读取
+        DataScopeContext.setScope(scope);
+        DataScopeContext.setUserId(userId);
+        DataScopeContext.setDeptIds(getUserDeptIds(userId));
+
+        try {
+            return joinPoint.proceed();
+        } finally {
+            DataScopeContext.clear();
+        }
+    }
+
+    /**
+     * 获取用户部门及子部门 ID 列表
+     */
+    private Set<Long> getUserDeptAndSubDeptIds(Long userId) {
+        // 1. 获取用户所属部门
+        Set<Long> userDepts = userDeptRepository.findDeptIdsByUserId(userId);
+
+        // 2. 查询所有子部门（使用 path 字段优化）
+        Set<Long> allDepts = new HashSet<>(userDepts);
+        for (Long deptId : userDepts) {
+            Department dept = deptRepository.findById(deptId);
+            // 使用 path LIKE '/deptId/%' 查询所有后代部门
+            allDepts.addAll(deptRepository.findDescendantsByPath(dept.getPath()));
+        }
+
+        return allDepts;
+    }
+}
+
+/**
+ * MyBatis 拦截器 - 动态修改 SQL
+ */
+@Intercepts({@Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class})})
+public class DataScopeInterceptor implements Interceptor {
+
+    @Override
+    public Object intercept(Invocation invocation) throws Throwable {
+        DataScopeType scope = DataScopeContext.getScope();
+        if (scope == null || scope == DataScopeType.ALL) {
+            return invocation.proceed();
+        }
+
+        // 动态修改 SQL，添加数据权限条件
+        MappedStatement ms = (MappedStatement) invocation.getArgs()[0];
+        Object parameter = invocation.getArgs()[1];
+        BoundSql boundSql = ms.getBoundSql(parameter);
+
+        String originalSql = boundSql.getSql();
+        String dataScopeSql = addDataScopeCondition(originalSql, scope);
+
+        // 使用反射设置新的 SQL
+        Field field = boundSql.getClass().getDeclaredField("sql");
+        field.setAccessible(true);
+        field.set(boundSql, dataScopeSql);
+
+        return invocation.proceed();
+    }
+
+    private String addDataScopeCondition(String sql, DataScopeType scope) {
+        Long userId = DataScopeContext.getUserId();
+        Set<Long> deptIds = DataScopeContext.getDeptIds();
+
+        String condition;
+        switch (scope) {
+            case SELF:
+                condition = "user_id = " + userId;
+                break;
+            case DEPT:
+                condition = "dept_id IN (" + StringUtils.join(deptIds, ",") + ")";
+                break;
+            case DEPT_AND_SUB:
+                condition = "dept_id IN (" + StringUtils.join(deptIds, ",") + ")";
+                break;
+            default:
+                return sql;
+        }
+
+        // 添加 WHERE 条件
+        if (sql.toUpperCase().contains("WHERE")) {
+            return sql + " AND " + condition;
+        } else {
+            return sql + " WHERE " + condition;
+        }
+    }
+}
+```
+
+### 12.3 分布式缓存一致性方案
+
+**问题**：多节点部署时，权限变更后其他节点缓存未及时清除
+
+**解决方案**：Redis Pub/Sub + 版本号机制
+
+```java
+/**
+ * Redis Pub/Sub 配置
+ */
+@Configuration
+public class RedisPubSubConfig {
+
+    @Bean
+    public RedisMessageListenerContainer redisMessageListenerContainer(RedisConnectionFactory factory) {
+        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+        container.setConnectionFactory(factory);
+        container.addMessageListener(new PermissionChangeListener(), new ChannelTopic("auth:perm_change"));
+        return container;
+    }
+}
+
+/**
+ * 权限变更消息监听器
+ */
+public class PermissionChangeListener implements MessageListener {
+
+    @Override
+    public void onMessage(Message message, byte[] pattern) {
+        String payload = message.toString();
+        String[] parts = payload.split(":");
+        Long userId = Long.parseLong(parts[0]);
+        Long version = Long.parseLong(parts[1]);
+
+        // 清除本地缓存
+        localPermissionCache.evict(userId);
+
+        // 更新本地版本号
+        localPermVersion.put(userId, version);
+
+        log.info("权限变更消息已接收: userId={}, version={}", userId, version);
+    }
+}
+```
+
+### 12.4 审计日志实现
+
+```java
+/**
+ * 审计日志切面
+ */
+@Aspect
+@Component
+public class AuditLogAspect {
+
+    @Autowired
+    private AuditLogRepository auditLogRepository;
+
+    @Around("@annotation(auditLog)")
+    public Object recordAuditLog(ProceedingJoinPoint joinPoint, AuditLog auditLog) throws Throwable {
+        Long userId = UserContext.getCurrentUserId();
+        String username = UserContext.getCurrentUsername();
+        String ip = getIpAddress();
+        String requestId = MDC.get("traceId");
+
+        // 记录操作前状态
+        Object beforeValue = getBeforeValue(joinPoint);
+
+        Object result = joinPoint.proceed();
+
+        // 记录操作后状态
+        Object afterValue = getAfterValue(joinPoint, result);
+
+        // 保存审计日志
+        AuditLogPO log = new AuditLogPO();
+        log.setUserId(userId);
+        log.setUsername(username);
+        log.setOperation(auditLog.operation());
+        log.setTargetType(auditLog.targetType());
+        log.setBeforeValue(JsonUtils.toJson(beforeValue));
+        log.setAfterValue(JsonUtils.toJson(afterValue));
+        log.setIpAddress(ip);
+        log.setRequestId(requestId);
+
+        auditLogRepository.save(log);
+
+        return result;
+    }
+}
+
+/**
+ * 审计日志注解
+ */
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface AuditLog {
+    String operation();     // 操作类型
+    String targetType();    // 目标类型
+}
+```
