@@ -5,12 +5,14 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
+import { useTheme } from './composables/useTheme'
+
+// 初始化主题
+useTheme()
 </script>
 
 <style>
-body {
-  margin: 0;
-  background-color: #f5f7fa;
-}
+/* 全局样式已由 global.scss 处理，这里仅保留必要覆盖 */
 </style>
