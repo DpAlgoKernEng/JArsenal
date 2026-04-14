@@ -5,7 +5,6 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 import { useTheme } from './composables/useTheme'
 
