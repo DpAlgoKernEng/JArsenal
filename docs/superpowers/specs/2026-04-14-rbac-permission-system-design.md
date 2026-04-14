@@ -1,6 +1,6 @@
 # RBAC 权限管理系统设计规范
 
-> 文档版本：2.0
+> 文档版本：2.1
 > 创建日期：2026-04-14
 > 更新日期：2026-04-14
 > 适用项目：JArsenal (Spring Boot 3.x + Vue 3)
@@ -131,7 +131,7 @@ public class Role extends BaseEntity<RoleId> {
     private InheritMode inheritMode; // EXTEND/LIMIT（语义更清晰）
     private boolean isDeleted;      // 软删除标记
     private Set<RolePermission> permissions;  // 值对象集合，不可变
-    private List<RoleDataScope> dataScopes;
+    private Set<RoleDataScope> dataScopes;    // 改为Set，防止重复维度
     private List<FieldPermission> fieldPerms;
     
     // 工厂方法
@@ -141,12 +141,15 @@ public class Role extends BaseEntity<RoleId> {
     public void assignPermission(ResourceId resource, Set<ActionType> actions);
     public void removePermission(ResourceId resource);
     public void assignDataScope(DimensionType dimension, ScopeType type, Set<Long> values);
+    public void removeDataScope(DimensionType dimension);
     public void enable();
     public void disable();
     public void softDelete();        // 软删除
     
-    // 计算权限位图（预计算优化）
-    public PermissionBitmap computePermissionBitmap(RoleRepository repo);
+    // 权限位图计算移至PermissionDomainService（符合DDD领域服务职责）
+    // 此处仅提供角色自身权限数据
+    public Set<RolePermission> getOwnPermissions();
+    public Set<RoleDataScope> getOwnDataScopes();
 }
 ```
 
@@ -422,6 +425,85 @@ CREATE TABLE permission_audit_log (
     INDEX idx_change_type (change_type),
     INDEX idx_create_time (create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='权限变更审计表';
+
+-- =====================================================
+-- 数据库触发器：防止角色循环继承（数据库层面兜底）
+-- =====================================================
+
+DELIMITER //
+
+/**
+ * 触发器：角色parent_id更新前校验循环继承
+ * 在数据库层面确保数据完整性，防止代码层遗漏
+ */
+CREATE TRIGGER trg_role_before_update
+BEFORE UPDATE ON role
+FOR EACH ROW
+BEGIN
+    DECLARE is_circular INT DEFAULT 0;
+    DECLARE current_parent BIGINT;
+    
+    -- 仅当parent_id变更时校验
+    IF NEW.parent_id IS NOT NULL AND (OLD.parent_id IS NULL OR NEW.parent_id != OLD.parent_id) THEN
+        -- 不能将自己设为父角色
+        IF NEW.parent_id = NEW.id THEN
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = '角色不能以自己为父角色（循环继承）';
+        END IF;
+        
+        -- 检查继承链是否形成循环
+        SET current_parent = NEW.parent_id;
+        SET is_circular = 0;
+        
+        WHILE current_parent IS NOT NULL AND is_circular = 0 DO
+            -- 如果继承链中出现当前角色ID，则形成循环
+            IF current_parent = NEW.id THEN
+                SET is_circular = 1;
+            END IF;
+            
+            -- 继续向上查找父角色
+            SELECT parent_id INTO current_parent 
+            FROM role 
+            WHERE id = current_parent AND is_deleted = 0;
+        END WHILE;
+        
+        -- 发现循环继承，拒绝更新
+        IF is_circular = 1 THEN
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = '角色继承链形成循环，更新被拒绝';
+        END IF;
+    END IF;
+END//
+
+/**
+ * 触发器：角色插入前校验parent_id有效性
+ */
+CREATE TRIGGER trg_role_before_insert
+BEFORE INSERT ON role
+FOR EACH ROW
+BEGIN
+    DECLARE parent_exists INT DEFAULT 0;
+    
+    IF NEW.parent_id IS NOT NULL THEN
+        -- 不能将自己设为父角色
+        IF NEW.parent_id = NEW.id THEN
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = '角色不能以自己为父角色（循环继承）';
+        END IF;
+        
+        -- 检查父角色是否存在且未删除
+        SELECT COUNT(*) INTO parent_exists 
+        FROM role 
+        WHERE id = NEW.parent_id AND is_deleted = 0;
+        
+        IF parent_exists = 0 THEN
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = '父角色不存在或已被删除';
+        END IF;
+    END IF;
+END//
+
+DELIMITER ;
 ```
 
 ### 3.4 预设数据
@@ -944,8 +1026,8 @@ public class DataScopeInterceptor implements Interceptor {
                 params.put("_dataScopeDeptIds", getSubDeptIds(userId));
                 break;
             case CUSTOM:
-                // 白名单校验scope值
-                params.put("_dataScopeValues", validateScopeValues(scope.getScopeValues()));
+                // 白名单校验scope值（传入维度编码进行存在性检查）
+                params.put("_dataScopeValues", validateScopeValues(scope.getScopeValues(), config.getDimension()));
                 break;
         }
         
@@ -975,13 +1057,77 @@ public class DataScopeInterceptor implements Interceptor {
     }
     
     /**
-     * 白名单校验范围值
+     * 白名单校验范围值（加强版）
+     * 校验值是否存在于对应维度表中，防止非法值注入
      */
-    private Set<Long> validateScopeValues(Set<Long> values) {
-        // 校验值是否在合法范围内（如部门ID必须存在于部门表）
-        return values.stream()
-            .filter(v -> v > 0)// 基础校验
+    private Set<Long> validateScopeValues(Set<Long> values, String dimensionCode) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptySet();
+        }
+        
+        // 1. 基础校验：正整数
+        Set<Long> validValues = values.stream()
+            .filter(v -> v != null && v > 0)
             .collect(Collectors.toSet());
+        
+        if (validValues.isEmpty()) {
+            return Collections.emptySet();
+        }
+        
+        // 2. 维度表存在性校验（根据dimensionCode查询对应表）
+        DataDimension dimension = dataDimensionRepository.findByCode(dimensionCode);
+        if (dimension == null) {
+            log.warn("数据维度不存在: {}", dimensionCode);
+            return Collections.emptySet();
+        }
+        
+        // 3. 根据维度source_table校验值是否存在
+        String sourceTable = dimension.getSourceTable();
+        String sourceColumn = dimension.getSourceColumn();
+        
+        // 执行存在性检查（参数化查询，防止SQL注入）
+        String checkSql = String.format(
+            "SELECT %s FROM %s WHERE %s IN (:values) AND is_deleted = 0",
+            sourceColumn, sourceTable, sourceColumn
+        );
+        
+        Set<Long> existingIds = jdbcTemplate.queryForList(
+            checkSql, 
+            Map.of("values", validValues),
+            Long.class
+        );
+        
+        // 4. 仅保留存在于维度表中的值
+        Set<Long> result = new HashSet<>(existingIds);
+        
+        // 记录被过滤的非法值（用于审计）
+        Set<Long> filtered = new HashSet<>(validValues);
+        filtered.removeAll(result);
+        if (!filtered.isEmpty()) {
+            log.warn("数据权限范围值被过滤（不存在于维度表）: dimension={}, filtered={}", 
+                dimensionCode, filtered);
+            auditService.logFilteredScopeValues(dimensionCode, filtered);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 获取用户部门ID（用于SELF_DEPT/DEPT_TREE类型）
+     */
+    private Long getUserDeptId(Long userId) {
+        return userDimensionRepository.getValueByDimension(userId, "DEPARTMENT");
+    }
+    
+    /**
+     * 获取用户子部门ID列表（用于DEPT_TREE类型）
+     */
+    private Set<Long> getSubDeptIds(Long userId) {
+        Long deptId = getUserDeptId(userId);
+        if (deptId == null) {
+            return Collections.emptySet();
+        }
+        return departmentRepository.findAllSubDeptIds(deptId);
     }
 }
 ```
@@ -1537,3 +1683,4 @@ public void testDenyPriority() {
 |------|------|----------|
 | 1.0 | 2026-04-14 | 初版设计 |
 | 2.0 | 2026-04-14 | 根据评审意见修订：修复SQL注入、添加权限位图、二级缓存、测试策略等 |
+| 2.1 | 2026-04-14 | P1优化：数据库触发器防止循环继承、白名单校验加强（维度表存在性检查）、Role聚合根微调（dataScopes改Set、权限位图计算移至领域服务） |
