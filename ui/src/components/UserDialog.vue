@@ -1,5 +1,11 @@
 <template>
-  <el-dialog v-model="visible" :title="title" width="400px" @closed="handleClosed">
+  <el-dialog
+    v-model="visible"
+    :title="title"
+    width="420px"
+    @closed="handleClosed"
+    class="user-dialog"
+  >
     <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
       <el-form-item label="用户名" prop="username">
         <el-input v-model="form.username" placeholder="请输入用户名" />
@@ -23,8 +29,12 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确定</el-button>
+      <div class="dialog-footer">
+        <el-button class="cancel-button" @click="visible = false">取消</el-button>
+        <el-button class="submit-button" @click="handleSubmit" :loading="submitLoading">
+          确定
+        </el-button>
+      </div>
     </template>
   </el-dialog>
 </template>
@@ -55,7 +65,6 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'success'])
 
-// 双向绑定 visible
 const visible = computed({
   get: () => props.modelValue,
   set: (val) => emit('update:modelValue', val)
@@ -89,7 +98,6 @@ const rules = {
   status: [{ required: true, message: '请选择状态', trigger: 'change' }]
 }
 
-// 监听 userData 变化，填充表单（编辑模式）
 watch(() => props.userData, (data) => {
   if (data && props.isEdit) {
     form.username = data.username || ''
@@ -98,7 +106,6 @@ watch(() => props.userData, (data) => {
   }
 }, { immediate: true })
 
-// 对话框关闭时重置表单
 const handleClosed = () => {
   formRef.value?.resetFields()
   form.username = ''
@@ -138,8 +145,68 @@ const handleSubmit = async () => {
   }
 }
 
-// 暴露方法
 defineExpose({
   reset: handleClosed
 })
 </script>
+
+<style lang="scss" scoped>
+.user-dialog {
+  :deep(.el-dialog) {
+    @include glass-card;
+    border-radius: 16px;
+
+    .el-dialog__header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--color-border-light);
+
+      .el-dialog__title {
+        @include gradient-text;
+        font-weight: 600;
+      }
+    }
+
+    .el-dialog__body {
+      padding: 24px;
+
+      .el-form-item {
+        margin-bottom: 20px;
+      }
+
+      .el-input {
+        --el-input-bg-color: var(--color-bg-glass);
+        --el-input-border-color: var(--color-border);
+        --el-input-text-color: var(--color-text-primary);
+        --el-input-placeholder-color: var(--color-text-muted);
+      }
+    }
+
+    .el-dialog__footer {
+      padding: 16px 24px 20px;
+      border-top: 1px solid var(--color-border-light);
+    }
+  }
+
+  .dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+
+    .cancel-button {
+      background: var(--color-bg-glass);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-primary);
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: var(--color-border);
+      }
+    }
+
+    .submit-button {
+      @include gradient-button;
+      padding: 8px 24px;
+    }
+  }
+}
+</style>
