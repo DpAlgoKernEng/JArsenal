@@ -1,11 +1,16 @@
 <template>
   <Navbar />
   <div class="user-edit-container">
-    <el-card v-loading="loading">
-      <template #header>
-        <span>{{ isEdit ? '编辑用户' : '查看用户' }}</span>
-      </template>
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+    <div class="edit-card">
+      <div class="edit-header">
+        <el-button class="back-button" @click="router.push('/users')">
+          <el-icon><ArrowLeft /></el-icon>
+          返回列表
+        </el-button>
+        <h2 class="edit-title">{{ isEdit ? '编辑用户' : '查看用户' }}</h2>
+      </div>
+
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" v-loading="loading">
         <el-form-item label="ID">
           <el-input v-model="form.id" disabled />
         </el-form-item>
@@ -27,14 +32,17 @@
         <el-form-item label="更新时间">
           <el-input v-model="form.updateTime" disabled />
         </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSave" :loading="submitLoading">
+        <el-form-item class="action-buttons">
+          <el-button class="save-button" @click="handleSave" :loading="submitLoading">
+            <el-icon><Check /></el-icon>
             保存
           </el-button>
-          <el-button @click="router.push('/users')">返回</el-button>
+          <el-button @click="router.push('/users')">
+            取消
+          </el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -42,6 +50,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { ArrowLeft, Check } from '@element-plus/icons-vue'
 import { userApi } from '../api'
 import Navbar from '../components/Navbar.vue'
 
@@ -113,9 +122,73 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .user-edit-container {
-  padding: 20px;
+  padding: 84px 24px 24px 24px;
+  min-height: 100vh;
+  background: var(--color-bg-base);
+  display: flex;
+  justify-content: center;
+}
+
+.edit-card {
+  width: 100%;
   max-width: 600px;
+  @include glass-card;
+  padding: 24px;
+
+  .edit-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+
+    .back-button {
+      background: var(--color-bg-glass);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-primary);
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: var(--color-border);
+      }
+
+      .el-icon {
+        margin-right: 4px;
+      }
+    }
+
+    .edit-title {
+      @include gradient-text;
+      font-size: 20px;
+      font-weight: 600;
+    }
+  }
+
+  .el-form {
+    .el-form-item {
+      margin-bottom: 20px;
+    }
+
+    .el-input {
+      --el-input-bg-color: var(--color-bg-glass);
+      --el-input-border-color: var(--color-border);
+      --el-input-text-color: var(--color-text-primary);
+      --el-input-placeholder-color: var(--color-text-muted);
+    }
+
+    .action-buttons {
+      margin-top: 32px;
+
+      .save-button {
+        @include gradient-button;
+        padding: 10px 24px;
+
+        .el-icon {
+          margin-right: 4px;
+        }
+      }
+    }
+  }
 }
 </style>
