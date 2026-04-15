@@ -23,11 +23,13 @@ src/main/java/com/example/demo/
 │       └── PermissionCacheService.java   # L1/L2 缓存
 ├── interceptor/
 │   └── PermissionInterceptor.java        # API 权限校验
+│   └── PermissionInterceptorTest.java    # 拦截器测试
 ├── annotation/
 │   └ RequirePermission.java              # 方法级注解
 │   └ RequireBatchPermission.java         # 批量操作注解
 ├── aspect/
 │   └ PermissionAspect.java               # 注解的 AOP 切面
+│   └ PermissionAspectTest.java           # 切面测试
 ├── security/
 │   └ UserContext.java                    # 当前用户持有者（修改）
 │   └ PermissionAuthentication.java      # 认证包装器
@@ -609,7 +611,270 @@ public class PermissionInterceptor implements HandlerInterceptor {
 }
 ```
 
-- [ ] **步骤 2：在 WebMvcConfig 中配置拦截器**
+- [ ] **步骤 2：编写 PermissionInterceptorTest**
+
+```java
+package com.example.demo.interceptor;
+
+import com.example.demo.domain.permission.aggregate.Resource;
+import com.example.demo.domain.permission.service.PermissionCacheService;
+import com.example.demo.domain.permission.valueobject.ActionType;
+import com.example.demo.domain.permission.valueobject.PermissionBitmap;
+import com.example.demo.domain.permission.repository.ResourceRepository;
+import com.example.demo.security.UserContext;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import java.util.List;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class PermissionInterceptorTest {
+    
+    @Mock
+    private PermissionCacheService permissionCache;
+    
+    @Mock
+    private ResourceRepository resourceRepository;
+    
+    private PermissionInterceptor interceptor;
+    
+    @BeforeEach
+    void setup() {
+        MockitoAnnotations.openMocks(this);
+        interceptor = new PermissionInterceptor(permissionCache, resourceRepository);
+    }
+    
+    @Test
+    void shouldAllowUnauthenticatedUser() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/users");
+        request.setMethod("GET");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        
+        UserContext.clear();
+        
+        boolean result = interceptor.preHandle(request, response, null);
+        
+        assertTrue(result);  // 未登录放行（由 AuthInterceptor 处理）
+    }
+    
+    @Test
+    void shouldAllowRequestWithPermission() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/users");
+        request.setMethod("GET");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        
+        UserContext.setCurrentUserId(1L);
+        
+        PermissionBitmap bitmap = PermissionBitmap.empty()
+            .addPermission(100L, java.util.Set.of(ActionType.VIEW));
+        
+        when(permissionCache.getPermissionBitmap(1L)).thenReturn(bitmap);
+        
+        Resource apiResource = new Resource();
+        apiResource.setId(100L);
+        apiResource.setPathPattern("/api/users/**");
+        apiResource.setMethod("GET");
+        
+        when(resourceRepository.findAllApis()).thenReturn(List.of(apiResource));
+        
+        boolean result = interceptor.preHandle(request, response, null);
+        
+        assertTrue(result);
+    }
+    
+    @Test
+    void shouldRejectRequestWithoutPermission() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/users/1");
+        request.setMethod("DELETE");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        
+        UserContext.setCurrentUserId(1L);
+        
+        PermissionBitmap bitmap = PermissionBitmap.empty()
+            .addPermission(100L, java.util.Set.of(ActionType.VIEW));  // 无 DELETE 权限
+        
+        when(permissionCache.getPermissionBitmap(1L)).thenReturn(bitmap);
+        
+        Resource apiResource = new Resource();
+        apiResource.setId(100L);
+        apiResource.setPathPattern("/api/users/**");
+        apiResource.setMethod("DELETE");
+        
+        when(resourceRepository.findAllApis()).thenReturn(List.of(apiResource));
+        
+        boolean result = interceptor.preHandle(request, response, null);
+        
+        assertFalse(result);
+        assertEquals(403, response.getStatus());
+    }
+    
+    @Test
+    void shouldAllowUnconfiguredResource() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/unknown");
+        request.setMethod("GET");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        
+        UserContext.setCurrentUserId(1L);
+        
+        PermissionBitmap bitmap = PermissionBitmap.empty();
+        when(permissionCache.getPermissionBitmap(1L)).thenReturn(bitmap);
+        when(resourceRepository.findAllApis()).thenReturn(List.of());
+        
+        boolean result = interceptor.preHandle(request, response, null);
+        
+        assertTrue(result);  // 未配置的资源放行
+    }
+    
+    @Test
+    void shouldMatchAntPathPattern() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/users/123/profile");
+        request.setMethod("GET");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        
+        UserContext.setCurrentUserId(1L);
+        
+        PermissionBitmap bitmap = PermissionBitmap.empty()
+            .addPermission(100L, java.util.Set.of(ActionType.VIEW));
+        
+        when(permissionCache.getPermissionBitmap(1L)).thenReturn(bitmap);
+        
+        Resource apiResource = new Resource();
+        apiResource.setId(100L);
+        apiResource.setPathPattern("/api/users/**");  // Ant 模式
+        apiResource.setMethod("GET");
+        
+        when(resourceRepository.findAllApis()).thenReturn(List.of(apiResource));
+        
+        boolean result = interceptor.preHandle(request, response, null);
+        
+        assertTrue(result);  // Ant 模式匹配成功
+    }
+}
+```
+
+- [ ] **步骤 3：编写 PermissionAspectTest**
+
+```java
+package com.example.demo.aspect;
+
+import com.example.demo.annotation.RequirePermission;
+import com.example.demo.domain.permission.aggregate.Resource;
+import com.example.demo.domain.permission.service.PermissionCacheService;
+import com.example.demo.domain.permission.valueobject.ActionType;
+import com.example.demo.domain.permission.valueobject.PermissionBitmap;
+import com.example.demo.domain.permission.repository.ResourceRepository;
+import com.example.demo.exception.BusinessException;
+import com.example.demo.security.UserContext;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.aspectj.lang.ProceedingJoinPoint;
+import java.util.Optional;
+import java.util.Set;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class PermissionAspectTest {
+    
+    @Mock
+    private PermissionCacheService permissionCache;
+    
+    @Mock
+    private ResourceRepository resourceRepository;
+    
+    @Mock
+    private ProceedingJoinPoint joinPoint;
+    
+    private PermissionAspect aspect;
+    
+    @BeforeEach
+    void setup() {
+        MockitoAnnotations.openMocks(this);
+        aspect = new PermissionAspect(permissionCache, resourceRepository);
+    }
+    
+    @Test
+    void shouldPassWhenPermissionGranted() throws Throwable {
+        UserContext.setCurrentUserId(1L);
+        
+        PermissionBitmap bitmap = PermissionBitmap.empty()
+            .addPermission(100L, Set.of(ActionType.VIEW, ActionType.CREATE));
+        when(permissionCache.getPermissionBitmap(1L)).thenReturn(bitmap);
+        
+        Resource resource = new Resource();
+        resource.setId(100L);
+        when(resourceRepository.findByCode("USER")).thenReturn(Optional.of(resource));
+        
+        RequirePermission annotation = mock(RequirePermission.class);
+        when(annotation.resourceCode()).thenReturn("USER");
+        when(annotation.actions()).thenReturn(new ActionType[]{ActionType.VIEW});
+        when(annotation.message()).thenReturn("无权限");
+        
+        when(joinPoint.proceed()).thenReturn("success");
+        
+        Object result = aspect.checkPermission(joinPoint, annotation);
+        
+        assertEquals("success", result);
+    }
+    
+    @Test
+    void shouldThrowWhenPermissionDenied() {
+        UserContext.setCurrentUserId(1L);
+        
+        PermissionBitmap bitmap = PermissionBitmap.empty()
+            .addPermission(100L, Set.of(ActionType.VIEW));  // 无 CREATE
+        when(permissionCache.getPermissionBitmap(1L)).thenReturn(bitmap);
+        
+        Resource resource = new Resource();
+        resource.setId(100L);
+        when(resourceRepository.findByCode("USER")).thenReturn(Optional.of(resource));
+        
+        RequirePermission annotation = mock(RequirePermission.class);
+        when(annotation.resourceCode()).thenReturn("USER");
+        when(annotation.actions()).thenReturn(new ActionType[]{ActionType.CREATE});
+        when(annotation.message()).thenReturn("无创建权限");
+        
+        assertThrows(BusinessException.class, () -> aspect.checkPermission(joinPoint, annotation));
+    }
+    
+    @Test
+    void shouldThrowWhenNotLoggedIn() {
+        UserContext.clear();
+        
+        RequirePermission annotation = mock(RequirePermission.class);
+        when(annotation.resourceCode()).thenReturn("USER");
+        when(annotation.actions()).thenReturn(new ActionType[]{ActionType.VIEW});
+        
+        assertThrows(BusinessException.class, () -> aspect.checkPermission(joinPoint, annotation));
+    }
+    
+    @Test
+    void shouldThrowWhenResourceNotFound() {
+        UserContext.setCurrentUserId(1L);
+        
+        when(permissionCache.getPermissionBitmap(1L)).thenReturn(PermissionBitmap.empty());
+        when(resourceRepository.findByCode("UNKNOWN")).thenReturn(Optional.empty());
+        
+        RequirePermission annotation = mock(RequirePermission.class);
+        when(annotation.resourceCode()).thenReturn("UNKNOWN");
+        when(annotation.actions()).thenReturn(new ActionType[]{ActionType.VIEW});
+        
+        assertThrows(BusinessException.class, () -> aspect.checkPermission(joinPoint, annotation));
+    }
+}
+```
+
+- [ ] **步骤 4：在 WebMvcConfig 中配置拦截器**
 
 ```java
 // 在 WebMvcConfig.java 中，添加到 addInterceptors 方法：
@@ -1217,8 +1482,9 @@ git commit -m "feat(rbac): implement repository classes for domain interfaces"
 - [x] 规范 P2 覆盖：PermissionInterceptor ✓、PermissionBitmap 计算 ✓、缓存 ✓、注解 ✓
 - [x] 无占位符：所有代码完整
 - [x] 类型一致性：PermissionBitmap 方法与 P1 定义匹配
-- [x] 测试：PermissionDomainServiceTest 覆盖位图合并、拒绝、继承
+- [x] 测试：PermissionDomainServiceTest + PermissionInterceptorTest + PermissionAspectTest 覆盖核心场景
 - [x] 安全：使用 SHA256 哈希的安全缓存 Key
+- [x] Ant路径匹配：测试覆盖路径模式匹配场景
 
 ---
 

@@ -147,7 +147,26 @@ INSERT INTO permission (role_id, resource_id, effect) VALUES
 
 -- 权限操作配置
 -- 为每个permission添加action记录
--- (这里省略详细的permission_action插入，实际实现时需要完善)
+
+-- 超级管理员对所有资源有全部操作权限
+INSERT INTO permission_action (permission_id, action) VALUES
+(1, 'VIEW'), (1, 'CREATE'), (1, 'UPDATE'), (1, 'DELETE'), (1, 'EXECUTE'),
+(2, 'VIEW'), (2, 'CREATE'), (2, 'UPDATE'), (2, 'DELETE'), (2, 'EXECUTE'),
+(3, 'VIEW'), (3, 'CREATE'), (3, 'UPDATE'), (3, 'DELETE'), (3, 'EXECUTE'),
+(4, 'VIEW'), (4, 'CREATE'), (4, 'UPDATE'), (4, 'DELETE'), (4, 'EXECUTE'),
+(5, 'VIEW'), (5, 'CREATE'), (5, 'UPDATE'), (5, 'DELETE'), (5, 'EXECUTE');
+
+-- 系统管理员对系统菜单有全部操作权限
+INSERT INTO permission_action (permission_id, action) VALUES
+(6, 'VIEW'), (6, 'CREATE'), (6, 'UPDATE'), (6, 'DELETE'),
+(7, 'VIEW'), (7, 'CREATE'), (7, 'UPDATE'), (7, 'DELETE'),
+(8, 'VIEW'), (8, 'CREATE'), (8, 'UPDATE'), (8, 'DELETE'),
+(9, 'VIEW'), (9, 'CREATE'), (9, 'UPDATE'), (9, 'DELETE');
+
+-- 部门管理员仅有查看和编辑权限
+INSERT INTO permission_action (permission_id, action) VALUES
+(10, 'VIEW'), (10, 'UPDATE'),
+(11, 'VIEW'), (11, 'UPDATE');
 ```
 
 - [ ] **步骤 3：编写敏感字段定义**

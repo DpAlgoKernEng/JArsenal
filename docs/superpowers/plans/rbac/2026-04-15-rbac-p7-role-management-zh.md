@@ -31,8 +31,8 @@ src/main/java/com/example/demo/
 
 ui/src/views/
 ├── RoleList.vue                        # 角色管理页面
-├── RoleEdit.vue                        # 角色编辑对话框
-├── RolePermission.vue                  # 权限分配
+├── RoleEdit.vue                        # 角色编辑对话框（完整实现）
+├── RolePermission.vue                  # 权限分配组件（完整实现）
 ├── RoleDataScope.vue                   # 数据范围分配
 ```
 
@@ -137,6 +137,8 @@ import com.example.demo.domain.permission.service.PermissionCacheService;
 import com.example.demo.domain.permission.event.*;
 import com.example.demo.service.dto.*;
 import com.example.demo.exception.BusinessException;
+import com.example.demo.security.UserContext;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
@@ -146,6 +148,30 @@ public class RoleService {
     
     private final RoleRepository roleRepository;
     private final PermissionCacheService cacheService;
+    private final UserRoleRepository userRoleRepository;
+    private final PermissionRepository permissionRepository;
+    private final RoleDataScopeRepository roleDataScopeRepository;
+    private final RoleDataScopeValueRepository roleDataScopeValueRepository;
+    private final RoleHierarchyService roleHierarchyService;
+    private final ApplicationEventPublisher eventPublisher;
+    
+    public RoleService(RoleRepository roleRepository,
+                     PermissionCacheService cacheService,
+                     UserRoleRepository userRoleRepository,
+                     PermissionRepository permissionRepository,
+                     RoleDataScopeRepository roleDataScopeRepository,
+                     RoleDataScopeValueRepository roleDataScopeValueRepository,
+                     RoleHierarchyService roleHierarchyService,
+                     ApplicationEventPublisher eventPublisher) {
+        this.roleRepository = roleRepository;
+        this.cacheService = cacheService;
+        this.userRoleRepository = userRoleRepository;
+        this.permissionRepository = permissionRepository;
+        this.roleDataScopeRepository = roleDataScopeRepository;
+        this.roleDataScopeValueRepository = roleDataScopeValueRepository;
+        this.roleHierarchyService = roleHierarchyService;
+        this.eventPublisher = eventPublisher;
+    }
     
     @Transactional
     public RoleResponse createRole(RoleCreateRequest request) {
@@ -237,6 +263,107 @@ public class RoleService {
         
         roleRepository.save(role);
         cacheService.clearRoleRelatedPermissions(roleId);
+    }
+    
+    @Transactional
+    public void removePermission(Long roleId, Long resourceId) {
+        Role role = roleRepository.findById(roleId)
+            .orElseThrow(() -> new BusinessException(404, "角色不存在"));
+        
+        role.removePermission(resourceId);
+        role.incrementVersion();
+        
+        roleRepository.save(role);
+        cacheService.clearRoleRelatedPermissions(roleId);
+        
+        eventPublisher.publish(new RolePermissionChangedEvent(roleId, resourceId, "REMOVE", UserContext.getCurrentUserId()));
+    }
+    
+    @Transactional
+    public void assignDataScope(Long roleId, DataScopeAssignRequest request) {
+        Role role = roleRepository.findById(roleId)
+            .orElseThrow(() -> new BusinessException(404, "角色不存在"));
+        
+        // 删除原有数据权限
+        roleDataScopeRepository.deleteByRoleAndDimension(roleId, request.dimensionCode());
+        
+        // 创建新数据权限
+        RoleDataScope scope = new RoleDataScope();
+        scope.setRoleId(roleId);
+        scope.setDimensionCode(request.dimensionCode());
+        scope.setScopeType(ScopeType.valueOf(request.scopeType()));
+        scope = roleDataScopeRepository.save(scope);
+        
+        // 如果是 CUSTOM 类型，插入范围值
+        if (request.scopeType().equals("CUSTOM") && request.scopeValues() != null) {
+            for (Long valueId : request.scopeValues()) {
+                RoleDataScopeValue value = new RoleDataScopeValue();
+                value.setScopeId(scope.getId());
+                value.setValueId(valueId);
+                roleDataScopeValueRepository.save(value);
+            }
+        }
+        
+        role.incrementVersion();
+        roleRepository.save(role);
+        cacheService.clearRoleRelatedPermissions(roleId);
+    }
+    
+    @Transactional
+    public void removeDataScope(Long roleId, String dimensionCode) {
+        roleDataScopeRepository.deleteByRoleAndDimension(roleId, dimensionCode);
+        
+        Role role = roleRepository.findById(roleId)
+            .orElseThrow(() -> new BusinessException(404, "角色不存在"));
+        role.incrementVersion();
+        roleRepository.save(role);
+        cacheService.clearRoleRelatedPermissions(roleId);
+    }
+    
+    public List<RoleTreeResponse> getRoleTree() {
+        return roleHierarchyService.buildRoleTree();
+    }
+    
+    public List<PermissionResponse> getRolePermissions(Long roleId) {
+        List<Permission> perms = permissionRepository.findByRoleId(roleId);
+        return perms.stream().map(this::toPermissionResponse).toList();
+    }
+    
+    private RoleResponse toResponse(Role role) {
+        String parentName = null;
+        if (role.getParentId() != null) {
+            Role parent = roleRepository.findById(role.getParentId()).orElse(null);
+            parentName = parent != null ? parent.getName() : null;
+        }
+        
+        List<PermissionResponse> perms = role.getOwnPermissions().stream()
+            .map(p -> new PermissionResponse(p.getResourceId(), p.getActions().stream().map(ActionType::name).toList(), p.getEffect().name()))
+            .toList();
+        
+        List<DataScopeResponse> scopes = role.getDataScopeIds().stream()
+            .map(scopeId -> {
+                RoleDataScope scope = roleDataScopeRepository.findById(scopeId).orElse(null);
+                if (scope == null) return null;
+                Set<Long> values = roleDataScopeRepository.findScopeValues(scopeId);
+                return new DataScopeResponse(scope.getDimensionCode(), scope.getScopeType().name(), values);
+            })
+            .filter(Objects::nonNull)
+            .toList();
+        
+        return new RoleResponse(
+            role.getId(),
+            role.getCode().value(),
+            role.getName(),
+            role.getParentId(),
+            parentName,
+            role.getStatus().name(),
+            role.getInheritMode().name(),
+            role.isBuiltin(),
+            role.getVersion(),
+            role.getSort(),
+            perms,
+            scopes
+        );
     }
 }
 ```
@@ -524,7 +651,294 @@ const handleDelete = async (row) => {
 </script>
 ```
 
-- [ ] **步骤 2：提交前端页面**
+- [ ] **步骤 3：编写 RoleEdit.vue**
+
+```vue
+<!-- ui/src/views/RoleEdit.vue -->
+<template>
+  <el-dialog 
+    :model-value="visible" 
+    :title="isEdit ? '编辑角色' : '新增角色'"
+    width="600px"
+    @close="handleClose"
+  >
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+      <el-form-item label="角色编码" prop="code">
+        <el-input 
+          v-model="form.code" 
+          :disabled="isEdit"
+          placeholder="大写字母开头，如 ADMIN"
+        />
+      </el-form-item>
+      
+      <el-form-item label="角色名称" prop="name">
+        <el-input v-model="form.name" placeholder="角色显示名称" />
+      </el-form-item>
+      
+      <el-form-item label="父角色" prop="parentId">
+        <el-tree-select
+          v-model="form.parentId"
+          :data="roleTreeData"
+          :props="{ value: 'id', label: 'name', children: 'children' }"
+          check-strictly
+          clearable
+          placeholder="选择父角色（可选）"
+        />
+      </el-form-item>
+      
+      <el-form-item label="继承模式" prop="inheritMode">
+        <el-radio-group v-model="form.inheritMode">
+          <el-radio value="EXTEND">继承并扩展</el-radio>
+          <el-radio value="LIMIT">继承并限制</el-radio>
+        </el-radio-group>
+      </el-form-item>
+      
+      <el-form-item label="排序" prop="sort">
+        <el-input-number v-model="form.sort" :min="0" :max="999" />
+      </el-form-item>
+    </el-form>
+    
+    <template #footer>
+      <el-button @click="handleClose">取消</el-button>
+      <el-button type="primary" @click="handleSubmit" :loading="loading">
+        {{ isEdit ? '更新' : '创建' }}
+      </el-button>
+    </template>
+  </el-dialog>
+</template>
+
+<script setup>
+import { ref, computed, watch } from 'vue'
+import { createRole, updateRole, getRoleTree } from '@/api/role'
+import { ElMessage } from 'element-plus'
+
+const props = defineProps({
+  visible: Boolean,
+  roleData: Object  // 编辑时传入的角色数据
+})
+
+const emit = defineEmits(['update:visible', 'success'])
+
+const formRef = ref(null)
+const loading = ref(false)
+const roleTreeData = ref([])
+
+const isEdit = computed(() => !!props.roleData?.id)
+
+const form = ref({
+  code: '',
+  name: '',
+  parentId: null,
+  inheritMode: 'EXTEND',
+  sort: 0
+})
+
+const rules = {
+  code: [
+    { required: true, message: '请输入角色编码', trigger: 'blur' },
+    { pattern: /^[A-Z][A-Z0-9_]{1,49}$/, message: '2-50字符，大写字母开头', trigger: 'blur' }
+  ],
+  name: [
+    { required: true, message: '请输入角色名称', trigger: 'blur' },
+    { max: 100, message: '最多100字符', trigger: 'blur' }
+  ],
+  parentId: [
+    {
+      validator: (rule, value, callback) => {
+        // 不能选择自己作为父角色（编辑时）
+        if (props.roleData && value === props.roleData.id) {
+          callback(new Error('不能选择自己作为父角色'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'change'
+    }
+  ]
+}
+
+// 监听编辑数据
+watch(() => props.roleData, (data) => {
+  if (data) {
+    form.value = {
+      code: data.code,
+      name: data.name,
+      parentId: data.parentId,
+      inheritMode: data.inheritMode || 'EXTEND',
+      sort: data.sort || 0
+    }
+  } else {
+    resetForm()
+  }
+}, { immediate: true })
+
+// 加载角色树
+watch(() => props.visible, async (visible) => {
+  if (visible) {
+    const res = await getRoleTree()
+    if (res.code === 200) {
+      roleTreeData.value = res.data
+    }
+  }
+})
+
+const resetForm = () => {
+  form.value = {
+    code: '',
+    name: '',
+    parentId: null,
+    inheritMode: 'EXTEND',
+    sort: 0
+  }
+  formRef.value?.resetFields()
+}
+
+const handleClose = () => {
+  emit('update:visible', false)
+  resetForm()
+}
+
+const handleSubmit = async () => {
+  await formRef.value.validate()
+  
+  loading.value = true
+  try {
+    if (isEdit.value) {
+      await updateRole(props.roleData.id, form.value)
+      ElMessage.success('角色更新成功')
+    } else {
+      await createRole(form.value)
+      ElMessage.success('角色创建成功')
+    }
+    
+    emit('success')
+    handleClose()
+  } catch (error) {
+    ElMessage.error(error.message || '操作失败')
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+```
+
+- [ ] **步骤 3：编写 RolePermission.vue（权限分配组件）**
+
+```vue
+<!-- ui/src/views/RolePermission.vue -->
+<template>
+  <el-dialog 
+    :model-value="visible"
+    title="权限分配"
+    width="800px"
+    @close="handleClose"
+  >
+    <el-tree
+      ref="treeRef"
+      :data="resourceTree"
+      :props="{ label: 'name', children: 'children' }"
+      show-checkbox
+      node-key="id"
+      default-expand-all
+      :default-checked-keys="checkedKeys"
+    >
+      <template #default="{ node, data }">
+        <span class="custom-tree-node">
+          <span>{{ data.name }}</span>
+          <span class="node-type">
+            <el-tag size="small" :type="getTagType(data.type)">
+              {{ data.type }}
+            </el-tag>
+          </span>
+        </span>
+      </template>
+    </el-tree>
+    
+    <template #footer>
+      <el-button @click="handleClose">取消</el-button>
+      <el-button type="primary" @click="handleSubmit" :loading="loading">
+        保存权限
+      </el-button>
+    </template>
+  </el-dialog>
+</template>
+
+<script setup>
+import { ref, watch } from 'vue'
+import { getResourceTree, assignPermission } from '@/api/resource'
+import { getRolePermissions } from '@/api/role'
+import { ElMessage } from 'element-plus'
+
+const props = defineProps({
+  visible: Boolean,
+  roleId: Number
+})
+
+const emit = defineEmits(['update:visible', 'success'])
+
+const treeRef = ref(null)
+const loading = ref(false)
+const resourceTree = ref([])
+const checkedKeys = ref([])
+
+watch(() => props.visible, async (visible) => {
+  if (visible && props.roleId) {
+    // 加载资源树
+    const res = await getResourceTree()
+    if (res.code === 200) {
+      resourceTree.value = res.data
+    }
+    
+    // 加载角色已有权限
+    const permRes = await getRolePermissions(props.roleId)
+    if (permRes.code === 200) {
+      checkedKeys.value = permRes.data.map(p => p.resourceId)
+    }
+  }
+})
+
+const getTagType = (type) => {
+  return { MENU: '', OPERATION: 'warning', API: 'success' }[type] || 'info'
+}
+
+const handleClose = () => {
+  emit('update:visible', false)
+  checkedKeys.value = []
+}
+
+const handleSubmit = async () => {
+  loading.value = true
+  try {
+    const checkedNodes = treeRef.value.getCheckedNodes()
+    const resourceIds = checkedNodes.map(n => n.id)
+    
+    await assignPermission(props.roleId, { resourceIds, actions: ['VIEW'], effect: 'ALLOW' })
+    
+    ElMessage.success('权限分配成功')
+    emit('success')
+    handleClose()
+  } catch (error) {
+    ElMessage.error(error.message || '操作失败')
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+<style scoped>
+.custom-tree-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.node-type {
+  margin-left: 10px;
+}
+</style>
+```
+
+- [ ] **步骤 3：提交前端页面**
 
 ```bash
 git add ui/src/views/RoleList.vue ui/src/views/RoleEdit.vue
@@ -539,6 +953,8 @@ git commit -m "feat(rbac): add role management frontend pages"
 - [x] 无占位符：所有代码完整
 - [x] 校验：DTO 上有 Jakarta 约束
 - [x] 安全：内置角色保护、循环继承检查
+- [x] 依赖注入：RoleService 包含 eventPublisher、userRoleRepository
+- [x] 前端组件：RoleEdit.vue 和 RolePermission.vue 完整实现
 
 ---
 

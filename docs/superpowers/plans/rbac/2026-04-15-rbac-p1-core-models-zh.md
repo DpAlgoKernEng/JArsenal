@@ -25,6 +25,7 @@ src/main/java/com/example/demo/
 │       │   ├── ResourceField.java      # 敏感字段实体
 │       │   └── FieldPermission.java    # 字段权限实体
 │       ├── valueobject/
+│       ├── valueobject/
 │       │   ├── RoleId.java             # 角色标识值对象
 │       │   ├── RoleCode.java           # 角色编码值对象
 │       │   ├── ResourceType.java       # 资源类型枚举
@@ -77,10 +78,11 @@ src/main/java/com/example/demo/
 │           ├── RoleRepositoryImpl.java
 │           ├── ResourceRepositoryImpl.java
 │           └── PermissionRepositoryImpl.java
-│       └── converter/
-│           ├── RoleConverter.java      # 领域 <-> PO 转换器
-│           ├── ResourceConverter.java
-│           └── PermissionConverter.java
+│       └ converter/
+│           ├── RoleCodeTypeHandler.java    # 值对象 TypeHandler
+│           ├── RoleStatusTypeHandler.java
+│           ├── InheritModeTypeHandler.java
+│           ├── ResourceTypeTypeHandler.java
 
 src/main/resources/
 ├── db/migration/
@@ -1442,6 +1444,7 @@ git commit -m "feat(rbac): add Resource aggregate with sensitive field support"
 - 创建：`src/main/java/com/example/demo/domain/permission/repository/RoleRepository.java`
 - 创建：`src/main/java/com/example/demo/domain/permission/repository/ResourceRepository.java`
 - 创建：`src/main/java/com/example/demo/domain/permission/repository/UserRoleRepository.java`
+- 创建：`src/main/java/com/example/demo/domain/permission/repository/PermissionRepository.java`
 
 - [ ] **步骤 1：编写 RoleRepository 接口**
 
@@ -1526,7 +1529,29 @@ public interface UserRoleRepository {
 }
 ```
 
-- [ ] **步骤 4：提交仓储接口**
+- [ ] **步骤 4：编写 PermissionRepository 接口**
+
+```java
+package com.example.demo.domain.permission.repository;
+
+import com.example.demo.domain.permission.entity.Permission;
+import java.util.List;
+
+public interface PermissionRepository {
+    
+    Permission save(Permission permission);
+    
+    List<Permission> findByRoleId(Long roleId);
+    
+    Permission findByRoleAndResource(Long roleId, Long resourceId);
+    
+    void deleteByRoleAndResource(Long roleId, Long resourceId);
+    
+    void deleteByRoleId(Long roleId);
+}
+```
+
+- [ ] **步骤 5：提交仓储接口**
 
 ```bash
 git add src/main/java/com/example/demo/domain/permission/repository/*.java
@@ -1535,7 +1560,184 @@ git commit -m "feat(rbac): add domain repository interfaces"
 
 ---
 
-## 任务 12：创建 MyBatis Mapper - Role
+## 任务 12：创建 TypeHandler（值对象转换）
+
+**文件：**
+- 创建：`src/main/java/com/example/demo/infrastructure/persistence/converter/RoleCodeTypeHandler.java`
+- 创建：`src/main/java/com/example/demo/infrastructure/persistence/converter/RoleStatusTypeHandler.java`
+- 创建：`src/main/java/com/example/demo/infrastructure/persistence/converter/InheritModeTypeHandler.java`
+- 创建：`src/main/java/com/example/demo/infrastructure/persistence/converter/ResourceTypeTypeHandler.java`
+
+- [ ] **步骤 1：编写 RoleCodeTypeHandler**
+
+```java
+package com.example.demo.infrastructure.persistence.converter;
+
+import com.example.demo.domain.permission.valueobject.RoleCode;
+import org.apache.ibatis.type.BaseTypeHandler;
+import org.apache.ibatis.type.JdbcType;
+import java.sql.CallableStatement;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class RoleCodeTypeHandler extends BaseTypeHandler<RoleCode> {
+    
+    @Override
+    public void setNonNullParameter(PreparedStatement ps, int i, RoleCode parameter, JdbcType jdbcType) throws SQLException {
+        ps.setString(i, parameter.value());
+    }
+    
+    @Override
+    public RoleCode getNullableResult(ResultSet rs, String columnName) throws SQLException {
+        String code = rs.getString(columnName);
+        return code != null ? new RoleCode(code) : null;
+    }
+    
+    @Override
+    public RoleCode getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
+        String code = rs.getString(columnIndex);
+        return code != null ? new RoleCode(code) : null;
+    }
+    
+    @Override
+    public RoleCode getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
+        String code = cs.getString(columnIndex);
+        return code != null ? new RoleCode(code) : null;
+    }
+}
+```
+
+- [ ] **步骤 2：编写 RoleStatusTypeHandler**
+
+```java
+package com.example.demo.infrastructure.persistence.converter;
+
+import com.example.demo.domain.permission.valueobject.RoleStatus;
+import org.apache.ibatis.type.BaseTypeHandler;
+import org.apache.ibatis.type.JdbcType;
+import java.sql.CallableStatement;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class RoleStatusTypeHandler extends BaseTypeHandler<RoleStatus> {
+    
+    @Override
+    public void setNonNullParameter(PreparedStatement ps, int i, RoleStatus parameter, JdbcType jdbcType) throws SQLException {
+        ps.setInt(i, parameter == RoleStatus.ENABLED ? 1 : 0);
+    }
+    
+    @Override
+    public RoleStatus getNullableResult(ResultSet rs, String columnName) throws SQLException {
+        int status = rs.getInt(columnName);
+        return status == 1 ? RoleStatus.ENABLED : RoleStatus.DISABLED;
+    }
+    
+    @Override
+    public RoleStatus getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
+        int status = rs.getInt(columnIndex);
+        return status == 1 ? RoleStatus.ENABLED : RoleStatus.DISABLED;
+    }
+    
+    @Override
+    public RoleStatus getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
+        int status = cs.getInt(columnIndex);
+        return status == 1 ? RoleStatus.ENABLED : RoleStatus.DISABLED;
+    }
+}
+```
+
+- [ ] **步骤 3：编写 InheritModeTypeHandler**
+
+```java
+package com.example.demo.infrastructure.persistence.converter;
+
+import com.example.demo.domain.permission.valueobject.InheritMode;
+import org.apache.ibatis.type.BaseTypeHandler;
+import org.apache.ibatis.type.JdbcType;
+import java.sql.CallableStatement;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class InheritModeTypeHandler extends BaseTypeHandler<InheritMode> {
+    
+    @Override
+    public void setNonNullParameter(PreparedStatement ps, int i, InheritMode parameter, JdbcType jdbcType) throws SQLException {
+        ps.setString(i, parameter.name());
+    }
+    
+    @Override
+    public InheritMode getNullableResult(ResultSet rs, String columnName) throws SQLException {
+        String mode = rs.getString(columnName);
+        return mode != null ? InheritMode.valueOf(mode) : InheritMode.EXTEND;
+    }
+    
+    @Override
+    public InheritMode getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
+        String mode = rs.getString(columnIndex);
+        return mode != null ? InheritMode.valueOf(mode) : InheritMode.EXTEND;
+    }
+    
+    @Override
+    public InheritMode getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
+        String mode = cs.getString(columnIndex);
+        return mode != null ? InheritMode.valueOf(mode) : InheritMode.EXTEND;
+    }
+}
+```
+
+- [ ] **步骤 4：编写 ResourceTypeTypeHandler**
+
+```java
+package com.example.demo.infrastructure.persistence.converter;
+
+import com.example.demo.domain.permission.valueobject.ResourceType;
+import org.apache.ibatis.type.BaseTypeHandler;
+import org.apache.ibatis.type.JdbcType;
+import java.sql.CallableStatement;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class ResourceTypeTypeHandler extends BaseTypeHandler<ResourceType> {
+    
+    @Override
+    public void setNonNullParameter(PreparedStatement ps, int i, ResourceType parameter, JdbcType jdbcType) throws SQLException {
+        ps.setString(i, parameter.name());
+    }
+    
+    @Override
+    public ResourceType getNullableResult(ResultSet rs, String columnName) throws SQLException {
+        String type = rs.getString(columnName);
+        return type != null ? ResourceType.valueOf(type) : null;
+    }
+    
+    @Override
+    public ResourceType getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
+        String type = rs.getString(columnIndex);
+        return type != null ? ResourceType.valueOf(type) : null;
+    }
+    
+    @Override
+    public ResourceType getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
+        String type = cs.getString(columnIndex);
+        return type != null ? ResourceType.valueOf(type) : null;
+    }
+}
+```
+
+- [ ] **步骤 5：提交 TypeHandler**
+
+```bash
+git add src/main/java/com/example/demo/infrastructure/persistence/converter/*.java
+git commit -m "feat(rbac): add TypeHandlers for value object persistence conversion"
+```
+
+---
+
+## 任务 13：创建 MyBatis Mapper - Role
 
 **文件：**
 - 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/RoleMapper.java`
@@ -1623,7 +1825,7 @@ git commit -m "feat(rbac): add RoleMapper for role persistence"
 
 ---
 
-## 任务 13：创建领域事件
+## 任务 14：创建领域事件
 
 **文件：**
 - 创建：`src/main/java/com/example/demo/domain/permission/event/RoleCreatedEvent.java`
@@ -1712,7 +1914,7 @@ git commit -m "feat(rbac): add domain events for permission system"
 
 ---
 
-## 任务 14：运行数据库迁移
+## 任务 15：运行数据库迁移
 
 **文件：**
 - 无（数据库迁移）
@@ -1742,11 +1944,12 @@ mysql -u root -proot demo -e "SHOW TRIGGERS LIKE 'role';"
 
 ## 自检清单
 
-- [x] 规范 P1 覆盖：核心表 ✓、领域模型 ✓、值对象 ✓、仓储接口 ✓
+- [x] 规范 P1 覆盖：核心表 ✓、领域模型 ✓、值对象 ✓、仓储接口 ✓、TypeHandler ✓
 - [x] 无占位符：所有代码完整
 - [x] 类型一致性：RolePermission、PermissionBitmap、Role 使用一致的签名
 - [x] 测试：RoleTest、RolePermissionTest、PermissionBitmapTest、RoleCodeTest 覆盖关键行为
 - [x] 循环继承：数据库触发器防止 + RoleDomainService 代码校验（P2）
+- [x] TypeHandler：值对象持久化转换器完整
 
 ---
 

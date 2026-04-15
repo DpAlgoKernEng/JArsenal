@@ -26,6 +26,7 @@ src/main/java/com/example/demo/
 │       ├── DataDimensionRepository.java
 │       ├── UserDimensionRepository.java
 │       ├── RoleDataScopeRepository.java
+│       ├── DepartmentRepository.java     # 部门层级查询
 ├── infrastructure/
 │   ├── persistence/
 │   │   ├── mapper/
@@ -272,12 +273,26 @@ package com.example.demo.infrastructure.persistence.annotation;
 
 import java.lang.annotation.*;
 
+/**
+ * 数据权限注解 - 用于 Mapper 方法上标记需要应用数据权限过滤
+ */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface DataScope {
+    /**
+     * 数据维度编码（如 DEPARTMENT, PROJECT, CUSTOMER）
+     */
     String dimension() default "DEPARTMENT";
+    
+    /**
+     * 表别名（用于多表查询时指定表别名）
+     */
     String tableAlias() default "";
+    
+    /**
+     * 过滤字段名（如 dept_id, project_id）
+     */
     String column() default "";
 }
 ```
@@ -295,9 +310,32 @@ git commit -m "feat(rbac): add @DataScope annotation for mapper methods"
 
 **文件：**
 - 创建：`src/main/java/com/example/demo/infrastructure/persistence/interceptor/DataScopeInterceptor.java`
+- 创建：`src/main/java/com/example/demo/infrastructure/persistence/interceptor/DataScopeConfig.java`
 - 创建：`src/test/java/com/example/demo/infrastructure/interceptor/DataScopeInterceptorTest.java`
 
-- [ ] **步骤 1：编写 DataScopeInterceptor（安全改进版）**
+- [ ] **步骤 1：编写 DataScopeConfig**
+
+```java
+package com.example.demo.infrastructure.persistence.interceptor;
+
+public class DataScopeConfig {
+    private final String dimension;
+    private final String tableAlias;
+    private final String column;
+    
+    public DataScopeConfig(String dimension, String tableAlias, String column) {
+        this.dimension = dimension;
+        this.tableAlias = tableAlias;
+        this.column = column;
+    }
+    
+    public String getDimension() { return dimension; }
+    public String getTableAlias() { return tableAlias; }
+    public String getColumn() { return column; }
+}
+```
+
+- [ ] **步骤 2：编写 DataScopeInterceptor（安全改进版）**
 
 ```java
 package com.example.demo.infrastructure.persistence.interceptor;
@@ -307,6 +345,7 @@ import com.example.demo.domain.permission.entity.UserDataScope;
 import com.example.demo.domain.permission.service.DataScopeDomainService;
 import com.example.demo.domain.permission.repository.DataDimensionRepository;
 import com.example.demo.domain.permission.aggregate.DataDimension;
+import com.example.demo.infrastructure.persistence.annotation.DataScope;
 import com.example.demo.security.UserContext;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -317,6 +356,7 @@ import org.apache.ibatis.session.ResultHandler;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import java.util.*;
+import java.lang.reflect.Method;
 
 @Intercepts({
     @Signature(type = Executor.class, method = "query", 
@@ -328,6 +368,14 @@ public class DataScopeInterceptor implements Interceptor {
     private final DataScopeDomainService dataScopeService;
     private final DataDimensionRepository dimensionRepository;
     private final JdbcTemplate jdbcTemplate;
+    
+    public DataScopeInterceptor(DataScopeDomainService dataScopeService,
+                                DataDimensionRepository dimensionRepository,
+                                JdbcTemplate jdbcTemplate) {
+        this.dataScopeService = dataScopeService;
+        this.dimensionRepository = dimensionRepository;
+        this.jdbcTemplate = jdbcTemplate;
+    }
     
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
@@ -446,14 +494,45 @@ public class DataScopeInterceptor implements Interceptor {
         // 查询部门层级
         return departmentRepository.findAllSubDeptIds(deptId);
     }
+    
+    /**
+     * 从 Mapper 方法注解获取数据权限配置
+     */
+    private DataScopeConfig getDataScopeConfig(MappedStatement ms) {
+        try {
+            String mapperClassName = ms.getId().substring(0, ms.getId().lastIndexOf('.'));
+            String methodName = ms.getId().substring(ms.getId().lastIndexOf('.') + 1);
+            
+            Class<?> mapperClass = Class.forName(mapperClassName);
+            for (Method method : mapperClass.getDeclaredMethods()) {
+                if (method.getName().equals(methodName)) {
+                    DataScope annotation = method.getAnnotation(DataScope.class);
+                    if (annotation != null) {
+                        return new DataScopeConfig(
+                            annotation.dimension(),
+                            annotation.tableAlias(),
+                            annotation.column()
+                        );
+                    }
+                }
+            }
+        } catch (ClassNotFoundException e) {
+            // Mapper 类未找到，忽略
+        }
+        return null;
+    }
 }
 ```
 
-- [ ] **步骤 2：编写 SqlInjectionTest（安全测试）**
+- [ ] **步骤 3：编写 SqlInjectionTest（安全测试）**
 
 ```java
 package com.example.demo.infrastructure.interceptor;
 
+import com.example.demo.domain.permission.entity.DataScope;
+import com.example.demo.infrastructure.persistence.interceptor.DataScopeInterceptor;
+import com.example.demo.infrastructure.persistence.interceptor.DataScopeConfig;
+import com.example.demo.domain.permission.valueobject.ScopeType;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -500,7 +579,7 @@ class SqlInjectionTest {
 }
 ```
 
-- [ ] **步骤 3：提交拦截器**
+- [ ] **步骤 4：提交拦截器**
 
 ```bash
 git add src/main/java/com/example/demo/infrastructure/persistence/interceptor/DataScopeInterceptor.java \
@@ -552,7 +631,79 @@ git commit -m "feat(rbac): configure MyBatis interceptor order with PageHelper"
 
 ---
 
-## 任务 6：创建数据维度 Mapper
+## 任务 6：创建安全测试
+
+**文件：**
+- 创建：`src/test/java/com/example/demo/infrastructure/interceptor/DataScopeInterceptorTest.java`
+- 创建：`src/test/java/com/example/demo/infrastructure/interceptor/SqlInjectionTest.java`
+
+- [ ] **步骤 1：编写 DataScopeInterceptorTest**
+
+```java
+package com.example.demo.infrastructure.interceptor;
+
+import com.example.demo.domain.permission.entity.DataScope;
+import com.example.demo.infrastructure.persistence.interceptor.DataScopeInterceptor;
+import com.example.demo.infrastructure.persistence.interceptor.DataScopeConfig;
+import com.example.demo.domain.permission.valueobject.ScopeType;
+import org.junit.jupiter.api.Test;
+import java.util.Set;
+import static org.junit.jupiter.api.Assertions.*;
+
+class DataScopeInterceptorTest {
+    
+    @Test
+    void shouldBuildParameterizedConditionForSelf() {
+        DataScopeInterceptor interceptor = new DataScopeInterceptor(null, null, null);
+        
+        DataScope scope = DataScope.self("DEPARTMENT");
+        DataScopeConfig config = new DataScopeConfig("DEPARTMENT", "u", "dept_id");
+        
+        String condition = interceptor.buildParameterizedCondition(scope, config);
+        
+        assertEquals("u.dept_id = :_dataScopeUserId", condition);
+    }
+    
+    @Test
+    void shouldBuildParameterizedConditionForCustom() {
+        DataScopeInterceptor interceptor = new DataScopeInterceptor(null, null, null);
+        
+        DataScope scope = DataScope.custom("DEPARTMENT", Set.of(1L, 2L, 3L));
+        DataScopeConfig config = new DataScopeConfig("DEPARTMENT", "d", "dept_id");
+        
+        String condition = interceptor.buildParameterizedCondition(scope, config);
+        
+        assertTrue(condition.contains(":_dataScopeValues"));
+        assertFalse(condition.contains("1,2,3")); // 不应包含原始值
+    }
+    
+    @Test
+    void shouldRewriteSqlCorrectly() {
+        DataScopeInterceptor interceptor = new DataScopeInterceptor(null, null, null);
+        
+        String originalSql = "SELECT * FROM user u ORDER BY u.name";
+        String condition = "u.dept_id = :_dataScopeUserId";
+        
+        String newSql = interceptor.rewriteSql(originalSql, condition);
+        
+        assertTrue(newSql.contains("WHERE"));
+        assertTrue(newSql.contains(condition));
+        assertTrue(newSql.contains("ORDER BY"));
+    }
+}
+```
+
+- [ ] **步骤 2：提交测试**
+
+```bash
+git add src/test/java/com/example/demo/infrastructure/interceptor/DataScopeInterceptorTest.java \
+        src/test/java/com/example/demo/infrastructure/interceptor/SqlInjectionTest.java
+git commit -m "feat(rbac): add security tests for DataScopeInterceptor"
+```
+
+---
+
+## 任务 7：创建数据维度 Mapper
 
 **文件：**
 - 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/DataDimensionMapper.java`
@@ -616,7 +767,7 @@ git commit -m "feat(rbac): add data dimension mappers"
 
 ---
 
-## 任务 7：Mapper 使用 @DataScope 示例
+## 任务 8：Mapper 使用 @DataScope 示例
 
 **文件：**
 - 修改：`src/main/java/com/example/demo/mapper/UserMapper.java`（展示示例）
@@ -643,12 +794,168 @@ git commit -m "feat(rbac): apply @DataScope to UserMapper as example"
 
 ---
 
+## 任务 9：创建仓储接口
+
+**文件：**
+- 创建：`src/main/java/com/example/demo/domain/permission/repository/DataDimensionRepository.java`
+- 创建：`src/main/java/com/example/demo/domain/permission/repository/RoleDataScopeRepository.java`
+- 创建：`src/main/java/com/example/demo/domain/permission/repository/UserDimensionRepository.java`
+- 创建：`src/main/java/com/example/demo/domain/permission/repository/DepartmentRepository.java`
+
+- [ ] **步骤 1：编写 DataDimensionRepository 接口**
+
+```java
+package com.example.demo.domain.permission.repository;
+
+import com.example.demo.domain.permission.aggregate.DataDimension;
+import java.util.List;
+
+public interface DataDimensionRepository {
+    
+    DataDimension findByCode(String code);
+    
+    List<DataDimension> findAll();
+    
+    DataDimension save(DataDimension dimension);
+}
+```
+
+- [ ] **步骤 2：编写 RoleDataScopeRepository 接口**
+
+```java
+package com.example.demo.domain.permission.repository;
+
+import com.example.demo.domain.permission.entity.RoleDataScope;
+import java.util.List;
+import java.util.Set;
+
+public interface RoleDataScopeRepository {
+    
+    List<RoleDataScope> findByRoleId(Long roleId);
+    
+    Set<Long> findScopeValues(Long scopeId);
+    
+    RoleDataScope save(RoleDataScope scope);
+    
+    void deleteByRoleAndDimension(Long roleId, String dimensionCode);
+}
+```
+
+- [ ] **步骤 3：编写 UserDimensionRepository 接口**
+
+```java
+package com.example.demo.domain.permission.repository;
+
+import java.util.List;
+import java.util.Set;
+
+public interface UserDimensionRepository {
+    
+    Long getValueByDimension(Long userId, String dimensionCode);
+    
+    List<Long> findValuesByDimension(Long userId, String dimensionCode);
+    
+    void assignDimension(Long userId, String dimensionCode, Long valueId);
+    
+    void removeDimension(Long userId, String dimensionCode);
+}
+```
+
+- [ ] **步骤 4：编写 DepartmentRepository 接口**
+
+```java
+package com.example.demo.domain.permission.repository;
+
+import java.util.Set;
+
+public interface DepartmentRepository {
+    
+    /**
+     * 获取部门的所有子部门ID（递归）
+     */
+    Set<Long> findAllSubDeptIds(Long deptId);
+    
+    /**
+     * 获取部门层级路径
+     */
+    String getDeptPath(Long deptId);
+}
+```
+
+- [ ] **步骤 5：提交仓储接口**
+
+```bash
+git add src/main/java/com/example/demo/domain/permission/repository/DataDimensionRepository.java \
+        src/main/java/com/example/demo/domain/permission/repository/RoleDataScopeRepository.java \
+        src/main/java/com/example/demo/domain/permission/repository/UserDimensionRepository.java \
+        src/main/java/com/example/demo/domain/permission/repository/DepartmentRepository.java
+git commit -m "feat(rbac): add data scope repository interfaces"
+```
+
+---
+
+## 任务 10：创建 DataDimension 实体
+
+**文件：**
+- 创建：`src/main/java/com/example/demo/domain/permission/aggregate/DataDimension.java`
+
+- [ ] **步骤 1：编写 DataDimension 实体**
+
+```java
+package com.example.demo.domain.permission.aggregate;
+
+import com.example.demo.entity.BaseEntity;
+
+public class DataDimension extends BaseEntity {
+    private Long id;
+    private String code;
+    private String name;
+    private String description;
+    private String sourceTable;
+    private String sourceColumn;
+    private boolean status;
+    
+    public static DataDimension create(String code, String name, String sourceTable, String sourceColumn) {
+        DataDimension dimension = new DataDimension();
+        dimension.code = code;
+        dimension.name = name;
+        dimension.sourceTable = sourceTable;
+        dimension.sourceColumn = sourceColumn;
+        dimension.status = true;
+        return dimension;
+    }
+    
+    // Getter/Setter
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getCode() { return code; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public String getSourceTable() { return sourceTable; }
+    public String getSourceColumn() { return sourceColumn; }
+    public boolean isStatus() { return status; }
+    public void setStatus(boolean status) { this.status = status; }
+}
+```
+
+- [ ] **步骤 2：提交实体**
+
+```bash
+git add src/main/java/com/example/demo/domain/permission/aggregate/DataDimension.java
+git commit -m "feat(rbac): add DataDimension aggregate"
+```
+
+---
+
 ## 自检清单
 
 - [x] 规范 P4 覆盖：DataScopeInterceptor ✓、参数化查询 ✓、白名单校验 ✓
 - [x] 无占位符：所有代码完整
 - [x] 安全：SQL 注入测试、参数化条件、维度表校验
 - [x] PageHelper 兼容：拦截器顺序已配置
+- [x] 仓储接口：DataDimensionRepository、RoleDataScopeRepository、UserDimensionRepository、DepartmentRepository 完整定义
 
 ---
 

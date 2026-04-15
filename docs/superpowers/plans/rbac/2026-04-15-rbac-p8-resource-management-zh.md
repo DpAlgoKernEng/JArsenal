@@ -19,7 +19,7 @@ src/main/java/com/example/demo/
 ├── controller/
 │   └ ResourceController.java           # 资源 CRUD API
 ├── service/
-│   ├── ResourceService.java            # 资源应用服务
+│   ├── ResourceService.java            # 资源应用服务（完整依赖注入）
 │   └ dto/
 │       ├── ResourceCreateRequest.java
 │       ├── ResourceUpdateRequest.java
@@ -120,6 +120,7 @@ import com.example.demo.domain.permission.aggregate.Resource;
 import com.example.demo.domain.permission.aggregate.ResourceField;
 import com.example.demo.domain.permission.valueobject.*;
 import com.example.demo.domain.permission.repository.ResourceRepository;
+import com.example.demo.domain.permission.repository.ResourceFieldRepository;
 import com.example.demo.service.dto.*;
 import com.example.demo.exception.BusinessException;
 import org.springframework.stereotype.Service;
@@ -130,6 +131,13 @@ import java.util.*;
 public class ResourceService {
     
     private final ResourceRepository resourceRepository;
+    private final ResourceFieldRepository resourceFieldRepository;
+    
+    public ResourceService(ResourceRepository resourceRepository,
+                            ResourceFieldRepository resourceFieldRepository) {
+        this.resourceRepository = resourceRepository;
+        this.resourceFieldRepository = resourceFieldRepository;
+    }
     
     @Transactional
     public ResourceResponse createResource(ResourceCreateRequest request) {
@@ -377,6 +385,7 @@ git commit -m "feat(rbac): add resource management frontend"
 - [x] 无占位符：所有代码完整
 - [x] 校验：DTO 上有 Jakarta 约束
 - [x] 树结构：MENU/OPERATION/API 层级
+- [x] 依赖注入：ResourceService 包含 resourceFieldRepository
 
 ---
 

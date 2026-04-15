@@ -1,7 +1,7 @@
 # AI 全生命周期软件开发流程配置补充方案
 
-> 创建日期：2026-04-14
-> 版本：Supplement 1.0
+> 创建日期：2026-04-15
+> 版本：Supplement 2.0
 > 用途：补充 `full-workflow-setup.md`，提供更多配置范式和工具选择
 
 ---
@@ -11,11 +11,12 @@
 本文档补充 `full-workflow-setup.md` 中未覆盖的 AI 全生命周期软件开发流程配置方式，包括：
 
 - IDE Rules-Driven 模式
-- 自主 Agent 执行模式
+- 自主 Agent 执行模式（GSD/Ralph/Fresh Context）
 - MCP 集成生态模式
 - Memory Bank 模式
 - 多代理编排框架（LangGraph/AutoGen/CrewAI）
 - Spec-Driven Development 进阶实践
+- Fresh Context 设计原则
 
 ---
 
@@ -29,6 +30,8 @@
 | **CLI Agent** | OpenAI Codex CLI | 终端自主执行 | Git 工作流 + 自动提交 |
 | **CLI Agent** | Gemini CLI | Google 生态集成 | Android/Web 开发 |
 | **CLI Agent** | OpenCode | 多模型 CLI | 灵活模型切换 |
+| **自主执行框架** | **GSD** | Fresh Context 代理循环 | 69 命令 + 24 代理 + 规划驱动 |
+| **自主执行框架** | **Ralph** | PRD 自主循环 | `/prd` → `/ralph` → 自动执行 |
 | **IDE 编辑器** | Cursor | VS Code 衍生 | Rules for AI + Codebase Context |
 | **IDE 编辑器** | Windsurf | Codeium 出品 | **Flows System** + Cascade |
 | **IDE 插件** | Continue.dev | 开源 IDE 插件 | Rules + Prompt Files + Slash Commands |
@@ -59,17 +62,240 @@
       实时建议       自主执行        企业流程
 ```
 
+### 2.2 选择决策树
+
+```
+                    你的需求是什么？
+                          │
+          ┌───────────────┼───────────────┐
+          │               │               │
+      快速编码        端到端任务        企业合规
+          │               │               │
+          ▼               ▼               ▼
+    ┌─────────┐     ┌─────────┐     ┌─────────┐
+    │ Cursor  │     │ Claude  │     │ Factory │
+    │Windsurf │     │  Code   │     │   AI    │
+    │Continue │     │  Cline  │     │ Spec Kit│
+    └─────────┘     └─────────┘     └─────────┘
+          │               │               │
+          │               │               │
+          │               ▼               │
+          │     ┌─────────────────┐       │
+          │     │   大型功能？     │       │
+          │     │                 │       │
+          │     │  ┌─────┬─────┐  │       │
+          │     │  │ GSD │Ralph│  │       │
+          │     │  │(规划│(PRD)│  │       │
+          │     │  │驱动)│循环 │  │       │
+          │     │  └─────┴─────┘  │       │
+          │     └─────────────────┘       │
+          │               │               │
+          ▼               ▼               ▼
+      IDE 内嵌       CLI 终端        云端托管
+      实时建议       自主执行        企业流程
+                    Fresh Context
+```
+
 ---
 
-## 三、配置范式详解
+## 三、Fresh Context 设计原则（核心概念）
 
-### 3.1 IDE Rules-Driven 模式
+### 3.1 什么是 Fresh Context
 
-#### 3.1.1 概念说明
+**Fresh Context** 是自主执行层（GSD/Ralph）的核心设计理念：每次代理获得干净的 200K token 上下文窗口。
+
+### 3.2 问题背景：Context Rot
+
+```
+传统长会话问题（Context Rot）：
+
+┌─────────────────────────────────────────────────────────────┐
+│                    传统单一会话                              │
+│                                                             │
+│  Agent 开始                                                 │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Context Window: 200K tokens                         │   │
+│  │                                                     │   │
+│  │ Task 1 ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │   │
+│  │         ↑ 完成                                      │   │
+│  │                                                     │   │
+│  │ Task 2 ████████████████████░░░░░░░░░░░░░░░░░░░░░░░ │   │
+│  │         ↑ 累积垃圾，质量下降                         │   │
+│  │                                                     │   │
+│  │ Task 3 ████████████████████████████████████░░░░░░░ │   │
+│  │         ↑ 更严重，错误增多                           │   │
+│  │                                                     │   │
+│  │ Task 4 ███████████████████████████████████████████ │   │
+│  │         ↑ 接近上限，无法完成                         │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  问题：                                                      │
+│  ├── 累积垃圾信息                                            │
+│  ├── 质量逐渐下降                                            │
+│  ├── 代理"疲劳"                                              │
+│  ├── 无法完成大型任务                                        │
+│  └─────────────────────────────────────────────────────────┘
+```
+
+### 3.3 Fresh Context 解决方案
+
+```
+Fresh Context 模式：
+
+┌─────────────────────────────────────────────────────────────┐
+│              FRESH CONTEXT PER AGENT/ITERATION              │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Iteration 1                                                │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Fresh Context: 200K tokens (干净)                   │   │
+│  │ Input: Git history + progress.txt + prd.json        │   │
+│  │ Task: Implement US-001                              │   │
+│  │ Output: Code + Commit + Update files                │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                          ↓                                  │
+│  Iteration 2                                                │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Fresh Context: 200K tokens (干净)                   │   │
+│  │ Input: Previous commit + progress.txt               │   │
+│  │ Task: Implement US-002                              │   │
+│  │ Output: Code + Commit + Update files                │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                          ↓                                  │
+│  Iteration N                                                │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Fresh Context: 200K tokens (干净)                   │   │
+│  │ Input: Git history + progress.txt                   │   │
+│  │ Task: Implement US-N                                │   │
+│  │ Output: COMPLETE                                     │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  记忆持久化（跨迭代）：                                       │
+│  ├── Git 历史（每次迭代的提交）                              │
+│  ├── progress.txt（学习和上下文）                            │
+│  ├── prd.json（哪些故事已完成）                              │
+│  ├── .planning/（GSD 规划文件）                              │
+│  └─────────────────────────────────────────────────────────┘
+```
+
+### 3.4 GSD Fresh Context 流程
+
+```
+GSD Fresh Context 代理循环：
+
+┌─────────────────────────────────────────────────────────────┐
+│                    GSD WORKFLOW                              │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  /gsd-new-project                                           │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ 创建 .planning/ 目录结构                             │   │
+│  │ ├── config.json                                      │   │
+│  │ ├── research.md                                      │   │
+│  │ ├── tasks.md                                         │   │
+│  │ ├── design.md                                        │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                          ↓                                  │
+│  /gsd-discuss-phase                                         │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Fresh Context Agent 讨论产品假设                     │   │
+│  │ 生成用户故事                                         │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                          ↓                                  │
+│  /gsd-plan-phase                                            │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Fresh Context Agent 规划技术方案                     │   │
+│  │ research → tasks → design → design-review           │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                          ↓                                  │
+│  /gsd-execute-phase                                         │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Fresh Context Agent 循环执行任务                    │   │
+│  │                                                      │   │
+│  │ Agent 1: Task 1 (200K fresh) → Commit               │   │
+│  │ Agent 2: Task 2 (200K fresh) → Commit               │   │
+│  │ Agent 3: Task 3 (200K fresh) → Commit               │   │
+│  │ ...                                                  │   │
+│  │ 循环直到所有任务完成                                  │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                          ↓                                  │
+│  /gsd-verify-work                                           │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Typecheck + lint + tests                            │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                          ↓                                  │
+│  /gsd-ship                                                  │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Atomic Git Commit + PR                              │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 3.5 Ralph Fresh Context 循环
+
+```
+Ralph Fresh Context 循环：
+
+┌─────────────────────────────────────────────────────────────┐
+│                    RALPH LOOP                                │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. /prd                                                    │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ 生成 tasks/prd-[feature].md                         │   │
+│  │ 用户故事列表                                         │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                          ↓                                  │
+│  2. /ralph                                                  │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ 转换为 prd.json                                     │   │
+│  │ { userStories: [{passes: false}] }                  │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                          ↓                                  │
+│  3. ./ralph.sh                                              │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │                                                      │   │
+│  │ Loop:                                                │   │
+│  │   ├── Read prd.json                                 │   │
+│  │   ├── Read progress.txt                             │   │
+│  │   ├── Spawn Fresh Context Agent (200K)             │   │
+│  │   │   ├── Pick highest priority passes:false       │   │
+│  │   │   ├── Implement story                          │   │
+│  │   │   ├── Run quality checks                       │   │
+│  │   │   ├── Commit if pass                           │   │
+│  │   │   └── Update prd.json (passes:true)           │   │
+│  │   ├── Append to progress.txt                        │   │
+│  │   ├── Loop until all passes:true                   │   │
+│  │   ├── Output <promise>COMPLETE</promise>           │   │
+│  │                                                      │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 3.6 Fresh Context 核心优势
+
+| 优势 | 说明 |
+|------|------|
+| **无累积垃圾** | 每次迭代干净开始，无历史包袱 |
+| **完整上下文** | 200K token 全部可用，不浪费 |
+| **代理不疲劳** | 新实例永远精力充沛 |
+| **记忆持久化** | Git + progress.txt + prd.json |
+| **大型任务分解** | 分为多个小迭代完成 |
+| **质量稳定** | 每次迭代质量一致，不下降 |
+
+---
+
+## 四、配置范式详解
+
+### 4.1 IDE Rules-Driven 模式
+
+#### 4.1.1 概念说明
 
 通过规则文件（`.cursorrules`、`.continuerules` 等）指导 AI 行为，实现项目级定制。
 
-#### 3.1.2 工具对比
+#### 4.1.2 工具对比
 
 | 工具 | 规则文件 | 上下文机制 | 特色功能 |
 |------|----------|------------|----------|
@@ -77,7 +303,7 @@
 | **Windsurf** | `.windsurf/rules` | **Cascade Engine** | Flows 多模式、深度上下文 |
 | **Continue** | `.continue/rules.yaml` | Context Providers | Prompt Files、Quick Actions |
 
-#### 3.1.3 Cursor Rules 配置示例
+#### 4.1.3 Cursor Rules 配置示例
 
 **文件位置**：项目根目录 `.cursorrules`
 
@@ -106,7 +332,7 @@
 - 不要跳过 pre-commit hooks
 ```
 
-#### 3.1.4 Windsurf Flows System
+#### 4.1.4 Windsurf Flows System
 
 ```
 Flows 工作模式：
@@ -132,7 +358,7 @@ Flows 工作模式：
 - 编码风格学习
 ```
 
-#### 3.1.5 Continue.dev 配置结构
+#### 4.1.5 Continue.dev 配置结构
 
 ```
 项目配置结构：
@@ -156,7 +382,7 @@ Slash Commands 示例：
 /docs       → 生成文档
 ```
 
-#### 3.1.6 适用场景
+#### 4.1.6 适用场景
 
 | 场景 | 推荐工具 | 原因 |
 |------|----------|------|
@@ -167,23 +393,150 @@ Slash Commands 示例：
 
 ---
 
-### 3.2 自主 Agent 执行模式
+### 4.2 自主 Agent 执行模式
 
-#### 3.2.1 概念说明
+#### 4.2.1 概念说明
 
 Agent 自主规划和执行多步骤任务，无需持续人工干预。
 
-#### 3.2.2 平台对比
+#### 4.2.2 平台对比
 
-| 平台 | 自主程度 | 执行范围 | 特色 |
-|------|----------|----------|------|
-| **Cline** | 中高 | IDE 内工具执行 | VS Code 插件、浏览器控制 |
-| **Roo Code** | 高 | Cline Fork 增强 | 更多自主能力、API 集成 |
-| **Factory AI** | 最高 | 端到端功能 | Planning→Execution→Review |
-| **Devin** | 最高 | 全栈工程师 | 独立完成复杂项目 |
-| **Claude Code Agent** | 高 | CLI 终端 | Skills、Hooks、MCP 集成 |
+| 平台 | 自主程度 | 执行范围 | 特色 | Fresh Context |
+|------|----------|----------|------|---------------|
+| **GSD** | 最高 | 规划驱动执行 | 69 命令 + 24 代理 | ✅ 每个代理干净上下文 |
+| **Ralph** | 最高 | PRD 自主循环 | `/prd` → `/ralph` → 循环 | ✅ 每次迭代干净上下文 |
+| **Cline** | 中高 | IDE 内工具执行 | VS Code 插件、浏览器控制 | ❌ 单会话累积 |
+| **Roo Code** | 高 | Cline Fork 增强 | 更多自主能力、API 集成 | ❌ 单会话累积 |
+| **Factory AI** | 最高 | 端到端功能 | Planning→Execution→Review | ✅ 三阶段代理分离 |
+| **Devin** | 最高 | 全栈工程师 | 独立完成复杂项目 | ✅ 多代理协作 |
+| **Claude Code Agent** | 高 | CLI 终端 | Skills、Hooks、MCP 集成 | ❌ 需手动 compact |
 
-#### 3.2.3 Cline/Roo Code 工作流程
+#### 4.2.3 GSD Fresh Context 架构
+
+```
+GSD 自主执行架构：
+
+┌─────────────────────────────────────────────────────────────┐
+│                Planning Agent (Fresh Context)               │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │ • 产品假设讨论                                       │   │
+│   │ • 用户故事生成                                       │   │
+│   │ • 技术研究                                           │   │
+│   │ • 设计文档                                           │   │
+│   │ • 任务分解                                           │   │
+│   └─────────────────────────────────────────────────────┘   │
+└─────────────────────┬───────────────────────────────────────┘
+                      │ 计划写入 .planning/
+                      ↓
+┌─────────────────────────────────────────────────────────────┐
+│              Execution Agents (Fresh Context 循环)          │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │                                                      │   │
+│   │ Agent 1 (200K fresh): Task 1 → Commit               │   │
+│   │ Agent 2 (200K fresh): Task 2 → Commit               │   │
+│   │ Agent 3 (200K fresh): Task 3 → Commit               │   │
+│   │ ...                                                  │   │
+│   │                                                      │   │
+│   │ 记忆持久化：                                          │   │
+│   │ ├── Git history                                     │   │
+│   │ ├── .planning/progress/                             │   │
+│   │ ├── AGENTS.md 更新                                  │   │
+│   │                                                      │   │
+│   └─────────────────────────────────────────────────────┘   │
+└─────────────────────┬───────────────────────────────────────┘
+                      │ 代码传递
+                      ↓
+┌─────────────────────────────────────────────────────────────┐
+│                Review Agent (Fresh Context)                 │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │ • Typecheck + lint + tests                          │   │
+│   │ • 安全审查                                          │   │
+│   │ • 性能检查                                          │   │
+│   │ • 反馈修复循环                                      │   │
+│   └─────────────────────────────────────────────────────┘   │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+                      ▼
+          输出：Atomic Commit + PR
+
+关键特性：
+- Fresh Context：每个代理干净 200K 上下文
+- Memory Persistence：.planning/ 目录持久化
+- AGENTS.md：每次迭代更新学习
+- Quality Gates：Typecheck/lint/tests 必须通过
+```
+
+#### 4.2.4 Ralph PRD 循环架构
+
+```
+Ralph 自主循环架构：
+
+┌─────────────────────────────────────────────────────────────┐
+│                    PRD Generation                           │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │ /prd skill                                          │   │
+│   │ • 接收功能描述                                       │   │
+│   │ • 澄清问题                                           │   │
+│   │ • 生成 tasks/prd-[feature].md                       │   │
+│   │                                                      │   │
+│   │ /ralph skill                                         │   │
+│   │ • 转换 markdown PRD 为 prd.json                     │   │
+│   │ • { userStories: [{id, passes:false}] }             │   │
+│   └─────────────────────────────────────────────────────┘   │
+└─────────────────────┬───────────────────────────────────────┘
+                      │ prd.json
+                      ↓
+┌─────────────────────────────────────────────────────────────┐
+│                Ralph Loop (Fresh Context)                   │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │                                                      │   │
+│   │ for each iteration (max 10):                        │   │
+│   │   ┌───────────────────────────────────────────────┐ │   │
+│   │   │ Spawn Fresh Agent (200K clean context)        │ │   │
+│   │   │                                                 │ │   │
+│   │   │ 1. Read prd.json                               │ │   │
+│   │   │ 2. Read progress.txt                           │ │   │
+│   │   │ 3. Check branch                                │ │   │
+│   │   │ 4. Pick highest priority passes:false          │ │   │
+│   │   │ 5. Implement single story                      │ │   │
+│   │   │ 6. Run quality checks                          │ │   │
+│   │   │ 7. Update AGENTS.md                            │ │   │
+│   │   │ 8. Commit if checks pass                       │ │   │
+│   │   │ 9. Update prd.json (passes:true)              │ │   │
+│   │   │ 10. Append to progress.txt                     │ │   │
+│   │   │                                                 │ │   │
+│   │   └───────────────────────────────────────────────┘ │   │
+│   │                                                      │   │
+│   │ if all passes:true:                                 │   │
+│   │   output <promise>COMPLETE</promise>               │   │
+│   │   exit                                              │   │
+│   │                                                      │   │
+│   └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│ 记忆持久化：                                                 │
+│ ├── Git history（每次迭代的提交）                            │
+│ ├── progress.txt（学习和上下文）                             │
+│ ├── prd.json（哪些故事已完成）                               │
+│ ├── AGENTS.md（每次迭代更新）                                │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 4.2.5 GSD vs Ralph vs 其他平台
+
+| 维度 | GSD | Ralph | Cline/Roo | Factory AI | Devin |
+|------|-----|-------|-----------|------------|-------|
+| **Fresh Context** | ✅ | ✅ | ❌ | ✅ | ✅ |
+| **规划阶段** | ✅ discuss+plan | ❌ 仅 PRD | ❌ 无 | ✅ Planning Agent | ✅ |
+| **执行阶段** | ✅ 多代理循环 | ✅ 单代理循环 | ✅ 单代理 | ✅ Execution Agent | ✅ |
+| **审查阶段** | ✅ verify-work | ✅ quality gates | ❌ 无 | ✅ Review Agent | ✅ |
+| **记忆持久化** | .planning/ | progress.txt | ❌ 无 | ✅ | ✅ |
+| **AGENTS.md** | ✅ 每次更新 | ✅ 每次更新 | ❌ 无 | ❌ 无 | ❌ 无 |
+| **CLI 集成** | Claude Code | Claude Code/Amp | VS Code | Web | Web |
+| **开源** | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **适合场景** | 复杂功能 | 明确用户故事 | IDE 任务 | 企业级 | 全栈项目 |
+
+#### 4.2.6 适用场景
 
 ```
 Cline 自主执行流程：
@@ -271,10 +624,12 @@ Factory AI Self-driving Development：
 - CI/CD Integration：与现有管道集成
 ```
 
-#### 3.2.5 适用场景
+#### 4.2.6 适用场景
 
 | 场景 | 推荐平台 | 原因 |
 |------|----------|------|
+| **大型功能（规划驱动）** | GSD | Fresh Context + 讨论规划 + 多代理循环 |
+| **明确用户故事** | Ralph | PRD → 自动循环，无需人工干预 |
 | IDE 内自主任务 | Cline/Roo Code | 无需离开开发环境 |
 | 企业级功能开发 | Factory AI | 端到端自主 + 企业流程 |
 | 复杂独立项目 | Devin | 全栈工程师能力 |
@@ -282,15 +637,15 @@ Factory AI Self-driving Development：
 
 ---
 
-### 3.3 MCP 集成生态模式
+### 4.3 MCP 集成生态模式
 
-#### 3.3.1 MCP 协议说明
+#### 4.3.1 MCP 协议说明
 
 **Model Context Protocol (MCP)** 是 Anthropic 于 2024 年 11 月推出的开放标准，用于连接 AI 助手和数据源/工具。
 
 类比：**MCP之于 AI Agent，如同 USB-C 之于外设** —— 标准化连接接口。
 
-#### 3.3.2 生态规模
+#### 4.3.2 生态规模
 
 ```
 MCP 生态系统：
@@ -317,7 +672,7 @@ MCP 生态系统：
 └── ...
 ```
 
-#### 3.3.3 配置示例
+#### 4.3.3 配置示例
 
 **settings.json MCP 配置**：
 
@@ -357,7 +712,7 @@ MCP 生态系统：
 }
 ```
 
-#### 3.3.4 工作流集成示例
+#### 4.3.4 工作流集成示例
 
 ```
 MCP 集成工作流示例：
@@ -380,7 +735,7 @@ Step 3: Claude Code 使用 Memory MCP
 完整流程自动化，无需人工介入
 ```
 
-#### 3.3.5 Smithery Registry 使用
+#### 4.3.5 Smithery Registry 使用
 
 ```bash
 # 搜索 MCP 服务器
@@ -393,7 +748,7 @@ npx smithery install @modelcontextprotocol/server-github
 npx smithery list
 ```
 
-#### 3.3.6 适用场景
+#### 4.3.6 适用场景
 
 | 场景 | MCP 服务器组合 | 价值 |
 |------|----------------|------|
@@ -404,13 +759,13 @@ npx smithery list
 
 ---
 
-### 3.4 Memory Bank 模式
+### 4.4 Memory Bank 模式
 
-#### 3.4.1 概念说明
+#### 4.4.1 概念说明
 
 结构化记忆系统，跨会话保持项目上下文和关键决策。
 
-#### 3.4.2 记忆类型分层
+#### 4.4.2 记忆类型分层
 
 ```
 记忆分层架构：
@@ -440,7 +795,7 @@ npx smithery list
 └─────────────────────────────────────────────────────┘
 ```
 
-#### 3.4.3 Memory Bank 文件结构
+#### 4.4.3 Memory Bank 文件结构
 
 ```
 memory-bank/
@@ -463,7 +818,7 @@ memory-bank/
 │   内容：已完成、进行中、待办事项
 ```
 
-#### 3.4.4 各文件内容模板
+#### 4.4.4 各文件内容模板
 
 **projectbrief.md**：
 ```markdown
@@ -530,7 +885,7 @@ com.example.demo/
 - 需要确认导出字段列表
 ```
 
-#### 3.4.5 工作流程
+#### 4.4.5 工作流程
 
 ```
 Memory Bank 工作流程：
@@ -565,7 +920,7 @@ Session End:
 └─────────────────────────────────────────────────────┘
 ```
 
-#### 3.4.6 技术实现方案
+#### 4.4.6 技术实现方案
 
 | 方案 | 优点 | 缺点 | 适用场景 |
 |------|------|------|----------|
@@ -575,7 +930,7 @@ Session End:
 | **知识图谱** | 实体关系、复杂推理 | 实现复杂 | 企业级 |
 | **Mem0** | 开源、多 LLM 支持 | 需要部署 | 通用方案 |
 
-#### 3.4.7 与 Claude Code Memory 系统整合
+#### 4.4.7 与 Claude Code Memory 系统整合
 
 ```
 Claude Code Memory + Memory Bank 整合：
@@ -598,13 +953,13 @@ Claude Code 加载时：
 
 ---
 
-### 3.5 多代理编排框架
+### 4.5 多代理编排框架
 
-#### 3.5.1 概念说明
+#### 4.5.1 概念说明
 
 使用专业框架编排多个 AI Agent 协作完成复杂任务。
 
-#### 3.5.2 框架对比
+#### 4.5.2 框架对比
 
 | 框架 | 开发者 | 核心机制 | 特色 |
 |------|--------|----------|------|
@@ -614,7 +969,7 @@ Claude Code 加载时：
 | **Claude Code Team** | Anthropic | TeamCreate + TaskUpdate | 内置集成、CLI原生 |
 | **Agent Swarm** | OpenAI | 专业化分工 | Codex 集成 |
 
-#### 3.5.3 LangGraph 状态机模型
+#### 4.5.3 LangGraph 状态机模型
 
 ```python
 # LangGraph 状态机示例：代码审查流程
@@ -697,7 +1052,7 @@ result = app.invoke({"code": source_code})
      [END]
 ```
 
-#### 3.5.4 AutoGen 多 Agent 对话
+#### 4.5.4 AutoGen 多 Agent 对话
 
 ```python
 # AutoGen 示例：功能开发团队
@@ -779,7 +1134,7 @@ Tester: 编写测试...
 User: 确认完成
 ```
 
-#### 3.5.5 CrewAI 角色任务流
+#### 4.5.5 CrewAI 角色任务流
 
 ```python
 # CrewAI 示例：开发团队
@@ -876,7 +1231,7 @@ result = crew.kickoff()
               Manager 整合
 ```
 
-#### 3.5.6 Claude Code Team 模式
+#### 4.5.6 Claude Code Team 模式
 
 ```python
 # Claude Code 内置团队模式
@@ -914,7 +1269,7 @@ SendMessage(to="backend-dev", message="等待 API 设计完成后开始实现")
 TeamDelete()
 ```
 
-#### 3.5.7 框架选择指南
+#### 4.5.7 框架选择指南
 
 | 场景 | 推荐框架 | 原因 |
 |------|----------|------|
@@ -926,9 +1281,9 @@ TeamDelete()
 
 ---
 
-### 3.6 Spec-Driven Development 进阶实践
+### 4.6 Spec-Driven Development 进阶实践
 
-#### 3.6.1 OpenSpec vs Spec Kit 深度对比
+#### 4.6.1 OpenSpec vs Spec Kit 深度对比
 
 | 维度 | OpenSpec | Spec Kit |
 |------|----------|----------|
@@ -939,7 +1294,7 @@ TeamDelete()
 | **AI 工具** | 25+ 平台支持 | 35+ Agent 支持 |
 | **离线支持** | 无 | 企业隔离环境支持 |
 
-#### 3.6.2 Delta Specs 最佳实践
+#### 4.6.2 Delta Specs 最佳实践
 
 ```markdown
 # Delta for User Authentication
@@ -989,7 +1344,7 @@ TeamDelete()
 移除 Session 认证方式，统一使用 JWT。
 ```
 
-#### 3.6.3 Archive 合并规则
+#### 4.6.3 Archive 合并规则
 
 ```
 Archive 时 Delta Specs 合并逻辑：
@@ -1018,29 +1373,33 @@ Delta Spec (changes/add-jwt/specs/auth/spec.md):
 
 ---
 
-## 四、完整配置策略
+## 五、完整配置策略
 
-### 4.1 开发者类型匹配
+### 5.1 开发者类型匹配
 
 | 开发者类型 | 推荐最小配置 | 推荐标准配置 | 推荐完整配置 |
 |------------|--------------|--------------|--------------|
-| **个人开发者** | Cursor + `.cursorrules` | Cursor + OpenSpec + GStack | Claude Code + MCP + Memory Bank |
-| **小型团队** | Continue + 团队 Rules | Continue + OpenSpec + Superpowers | Claude Code Team + Spec Kit |
-| **敏捷团队** | Windsurf + Flows | Windsurf + OpenSpec + GStack | Factory AI + MCP 集成 |
-| **企业合规** | Spec Kit 基础 | Spec Kit + Superpowers + ECC | Factory AI + LangGraph + MCP |
-| **DevOps/SRE** | Claude Code + Hooks | Claude Code + MCP + Hooks | Claude Code Team + MCP 全集成 |
+| **个人开发者** | Cursor + `.cursorrules` | Cursor + OpenSpec + GStack | Claude Code + MCP + Memory Bank + GSD/Ralph |
+| **小型团队** | Continue + 团队 Rules | Continue + OpenSpec + Superpowers | Claude Code Team + Spec Kit + Ralph |
+| **敏捷团队** | Windsurf + Flows | Windsurf + OpenSpec + GStack + GSD | Factory AI + MCP 集成 + GSD |
+| **企业合规** | Spec Kit 基础 | Spec Kit + Superpowers + ECC | Factory AI + LangGraph + MCP + GSD |
+| **DevOps/SRE** | Claude Code + Hooks | Claude Code + MCP + Hooks + Ralph | Claude Code Team + MCP 全集成 + GSD |
 
-### 4.2 项目类型匹配
+### 5.2 项目类型匹配
 
-| 项目类型 | 规格工具 | 执行工具 | 审查工具 | 集成工具 |
-|----------|----------|----------|----------|----------|
-| **新项目** | Spec Kit | Claude Code | Superpowers TDD | GitHub MCP |
-| **现有代码库** | OpenSpec | Cursor/Windsurf | ECC Reviewers | Filesystem MCP |
-| **微服务重构** | OpenSpec + Design | LangGraph | Factory AI | Postgres MCP |
+| 项目类型 | 规格工具 | 执行工具 | 审查工具 | 集成工具 | Fresh Context |
+|----------|----------|----------|----------|----------|---------------|
+| **新项目** | Spec Kit + GSD | Claude Code | Superpowers TDD | GitHub MCP | ✅ GSD Fresh Context |
+| **现有代码库** | OpenSpec + Ralph | Cursor/Windsurf | ECC Reviewers | Filesystem MCP | ✅ Ralph 循环 |
+| **微服务重构** | OpenSpec + Design + GSD | LangGraph | Factory AI | Postgres MCP | ✅ GSD 多代理 |
+| **前端 SPA** | OpenSpec + Ralph | Windsurf | Superpowers | Memory MCP | ✅ Ralph 循环 |
+| **后端 API** | Spec Kit + GSD | Claude Code | ECC Java | GitHub MCP | ✅ GSD Fresh Context |
+| **大型功能** | GSD discuss+plan | GSD execute | GSD verify | GSD ship | ✅ GSD Fresh Context |
+| **明确用户故事** | Ralph `/prd` | Ralph loop | quality gates | GitHub MCP | ✅ Ralph Fresh Context |
 | **前端 SPA** | OpenSpec | Windsurf | Superpowers | Memory MCP |
 | **后端 API** | Spec Kit | Claude Code | ECC Java | GitHub MCP |
 
-### 4.3 一键配置脚本补充
+### 5.3 一键配置脚本补充
 
 ```bash
 #!/bin/bash
@@ -1196,21 +1555,23 @@ echo "=== 配置完成 ==="
 
 ---
 
-## 五、整合建议
+## 六、整合建议
 
-### 5.1 与现有文档整合
+### 6.1 与现有文档整合
 
 | 现有文档 | 补充整合点 |
 |----------|------------|
-| `full-workflow-setup.md` | 添加 IDE Rules 模式、Memory Bank、LangGraph/AutoGen/CrewAI |
-| `claude-code-usage.md` | 添加 MCP 进阶配置、Team 模式详解 |
-| `openspec-usage.md` | 添加 Delta Specs 最佳实践 |
-| `gstack-usage.md` | 添加 MCP 替代手动操作的方案 |
-| `superpowers-marketplace-usage.md` | 添加与 LangGraph 审查流程整合 |
-| `everything-claude-code-usage.md` | 添加 Memory Bank 与 ECC Memory 整合 |
-| `hermes-agent-usage.md` | 添加 MCP 通信服务器替代方案 |
+| `full-workflow-setup.md` | 添加 IDE Rules 模式、Memory Bank、LangGraph/AutoGen/CrewAI、GSD/Ralph Fresh Context |
+| `claude-code-usage.md` | 添加 MCP 进阶配置、Team 模式详解、Fresh Context 参数 |
+| `gsd-usage.md` | 添加 Fresh Context 原理、69 命令详解、24 代理说明 |
+| `ralph-usage.md` | 添加 PRD JSON 格式、progress.txt 学习日志、小任务原则 |
+| `openspec-usage.md` | 添加 Delta Specs 最佳实践、与 Ralph 整合 |
+| `gstack-usage.md` | 添加 MCP 替代手动操作的方案、与 GSD 对比 |
+| `superpowers-marketplace-usage.md` | 添加与 LangGraph 审查流程整合、Fresh Context 模式 |
+| `everything-claude-code-usage.md` | 添加 Memory Bank 与 ECC Memory 整合、Fresh Context |
+| `hermes-agent-usage.md` | 添加 MCP 通信服务器替代方案、Fresh Context 通知 |
 
-### 5.2 配置优先级
+### 6.2 配置优先级
 
 ```
 配置优先级（从高到低）：
@@ -1218,36 +1579,41 @@ echo "=== 配置完成 ==="
 1. 【必配】项目规则文件
    └── .cursorrules / .continuerules / CLAUDE.md
    
-2. 【推荐】Memory Bank
-   └── memory-bank/ 目录
+2. 【必配】Fresh Context 工具（大型任务）
+   └── GSD (规划驱动) / Ralph (PRD 循环)
    
-3. 【推荐】MCP 集成
+3. 【推荐】Memory Bank
+   └── memory-bank/ 目录 / progress.txt (Ralph)
+   
+4. 【推荐】MCP 集成
    └── GitHub MCP + Filesystem MCP
    
-4. 【按需】Spec 工具
+5. 【按需】Spec 工具
    └── OpenSpec (敏捷) / Spec Kit (合规)
    
-5. 【按需】审查工具
+6. 【按需】审查工具
    └── GStack / Superpowers / ECC
    
-6. 【高级】多代理编排
+7. 【高级】多代理编排
    └── LangGraph / AutoGen / CrewAI
    
-7. 【企业】云端平台
+8. 【企业】云端平台
    └── Factory AI / Devin
 ```
 
 ---
 
-## 六、参考资源汇总
+## 七、参考资源汇总
 
-### 6.1 官方文档
+### 7.1 官方文档
 
 | 资源 | 链接 |
 |------|------|
 | Cursor Rules | https://docs.cursor.com/context/rules-for-ai |
 | Windsurf Flows | https://codeium.com/windsurf |
 | Continue.dev | https://docs.continue.dev |
+| **GSD (Get Shit Done)** | https://github.com/gsd-build/get-shit-done |
+| **Ralph PRD 循环** | https://github.com/snarktank/ralph |
 | MCP Protocol | https://www.anthropic.com/news/model-context-protocol |
 | MCP Servers | https://github.com/modelcontextprotocol/servers |
 | Smithery Registry | https://smithery.ai/ |
@@ -1255,8 +1621,9 @@ echo "=== 配置完成 ==="
 | AutoGen | https://microsoft.github.io/autogen/ |
 | CrewAI | https://docs.crewai.com/ |
 | Factory AI | https://www.factory.ai/ |
+| Geoffrey Huntley Ralph 文章 | https://ghuntley.com/ralph/ |
 
-### 6.2 社区资源
+### 7.2 社区资源
 
 | 资源 | 链接 |
 |------|------|
@@ -1264,12 +1631,13 @@ echo "=== 配置完成 ==="
 | Awesome MCP Servers | https://github.com/punkpeye/awesome-mcp-servers |
 | Memory Bank Templates | https://github.com/context-hub/memory-bank |
 | LangGraph Examples | https://github.com/langchain-ai/langgraph/tree/main/examples |
+| **Ralph 交互式流程图** | https://snarktank.github.io/ralph/ |
 
 ---
 
-## 七、总结
+## 八、总结
 
-### 7.1 配置范式全景
+### 8.1 配置范式全景
 
 ```
 AI 全生命周期软件开发流程配置全景：
@@ -1296,22 +1664,38 @@ AI 全生命周期软件开发流程配置全景：
 └─────────────────────────────────────────────────────┘
 
 选择原则：
-- 个人开发者：轻量优先（IDE Rules + Memory Bank）
-- 团队协作：规范优先（Spec-Driven + MCP）
-- 企业合规：完整优先（Factory AI + LangGraph）
-- DevOps：集成优先（MCP + Hooks + Memory Bank）
+- 个人开发者：轻量优先（IDE Rules + Memory Bank + Ralph）
+- 大型功能：Fresh Context 优先（GSD 规划驱动）
+- 明确用户故事：Ralph PRD 循环（自动执行）
+- 团队协作：规范优先（Spec-Driven + MCP + GSD）
+- 企业合规：完整优先（Factory AI + LangGraph + GSD）
+- DevOps：集成优先（MCP + Hooks + Memory Bank + Ralph）
 ```
 
-### 7.2 核心价值
+### 8.2 核心价值
 
 | 范式 | 核心价值 |
 |------|----------|
 | **IDE Rules-Driven** | 轻量配置、即时生效、团队共享 |
 | **自主 Agent 执行** | 减少人工干预、端到端完成、自动化程度高 |
+| **Fresh Context (GSD/Ralph)** | 无累积垃圾、完整上下文、代理不疲劳、记忆持久化 |
 | **MCP 集成生态** | 标准化接口、丰富生态、企业集成 |
 | **Memory Bank** | 跨会话上下文、持续学习、项目记忆 |
 | **多代理编排** | 专业分工、并行执行、复杂任务 |
 | **Spec-Driven** | 人机对齐、规范先行、可追溯性 |
+
+### 8.3 Fresh Context 核心优势总结
+
+| 优势 | 说明 | 适用工具 |
+|------|------|----------|
+| **无累积垃圾** | 每次迭代干净开始，无历史包袱 | GSD, Ralph |
+| **完整上下文** | 200K token 全部可用，不浪费 | GSD, Ralph |
+| **代理不疲劳** | 新实例永远精力充沛 | GSD, Ralph |
+| **记忆持久化** | Git + progress.txt + prd.json | Ralph |
+| **.planning/ 目录** | 研究笔记、任务列表、设计文档 | GSD |
+| **AGENTS.md 更新** | 每次迭代学习，供未来参考 | GSD, Ralph |
+| **大型任务分解** | 分为多个小迭代完成 | GSD |
+| **PRD 自动循环** | 用户故事自动执行到完成 | Ralph |
 
 ---
 

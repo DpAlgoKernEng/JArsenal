@@ -22,6 +22,9 @@ src/main/java/com/example/demo/
 │   ├── entity/
 │       ├── FieldAccessor.java            # 缓存字段访问器
 │       ├── SensitiveFieldConfig.java     # 字段配置
+│   ├── repository/
+│       ├── ResourceFieldRepository.java  # 仓储接口
+│       ├── FieldPermissionRepository.java # 仓储接口
 ├── infrastructure/
 │   ├── persistence/
 │       ├── mapper/
@@ -39,6 +42,7 @@ src/test/java/com/example/demo/
 ├── service/
 │   ├── FieldPermissionServiceTest.java
 │   ├── FieldMaskingTest.java
+│   ├── FieldPermissionTestData.java      # 测试数据基类
 ```
 
 ---
@@ -154,8 +158,19 @@ import java.util.*;
 public class FieldPermissionService {
     
     private final ResourceRepository resourceRepository;
+    private final ResourceFieldRepository resourceFieldRepository;
     private final FieldPermissionRepository fieldPermissionRepository;
     private final PermissionCacheService permissionCache;
+    
+    public FieldPermissionService(ResourceRepository resourceRepository,
+                                  ResourceFieldRepository resourceFieldRepository,
+                                  FieldPermissionRepository fieldPermissionRepository,
+                                  PermissionCacheService permissionCache) {
+        this.resourceRepository = resourceRepository;
+        this.resourceFieldRepository = resourceFieldRepository;
+        this.fieldPermissionRepository = fieldPermissionRepository;
+        this.permissionCache = permissionCache;
+    }
     
     /**
      * 处理响应数据字段权限
@@ -260,7 +275,68 @@ git commit -m "feat(rbac): add FieldPermissionService for field masking"
 
 ---
 
-## 任务 3：创建字段权限 Mapper
+## 任务 3：创建仓储接口
+
+**文件：**
+- 创建：`src/main/java/com/example/demo/domain/permission/repository/ResourceFieldRepository.java`
+- 创建：`src/main/java/com/example/demo/domain/permission/repository/FieldPermissionRepository.java`
+
+- [ ] **步骤 1：编写 ResourceFieldRepository 接口**
+
+```java
+package com.example.demo.domain.permission.repository;
+
+import com.example.demo.domain.permission.aggregate.ResourceField;
+import java.util.List;
+import java.util.Optional;
+
+public interface ResourceFieldRepository {
+    
+    ResourceField save(ResourceField field);
+    
+    Optional<ResourceField> findById(Long id);
+    
+    List<ResourceField> findByResourceId(Long resourceId);
+    
+    Optional<ResourceField> findByResourceAndCode(Long resourceId, String fieldCode);
+    
+    void deleteById(Long id);
+}
+```
+
+- [ ] **步骤 2：编写 FieldPermissionRepository 接口**
+
+```java
+package com.example.demo.domain.permission.repository;
+
+import com.example.demo.domain.permission.entity.FieldPermission;
+import java.util.List;
+
+public interface FieldPermissionRepository {
+    
+    FieldPermission save(FieldPermission permission);
+    
+    List<FieldPermission> findByUserIdAndResourceId(Long userId, Long resourceId);
+    
+    List<FieldPermission> findByRoleId(Long roleId);
+    
+    void deleteByRoleId(Long roleId);
+    
+    void deleteByFieldId(Long fieldId);
+}
+```
+
+- [ ] **步骤 3：提交仓储接口**
+
+```bash
+git add src/main/java/com/example/demo/domain/permission/repository/ResourceFieldRepository.java \
+        src/main/java/com/example/demo/domain/permission/repository/FieldPermissionRepository.java
+git commit -m "feat(rbac): add field permission repository interfaces"
+```
+
+---
+
+## 任务 4：创建字段权限 Mapper
 
 **文件：**
 - 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/ResourceFieldMapper.java`
@@ -459,12 +535,98 @@ INSERT INTO resource_field (resource_id, field_code, field_name, sensitive_level
 
 ---
 
+## 任务 7：为测试创建临时敏感字段数据
+
+**文件：**
+- 创建：`src/test/java/com/example/demo/service/FieldPermissionTestData.java`
+
+- [ ] **步骤 1：创建测试数据初始化类**
+
+```java
+package com.example.demo.service;
+
+import com.example.demo.domain.permission.aggregate.Resource;
+import com.example.demo.domain.permission.aggregate.ResourceField;
+import com.example.demo.domain.permission.valueobject.SensitiveLevel;
+import com.example.demo.domain.permission.repository.ResourceRepository;
+import com.example.demo.domain.permission.repository.ResourceFieldRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
+
+@SpringBootTest
+@Transactional
+public abstract class FieldPermissionTestData {
+    
+    @Autowired
+    protected ResourceRepository resourceRepository;
+    
+    @Autowired
+    protected ResourceFieldRepository resourceFieldRepository;
+    
+    protected Long testResourceId;
+    
+    @BeforeEach
+    void setupTestData() {
+        // 创建测试资源
+        Resource resource = Resource.createApi("TEST_USER", "测试用户", "/api/users/**", "GET");
+        resource = resourceRepository.save(resource);
+        testResourceId = resource.getId();
+        
+        // 创建敏感字段
+        ResourceField phoneField = new ResourceField();
+        phoneField.setResourceId(testResourceId);
+        phoneField.setFieldCode("phone");
+        phoneField.setFieldName("手机号");
+        phoneField.setSensitiveLevel(SensitiveLevel.ENCRYPTED);
+        phoneField.setMaskPattern("PHONE");
+        resourceFieldRepository.save(phoneField);
+        
+        ResourceField salaryField = new ResourceField();
+        salaryField.setResourceId(testResourceId);
+        salaryField.setFieldCode("salary");
+        salaryField.setFieldName("薪资");
+        salaryField.setSensitiveLevel(SensitiveLevel.ENCRYPTED);
+        salaryField.setMaskPattern("SALARY");
+        resourceFieldRepository.save(salaryField);
+        
+        ResourceField idCardField = new ResourceField();
+        idCardField.setResourceId(testResourceId);
+        idCardField.setFieldCode("idCard");
+        idCardField.setFieldName("身份证号");
+        idCardField.setSensitiveLevel(SensitiveLevel.ENCRYPTED);
+        idCardField.setMaskPattern("ID_CARD");
+        resourceFieldRepository.save(idCardField);
+        
+        ResourceField passwordField = new ResourceField();
+        passwordField.setResourceId(testResourceId);
+        passwordField.setFieldCode("password");
+        passwordField.setFieldName("密码");
+        passwordField.setSensitiveLevel(SensitiveLevel.HIDDEN);
+        passwordField.setMaskPattern(null);
+        resourceFieldRepository.save(passwordField);
+    }
+}
+```
+
+- [ ] **步骤 2：提交测试数据基类**
+
+```bash
+git add src/test/java/com/example/demo/service/FieldPermissionTestData.java
+git commit -m "feat(rbac): add field permission test data setup"
+```
+
+---
+
 ## 自检清单
 
 - [x] 规范 P5 覆盖：字段脱敏 ✓、查看/编辑权限 ✓、缓存反射 ✓
 - [x] 无占位符：所有代码完整
 - [x] 性能：FieldAccessor 缓存避免重复反射
 - [x] 脱敏规则：ID_CARD、PHONE、SALARY 已实现
+- [x] 仓储接口：ResourceFieldRepository、FieldPermissionRepository 完整定义
+- [x] 测试数据：FieldPermissionTestData 提供临时敏感字段初始化
 
 ---
 

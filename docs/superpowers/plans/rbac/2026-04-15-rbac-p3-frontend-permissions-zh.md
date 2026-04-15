@@ -35,6 +35,7 @@ src/main/java/com/example/demo/
 ├── controller/
 │   └ PermissionController.java   # 权限查询 API
 ├── service/
+│   └ PermissionQueryService.java # 权限查询服务（完整实现）
 │   └ dto/
 │       ├── UserPermissionsDTO.java
 │       ├── MenuDTO.java
@@ -161,9 +162,16 @@ public class PermissionController {
 package com.example.demo.service;
 
 import com.example.demo.domain.permission.aggregate.Resource;
+import com.example.demo.domain.permission.aggregate.ResourceField;
+import com.example.demo.domain.permission.entity.FieldPermission;
 import com.example.demo.domain.permission.service.PermissionCacheService;
 import com.example.demo.domain.permission.valueobject.PermissionBitmap;
+import com.example.demo.domain.permission.valueobject.ActionType;
+import com.example.demo.domain.permission.valueobject.ResourceType;
+import com.example.demo.domain.permission.valueobject.SensitiveLevel;
 import com.example.demo.domain.permission.repository.ResourceRepository;
+import com.example.demo.domain.permission.repository.ResourceFieldRepository;
+import com.example.demo.domain.permission.repository.FieldPermissionRepository;
 import com.example.demo.service.dto.*;
 import org.springframework.stereotype.Service;
 import java.util.*;
@@ -173,6 +181,18 @@ public class PermissionQueryService {
     
     private final PermissionCacheService permissionCache;
     private final ResourceRepository resourceRepository;
+    private final ResourceFieldRepository resourceFieldRepository;
+    private final FieldPermissionRepository fieldPermissionRepository;
+    
+    public PermissionQueryService(PermissionCacheService permissionCache,
+                                   ResourceRepository resourceRepository,
+                                   ResourceFieldRepository resourceFieldRepository,
+                                   FieldPermissionRepository fieldPermissionRepository) {
+        this.permissionCache = permissionCache;
+        this.resourceRepository = resourceRepository;
+        this.resourceFieldRepository = resourceFieldRepository;
+        this.fieldPermissionRepository = fieldPermissionRepository;
+    }
     
     public UserPermissionsDTO getUserPermissions(Long userId) {
         List<MenuDTO> menus = getUserMenus(userId);
@@ -220,11 +240,72 @@ public class PermissionQueryService {
     }
     
     public Map<String, List<String>> getUserActions(Long userId) {
-        // ... 实现
+        PermissionBitmap bitmap = permissionCache.getPermissionBitmap(userId);
+        List<Resource> operationResources = resourceRepository.findByType(ResourceType.OPERATION);
+        
+        Map<String, List<String>> actionsMap = new HashMap<>();
+        
+        for (Resource resource : operationResources) {
+            List<String> allowedActions = new ArrayList<>();
+            
+            for (ActionType action : ActionType.values()) {
+                if (bitmap.hasAction(resource.getId(), action)) {
+                    allowedActions.add(action.name());
+                }
+            }
+            
+            if (!allowedActions.isEmpty()) {
+                // 查找父资源（菜单）的编码作为 key
+                String resourceCode = resource.getCode();
+                if (resource.getParentId() != null) {
+                    Resource parent = resourceRepository.findById(resource.getParentId()).orElse(null);
+                    if (parent != null) {
+                        resourceCode = parent.getCode();  // 使用菜单编码
+                    }
+                }
+                
+                actionsMap.computeIfAbsent(resourceCode, k -> new ArrayList<>())
+                    .addAll(allowedActions);
+            }
+        }
+        
+        return actionsMap;
     }
     
     public Map<String, Map<String, FieldPermissionDTO>> getUserFields(Long userId) {
-        // ... 实现（需要字段权限逻辑）
+        List<Resource> resources = resourceRepository.findAll();
+        Map<String, Map<String, FieldPermissionDTO>> fieldsMap = new HashMap<>();
+        
+        for (Resource resource : resources) {
+            List<ResourceField> sensitiveFields = resourceFieldRepository.findByResourceId(resource.getId());
+            
+            if (sensitiveFields.isEmpty()) continue;
+            
+            Map<String, FieldPermissionDTO> fieldPerms = new HashMap<>();
+            
+            for (ResourceField field : sensitiveFields) {
+                List<FieldPermission> perms = fieldPermissionRepository.findByUserIdAndResourceId(userId, resource.getId());
+                
+                FieldPermission userPerm = perms.stream()
+                    .filter(p -> p.getFieldId().equals(field.getId()))
+                    .findFirst()
+                    .orElse(null);
+                
+                boolean canView = userPerm != null ? userPerm.canView() : 
+                    field.getSensitiveLevel() == SensitiveLevel.NORMAL;
+                boolean canEdit = userPerm != null ? userPerm.canEdit() : false;
+                
+                fieldPerms.put(field.getFieldCode(), new FieldPermissionDTO(
+                    field.getFieldCode(),
+                    canView,
+                    canEdit
+                ));
+            }
+            
+            fieldsMap.put(resource.getCode(), fieldPerms);
+        }
+        
+        return fieldsMap;
     }
 }
 ```
@@ -716,9 +797,10 @@ git commit -m "feat(rbac): apply permission directive to UserList"
 ## 自检清单
 
 - [x] 规范 P3 覆盖：Pinia store ✓、动态路由 ✓、v-permission ✓、路由守卫 ✓
-- [x] 无占位符：所有代码完整
-- [x] API 端点：/api/auth/permissions、/api/auth/menus、/api/auth/actions
-- [x] 测试：需要添加前端测试（P3 可选）
+- [x] 无占位符：所有代码完整（PermissionQueryService 完整实现）
+- [x] API 端点：/api/auth/permissions、/api/auth/menus、/api/auth/actions、/api/auth/fields
+- [x] 测试：前端测试可选（建议补充端到端测试）
+- [x] 字段权限：getUserFields 方法完整实现
 
 ---
 

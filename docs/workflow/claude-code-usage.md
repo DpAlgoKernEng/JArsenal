@@ -1,6 +1,6 @@
 # Claude Code 使用文档
 
-> 创建日期：2026-04-14
+> 创建日期：2026-04-15
 > 版本：Claude Code 2.1.92
 > 来源：Anthropic 官方 CLI
 
@@ -79,28 +79,148 @@ claude
 4. 进入交互式 REPL
 ```
 
-### 2.5 命令行参数
+### 2.5 命令行参数（完整列表）
+
+#### 基本启动
 
 ```bash
-# 基本启动
-claude                          # 在当前目录启动
+claude                          # 在当前目录启动交互式会话
+claude -p                       # 打印模式（非交互，适合管道）
+claude -c                       # 继续最近一次对话
+claude -r [session-id]          # 恢复指定会话
+claude -n "my-session"          # 设置会话显示名称
+```
 
-# 指定目录
-claude --cwd /path/to/project   # 在指定目录启动
+#### 模型和性能
 
-# 权限模式
+```bash
+claude --model sonnet           # 使用 Sonnet 模型（别名）
+claude --model opus             # 使用 Opus 模型（别名）
+claude --model claude-sonnet-4-6    # 指定完整模型名
+claude --effort low             # 低努力级别（节省 token）
+claude --effort medium          # 中等努力级别
+claude --effort high            # 高努力级别
+claude --effort max             # 最大努力级别
+claude --fallback-model sonnet  # 默认模型过载时回退
+claude --max-budget-usd 5.00    # 最大 API 费用预算
+```
+
+#### 权限和安全
+
+```bash
+claude --permission-mode default      # 默认模式（最安全）
 claude --permission-mode acceptEdits  # 自动批准编辑
 claude --permission-mode auto         # 智能自动模式
+claude --permission-mode plan         # 规划模式
+claude --permission-mode dontAsk      # 跳过所有确认
+claude --permission-mode bypassPermissions  # 完全绕过权限
+claude --allow-dangerously-skip-permissions  # 允许跳过权限选项
+claude --dangerously-skip-permissions  # 直接跳过所有权限检查
+claude --allowed-tools "Bash(git:*) Edit"    # 只允许指定工具
+claude --disallowed-tools "Bash(rm:*)"       # 禁用指定工具
+claude --tools "default"              # 使用所有默认工具
+claude --tools ""                     # 禁用所有工具
+```
 
-# 模型选择
-claude --model claude-opus-4-6        # Opus 模型
-claude --model claude-sonnet-4-6      # Sonnet 模型
+#### Agent 和 Skills
 
-# 其他参数
-claude --verbose                     # 详细输出
-claude --no-update-check             # 跳过更新检查
-claude --print                       # 打印模式（非交互）
-claude --input-file prompts.txt      # 从文件读取输入
+```bash
+claude --agent reviewer              # 使用指定 agent
+claude --agents '{"reviewer":{"description":"Reviews code","prompt":"You are a reviewer"}}'
+claude --disable-slash-commands      # 禁用所有 skills
+claude --plugin-dir /path/to/plugins # 加载插件目录
+```
+
+#### MCP 配置
+
+```bash
+claude --mcp-config /path/to/mcp.json    # 加载 MCP 配置文件
+claude --mcp-config '{"github":{"command":"npx"}}'  # JSON 字符串配置
+claude --strict-mcp-config               # 只使用 --mcp-config 的服务器
+```
+
+#### 输入输出格式
+
+```bash
+claude --print                        # 打印模式
+claude --output-format text           # 文本输出（默认）
+claude --output-format json           # JSON 单结果输出
+claude --output-format stream-json    # 流式 JSON 输出
+claude --input-format text            # 文本输入（默认）
+claude --input-format stream-json     # 流式 JSON 输入
+claude --json-schema '{"type":"object","properties":{"name":{"type":"string"}}}'  # 结构化输出验证
+claude --include-partial-messages     # 包含部分消息块
+claude --include-hook-events          # 包含 hook 事件
+claude --replay-user-messages         # 重播用户消息
+```
+
+#### 工作树和会话
+
+```bash
+claude -w                             # 创建新的 git worktree
+claude -w feature-branch              # 指定 worktree 名称
+claude --tmux                         # 为 worktree 创建 tmux 会话
+claude --tmux=classic                 # 传统 tmux 模式
+claude --fork-session                 # 恢复时创建新会话 ID
+claude --session-id <uuid>            # 使用指定会话 ID
+claude --no-session-persistence       # 禁用会话持久化
+claude --from-pr 123                  # 从 PR 恢复会话
+claude --from-pr https://github.com/owner/repo/pull/123
+```
+
+#### 目录和上下文
+
+```bash
+claude --add-dir /path/to/other       # 添加额外目录
+claude --system-prompt "Custom prompt"     # 自定义系统提示
+claude --append-system-prompt "Extra"      # 追加系统提示
+claude --setting-sources user,project      # 只加载指定设置源
+claude --settings /path/to/settings.json   # 加载额外设置
+```
+
+#### Chrome 和 IDE 集成
+
+```bash
+claude --chrome                       # 启用 Chrome 集成
+claude --no-chrome                    # 禁用 Chrome 集成
+claude --ide                          # 自动连接 IDE
+```
+
+#### 调试和日志
+
+```bash
+claude --verbose                      # 详细输出
+claude --debug                        # 启用调试模式
+claude --debug "api,hooks"            # 按类别过滤调试
+claude --debug-file /path/to/log.txt  # 写入调试日志文件
+claude --bare                         # 最小模式（跳过 hooks/LSP/插件同步）
+```
+
+#### 其他
+
+```bash
+claude --file file_abc:doc.txt        # 启动时下载文件资源
+claude --betas feature-x              # 包含 beta 功能头
+claude --brief                        # 启用 SendUserMessage 工具
+claude --remote-control-session-name-prefix "my-prefix"
+```
+
+### 2.6 CLI 子命令
+
+```bash
+claude auth                           # 认证管理
+claude agents                         # 列出配置的 agents
+claude auto-mode                      # 检查自动模式分类器配置
+claude doctor                         # 检查自动更新健康状态
+claude install                        # 安装原生构建
+claude install stable                 # 安装稳定版本
+claude install latest                 # 安装最新版本
+claude mcp                            # MCP 服务器管理
+claude plugin                         # 插件管理
+claude plugins                        # 插件管理（别名）
+claude setup-token                    # 设置长期认证 token
+claude update                         # 检查并安装更新
+claude upgrade                        # 检查并安装更新（别名）
 ```
 
 ---
@@ -1171,6 +1291,63 @@ claude --permission-mode acceptEdits
 /feedback  # 提交反馈
 ```
 
+### Q11: 如何使用 Fast 模式？
+
+```bash
+/fast     # 切换 Fast 模式
+# 注意：Fast 模式使用相同的 Opus 4.6 模型，只是输出更快
+```
+
+### Q12: 如何控制 token 用量？
+
+```bash
+claude --effort low     # 低努力，节省 token
+claude --effort high    # 高努力，深度分析
+claude --max-budget-usd 5.00  # 设置预算上限
+```
+
+### Q13: 如何从 PR 恢复会话？
+
+```bash
+claude --from-pr 123   # 按 PR 号恢复
+claude --from-pr https://github.com/owner/repo/pull/123
+```
+
+### Q14: 如何使用 git worktree？
+
+```bash
+claude -w              # 创建新 worktree
+claude -w feature-x    # 指定名称
+claude --tmux          # 自动创建 tmux 会话
+```
+
+### Q15: 如何获取流式 JSON 输出？
+
+```bash
+claude --print --output-format stream-json
+claude --print --output-format json    # 单 JSON 结果
+```
+
+### Q16: 如何设置结构化输出？
+
+```bash
+claude --print --json-schema '{"type":"object","properties":{"name":{"type":"string"}}}'
+```
+
+### Q17: 如何使用最小模式？
+
+```bash
+claude --bare    # 跳过 hooks、LSP、插件同步等
+# 适合 CI/CD 或自动化场景
+```
+
+### Q18: 如何添加额外工作目录？
+
+```bash
+claude --add-dir /path/to/other    # 添加额外目录
+# 允许 Claude 访问多个目录
+```
+
 ---
 
 ## 十七、参考资源
@@ -1199,14 +1376,126 @@ claude --permission-mode acceptEdits
 
 ## 十八、更新日志
 
-### Claude Code 2.x 新功能
+### Claude Code 2.1.92 新功能（2026-04）
+
+#### Fast 模式详解
+
+Fast 模式使用**相同的 Claude Opus 4.6 模型**，但输出速度更快。它不会切换到不同的模型。
+
+```bash
+# 切换 Fast 模式
+/fast
+
+# 特点：
+# - 使用相同 Opus 4.6 模型
+# - 更快的输出速度
+# - 适合快速迭代开发
+```
+
+#### Effort 级别控制
+
+控制 token 用量和努力级别，影响响应深度：
+
+| 级别 | 说明 | 适用场景 |
+|------|------|----------|
+| `low` | 低努力，节省 token | 快速查询、简单操作 |
+| `medium` | 中等努力（默认） | 日常开发任务 |
+| `high` | 高努力，深度分析 | 复杂问题、架构设计 |
+| `max` | 最大努力 | 最复杂任务 |
+
+```bash
+claude --effort low    # 快速响应
+claude --effort high   # 深度分析
+```
+
+#### 流式 JSON 输出
+
+支持实时流式输出，适合自动化和管道操作：
+
+```bash
+# 流式 JSON 输出
+claude --print --output-format stream-json
+
+# 流式 JSON 输入
+claude --print --input-format stream-json --output-format stream-json
+
+# 结构化输出验证
+claude --print --json-schema '{"type":"object","properties":{"result":{"type":"string"}}}'
+```
+
+#### Git Worktree 集成
+
+内置 git worktree 支持，自动隔离工作环境：
+
+```bash
+claude -w                   # 创建新 worktree
+claude -w feature-x         # 指定名称
+claude --tmux               # 自动创建 tmux 会话
+claude --tmux=classic       # 传统 tmux 模式
+```
+
+#### Chrome 集成
+
+Claude in Chrome 集成，浏览器中使用 Claude：
+
+```bash
+claude --chrome             # 启用 Chrome 集成
+claude --no-chrome          # 禁用 Chrome 集成
+```
+
+#### Bare 最小模式
+
+跳过所有额外功能，最小化启动：
+
+```bash
+claude --bare               # 最小模式
+# 跳过：hooks、LSP、插件同步、attributions、auto-memory、后台预取、keychain 读取、CLAUDE.md 自动发现
+# 设置 CLAUDE_CODE_SIMPLE=1
+```
+
+#### 预算控制
+
+设置 API 费用预算上限：
+
+```bash
+claude --max-budget-usd 5.00    # 最大 $5 预算
+# 只在 --print 模式下生效
+```
+
+#### 模型回退
+
+自动回退机制，避免模型过载：
+
+```bash
+claude --fallback-model sonnet  # Opus 过载时自动切换 Sonnet
+# 只在 --print 模式下生效
+```
+
+#### PR 会话恢复
+
+从 GitHub PR 直接恢复会话：
+
+```bash
+claude --from-pr 123                                # 按 PR 号恢复
+claude --from-pr https://github.com/owner/repo/pull/123  # 按 URL 恢复
+claude --from-pr                                    # 交互式选择器
+```
+
+#### IDE 自动连接
+
+自动连接到 IDE：
+
+```bash
+claude --ide               # 自动连接 IDE（如有可用）
+```
+
+### Claude Code 2.x 核心功能
 
 - **多智能体团队**：TeamCreate/TeamDelete 支持
 - **任务系统**：TaskCreate/TaskUpdate/TaskList
 - **定时任务**：CronCreate/CronDelete
 - **工作树**：EnterWorktree/ExitWorktree 隔离工作
 - **消息传递**：SendMessage 跨智能体通信
-- **Fast 模式**：/fast 切换快速输出
 - **语音输入**：/voice 语音交互
 - **远程环境**：/remote-env 连接远程
 
@@ -1217,12 +1506,16 @@ claude --permission-mode acceptEdits
 | 指标 | 数值 |
 |------|------|
 | 版本 | 2.1.92 |
+| CLI 参数 | 40+ |
+| CLI 子命令 | 10 |
 | 斜杠命令 | 50+ |
 | 内置工具 | 20+ |
-| Agent 类型 | 5 |
+| Agent 类型 | 5+ |
 | 权限模式 | 6 |
 | MCP 服务器 | 100+ |
 | 支持平台 | 6 |
+| 输出格式 | 3 (text/json/stream-json) |
+| Effort 级别 | 4 (low/medium/high/max) |
 
 ---
 
@@ -1230,11 +1523,14 @@ claude --permission-mode acceptEdits
 
 Claude Code 是 Anthropic 官方的革命性 AI 编程助手，将最强 Claude 模型带入开发工作流：
 
-1. **多平台支持** — 终端、桌面、Web、IDE
-2. **完整工具链** — 50+ 命令、20+ 工具、MCP 集成
+1. **多平台支持** — 终端、桌面、Web、IDE、Chrome
+2. **完整工具链** — 50+ 命令、40+ CLI 参数、MCP 集成
 3. **智能代理** — 多智能体协作、专业化任务
 4. **持续学习** — 跨会话记忆、模式提取
 5. **安全可控** — 6 种权限模式、Hooks 自动化
+6. **灵活控制** — Effort 级别、预算控制、模型回退
+7. **流式输出** — stream-json、结构化验证
+8. **工作隔离** — Git worktree、tmux 会话
 
 通过 Claude Code，开发者可以：
 - 快速理解代码库
@@ -1242,6 +1538,8 @@ Claude Code 是 Anthropic 官方的革命性 AI 编程助手，将最强 Claude 
 - 自动化测试和部署
 - 多智能体并行工作
 - 持续学习和优化
+- 精确控制成本和性能
+- 从 PR 直接恢复会话
 
 ---
 
