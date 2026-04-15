@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.infrastructure.persistence.mapper.RoleMapper">
+
+    <!-- Basic Role ResultMap -->
+    <resultMap id="RoleResultMap" type="com.example.demo.domain.permission.aggregate.Role">
+        <id property="id" column="id"/>
+        <result property="code" column="code" typeHandler="com.example.demo.infrastructure.persistence.converter.RoleCodeTypeHandler"/>
+        <result property="name" column="name"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="status" column="status" typeHandler="com.example.demo.infrastructure.persistence.converter.RoleStatusTypeHandler"/>
+        <result property="inheritMode" column="inherit_mode" typeHandler="com.example.demo.infrastructure.persistence.converter.InheritModeTypeHandler"/>
+        <result property="isBuiltin" column="is_builtin"/>
+        <result property="isDeleted" column="is_deleted"/>
+        <result property="version" column="version"/>
+        <result property="sort" column="sort"/>
+    </resultMap>
+
+    <!-- Query all roles as tree structure (ordered by sort) -->
+    <select id="findRoleTree" resultMap="RoleResultMap">
+        SELECT * FROM role WHERE is_deleted = 0 ORDER BY sort, id
+    </select>
+
+    <!-- ResultMap for Role with Permissions (for permission bitmap calculation) -->
+    <resultMap id="RoleWithPermissionsResultMap" type="com.example.demo.domain.permission.aggregate.Role" extends="RoleResultMap">
+        <collection property="permissions" ofType="com.example.demo.domain.permission.valueobject.RolePermission">
+            <result property="resourceId" column="perm_resource_id"/>
+            <result property="effect" column="perm_effect" typeHandler="com.example.demo.infrastructure.persistence.converter.PermissionEffectTypeHandler"/>
+            <result property="actions" column="perm_actions" typeHandler="com.example.demo.infrastructure.persistence.converter.ActionSetTypeHandler"/>
+        </collection>
+    </resultMap>
+
+    <!-- Query role with its permissions (for permission bitmap calculation) -->
+    <select id="findRoleWithPermissions" resultMap="RoleWithPermissionsResultMap">
+        SELECT r.*,
+               p.resource_id as perm_resource_id,
+               p.effect as perm_effect,
+               GROUP_CONCAT(pa.action) as perm_actions
+        FROM role r
+        LEFT JOIN permission p ON r.id = p.role_id
+        LEFT JOIN permission_action pa ON p.id = pa.permission_id
+        WHERE r.id = #{roleId} AND r.is_deleted = 0
+        GROUP BY r.id, p.id, p.resource_id, p.effect
+    </select>
+
+    <!-- Query all ancestor role IDs for a role (for inheritance chain calculation) -->
+    <select id="findAncestorRoleIds" resultType="long">
+        WITH RECURSIVE role_tree AS (
+            SELECT id, parent_id FROM role WHERE id = #{roleId} AND is_deleted = 0
+            UNION ALL
+            SELECT r.id, r.parent_id FROM role r
+            INNER JOIN role_tree rt ON r.id = rt.parent_id
+            WHERE r.is_deleted = 0
+        )
+        SELECT id FROM role_tree WHERE id != #{roleId}
+    </select>
+
+</mapper>
