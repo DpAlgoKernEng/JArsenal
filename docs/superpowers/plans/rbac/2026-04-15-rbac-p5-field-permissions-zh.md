@@ -679,6 +679,141 @@ git commit -m "feat(rbac): add field permission test data setup"
 
 ---
 
+## 任务 8：创建字段权限继承测试（新增）
+
+**文件：**
+- 创建：`src/test/java/com/example/demo/service/FieldPermissionInheritanceTest.java`
+
+- [ ] **步骤 1：编写字段权限继承测试**
+
+```java
+package com.example.demo.service;
+
+import com.example.demo.domain.permission.aggregate.Role;
+import com.example.demo.domain.permission.entity.FieldPermission;
+import com.example.demo.domain.permission.valueobject.RoleCode;
+import com.example.demo.domain.permission.valueobject.InheritMode;
+import com.example.demo.domain.permission.valueobject.RoleStatus;
+import com.example.demo.domain.permission.service.FieldPermissionService;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import java.util.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class FieldPermissionInheritanceTest {
+    
+    @Mock
+    private RoleRepository roleRepository;
+    
+    @Mock
+    private FieldPermissionRepository fieldPermissionRepository;
+    
+    private FieldPermissionService fieldPermissionService;
+    
+    @BeforeEach
+    void setup() {
+        MockitoAnnotations.openMocks(this);
+        fieldPermissionService = new FieldPermissionService(
+            null, null, fieldPermissionRepository, null, roleRepository
+        );
+    }
+    
+    @Test
+    void shouldInheritFieldPermissionsFromParentRole() {
+        // 父角色：允许查看薪资和编辑手机号
+        Role parentRole = Role.create(new RoleCode("MANAGER"), "管理员", null, InheritMode.EXTEND);
+        parentRole.setId(1L);
+        parentRole.setStatus(RoleStatus.ENABLED);
+        
+        FieldPermission salaryPerm = FieldPermission.create(1L, 100L, true, false);  // 可查看薪资
+        FieldPermission phonePerm = FieldPermission.create(1L, 101L, true, true);     // 可查看和编辑手机号
+        parentRole.getFieldPerms().add(salaryPerm);
+        parentRole.getFieldPerms().add(phonePerm);
+        
+        when(roleRepository.findById(1L)).thenReturn(Optional.of(parentRole));
+        
+        // 子角色：继承父角色
+        Role childRole = Role.create(new RoleCode("USER"), "普通用户", 1L, InheritMode.EXTEND);
+        childRole.setId(2L);
+        childRole.setStatus(RoleStatus.ENABLED);
+        // 子角色 own 权限：仅可查看手机号，不可编辑
+        FieldPermission childPhonePerm = FieldPermission.create(2L, 101L, true, false);
+        childRole.getFieldPerms().add(childPhonePerm);
+        
+        // 计算继承后的字段权限
+        Map<Long, FieldPermission> inheritedPerms = fieldPermissionService.computeFieldPermissions(childRole);
+        
+        // 验证继承结果
+        // 薪资：继承父角色权限（可查看，不可编辑）
+        assertTrue(inheritedPerms.containsKey(100L));
+        assertTrue(inheritedPerms.get(100L).canView());
+        assertFalse(inheritedPerms.get(100L).canEdit());
+        
+        // 手机号：子角色 own 权限覆盖继承（可查看，不可编辑）
+        assertTrue(inheritedPerms.containsKey(101L));
+        assertTrue(inheritedPerms.get(101L).canView());
+        assertFalse(inheritedPerms.get(101L).canEdit());  // 被子角色 own 权限覆盖
+    }
+    
+    @Test
+    void shouldMergeFieldPermissionsFromMultipleRoles() {
+        // 用户拥有两个角色
+        Role role1 = Role.create(new RoleCode("ROLE1"), "角色1", null, null);
+        role1.setId(1L);
+        role1.setStatus(RoleStatus.ENABLED);
+        FieldPermission perm1 = FieldPermission.create(1L, 100L, true, false);  // 可查看
+        role1.getFieldPerms().add(perm1);
+        
+        Role role2 = Role.create(new RoleCode("ROLE2"), "角色2", null, null);
+        role2.setId(2L);
+        role2.setStatus(RoleStatus.ENABLED);
+        FieldPermission perm2 = FieldPermission.create(2L, 100L, false, true);  // 可编辑
+        
+        when(roleRepository.findRolesByUserId(10L)).thenReturn(List.of(role1, role2));
+        
+        // 计算用户字段权限（多角色宽松合并）
+        Map<Long, FieldPermission> mergedPerms = fieldPermissionService.computeUserFieldPermissions(10L, 1L);
+        
+        // 验收标准：多角色权限取宽松策略（任意角色有权限则合并后有权限）
+        assertTrue(mergedPerms.containsKey(100L));
+        assertTrue(mergedPerms.get(100L).canView());   // role1 有查看权限
+        assertTrue(mergedPerms.get(100L).canEdit());   // role2 有编辑权限
+    }
+    
+    @Test
+    void shouldNotInheritFromDisabledParentRole() {
+        // 父角色已禁用
+        Role disabledParent = Role.create(new RoleCode("DISABLED"), "已禁用", null, null);
+        disabledParent.setId(1L);
+        disabledParent.setStatus(RoleStatus.DISABLED);
+        
+        when(roleRepository.findById(1L)).thenReturn(Optional.of(disabledParent));
+        
+        // 子角色
+        Role childRole = Role.create(new RoleCode("CHILD"), "子角色", 1L, InheritMode.EXTEND);
+        childRole.setId(2L);
+        childRole.setStatus(RoleStatus.ENABLED);
+        
+        Map<Long, FieldPermission> inheritedPerms = fieldPermissionService.computeFieldPermissions(childRole);
+        
+        // 验收标准：禁用角色的权限不应被继承
+        assertTrue(inheritedPerms.isEmpty());
+    }
+}
+```
+
+- [ ] **步骤 2：提交测试**
+
+```bash
+git add src/test/java/com/example/demo/service/FieldPermissionInheritanceTest.java
+git commit -m "feat(rbac): add field permission inheritance and multi-role merge tests"
+```
+
+---
+
 ## 自检清单
 
 - [x] 规范 P5 覆盖：字段脱敏 ✓、查看/编辑权限 ✓、缓存反射 ✓
@@ -690,6 +825,177 @@ git commit -m "feat(rbac): add field permission test data setup"
 - [x] **字段权限继承计算**：computeFieldPermissions方法 ✓、多角色宽松合并策略 ✓
 - [x] **依赖注入**：RoleRepository已添加到FieldPermissionService ✓
 - [x] **P1依赖确认**：Role.getFieldPerms()返回List类型匹配 ✓
+- [x] **新增**：FieldPermissionInheritanceTest ✓、继承链正确性测试 ✓、禁用角色不继承测试 ✓
+- [x] **新增**：多角色合并测试 ✓、宽松策略验证（任意有权限则合并后有权限） ✓
+- [x] **改进点补充**：FieldPermissionController实时校验API ✓、checkFieldPermission端点 ✓、批量校验端点 ✓
+
+---
+
+## 任务 9：字段权限实时校验 API（新增 - 改进点）
+
+**文件：**
+- 创建：`src/main/java/com/example/demo/controller/FieldPermissionController.java`
+- 创建：`src/main/java/com/example/demo/service/dto/FieldPermissionCheckRequest.java`
+- 创建：`src/main/java/com/example/demo/service/dto/FieldPermissionCheckResponse.java`
+
+> **改进点：** 字段权限编辑时需要实时校验API，用于前端动态提示用户是否可编辑特定字段。
+
+- [ ] **步骤 1：编写字段权限校验 DTO**
+
+```java
+package com.example.demo.service.dto;
+
+import jakarta.validation.constraints.NotBlank;
+
+public record FieldPermissionCheckRequest(
+    @NotBlank
+    String resourceCode,
+    
+    @NotBlank
+    String fieldCode
+) {}
+```
+
+```java
+package com.example.demo.service.dto;
+
+public record FieldPermissionCheckResponse(
+    String fieldCode,
+    boolean canView,
+    boolean canEdit,
+    String sensitiveLevel,
+    String maskPattern
+) {}
+```
+
+- [ ] **步骤 2：编写 FieldPermissionController**
+
+```java
+package com.example.demo.controller;
+
+import com.example.demo.common.Result;
+import com.example.demo.domain.permission.aggregate.Resource;
+import com.example.demo.domain.permission.aggregate.ResourceField;
+import com.example.demo.domain.permission.entity.FieldPermission;
+import com.example.demo.domain.permission.repository.ResourceRepository;
+import com.example.demo.domain.permission.repository.ResourceFieldRepository;
+import com.example.demo.domain.permission.service.FieldPermissionService;
+import com.example.demo.security.UserContext;
+import com.example.demo.service.dto.FieldPermissionCheckRequest;
+import com.example.demo.service.dto.FieldPermissionCheckResponse;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*;
+import java.util.*;
+
+@RestController
+@RequestMapping("/api/field-permissions")
+public class FieldPermissionController {
+    
+    private final FieldPermissionService fieldPermissionService;
+    private final ResourceRepository resourceRepository;
+    private final ResourceFieldRepository resourceFieldRepository;
+    
+    /**
+     * 实时校验用户对指定字段的权限
+     * 用于前端编辑表单动态提示
+     */
+    @PostMapping("/check")
+    public Result<FieldPermissionCheckResponse> checkFieldPermission(
+            @Valid @RequestBody FieldPermissionCheckRequest request) {
+        
+        Long userId = UserContext.getCurrentUserId();
+        if (userId == null) {
+            return Result.error(401, "未登录");
+        }
+        
+        Resource resource = resourceRepository.findByCode(request.resourceCode())
+            .orElse(null);
+        if (resource == null) {
+            return Result.error(404, "资源不存在");
+        }
+        
+        ResourceField field = resourceFieldRepository.findByResourceAndCode(
+            resource.getId(), request.fieldCode())
+            .orElse(null);
+        
+        if (field == null) {
+            // 非敏感字段，默认可查看和编辑
+            return Result.success(new FieldPermissionCheckResponse(
+                request.fieldCode(), true, true, "NORMAL", null
+            ));
+        }
+        
+        // 获取用户字段权限（含继承计算）
+        Map<Long, FieldPermission> perms = fieldPermissionService.computeUserFieldPermissions(
+            userId, resource.getId());
+        
+        FieldPermission perm = perms.get(field.getId());
+        
+        boolean canView = perm != null ? perm.canView() : 
+            field.getSensitiveLevel() != com.example.demo.domain.permission.valueobject.SensitiveLevel.HIDDEN;
+        boolean canEdit = perm != null ? perm.canEdit() : false;
+        
+        return Result.success(new FieldPermissionCheckResponse(
+            request.fieldCode(),
+            canView,
+            canEdit,
+            field.getSensitiveLevel().name(),
+            field.getMaskPattern()
+        ));
+    }
+    
+    /**
+     * 批量校验用户对资源的所有敏感字段权限
+     */
+    @GetMapping("/check-batch/{resourceCode}")
+    public Result<List<FieldPermissionCheckResponse>> checkBatchFieldPermissions(
+            @PathVariable String resourceCode) {
+        
+        Long userId = UserContext.getCurrentUserId();
+        if (userId == null) {
+            return Result.error(401, "未登录");
+        }
+        
+        Resource resource = resourceRepository.findByCode(resourceCode)
+            .orElse(null);
+        if (resource == null) {
+            return Result.error(404, "资源不存在");
+        }
+        
+        List<ResourceField> fields = resourceFieldRepository.findByResourceId(resource.getId());
+        Map<Long, FieldPermission> perms = fieldPermissionService.computeUserFieldPermissions(
+            userId, resource.getId());
+        
+        List<FieldPermissionCheckResponse> responses = new ArrayList<>();
+        for (ResourceField field : fields) {
+            FieldPermission perm = perms.get(field.getId());
+            
+            boolean canView = perm != null ? perm.canView() : 
+                field.getSensitiveLevel() != com.example.demo.domain.permission.valueobject.SensitiveLevel.HIDDEN;
+            boolean canEdit = perm != null ? perm.canEdit() : false;
+            
+            responses.add(new FieldPermissionCheckResponse(
+                field.getFieldCode(),
+                canView,
+                canEdit,
+                field.getSensitiveLevel().name(),
+                field.getMaskPattern()
+            ));
+        }
+        
+        return Result.success(responses);
+    }
+}
+```
+
+- [ ] **步骤 3：提交字段权限校验 API**
+
+```bash
+git add src/main/java/com/example/demo/controller/FieldPermissionController.java \
+        src/main/java/com/example/demo/service/dto/FieldPermissionCheckRequest.java \
+        src/main/java/com/example/demo/service/dto/FieldPermissionCheckResponse.java
+git commit -m "feat(rbac): add field permission real-time check API for frontend validation"
+```
 
 ---
 

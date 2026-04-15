@@ -45,6 +45,111 @@ src/main/java/com/example/demo/
 
 ---
 
+## 任务 1.5：创建 Layout 组件（新增）
+
+**文件：**
+- 创建：`ui/src/components/Layout.vue`
+
+> **说明：** Layout 是动态路由的根组件，规范第四章4.5节要求前端基于菜单权限生成动态路由，Layout 作为容器承载动态添加的子路由。
+
+- [ ] **步骤 1：编写 Layout 组件**
+
+```vue
+<!-- ui/src/components/Layout.vue -->
+<template>
+  <el-container class="layout-container">
+    <!-- 侧边栏导航 -->
+    <el-aside width="200px" class="layout-aside">
+      <Navbar />
+      <el-menu
+        :default-active="activeMenu"
+        router
+        class="sidebar-menu"
+      >
+        <template v-for="menu in menus" :key="menu.code">
+          <!-- 有子菜单的情况 -->
+          <el-sub-menu v-if="menu.children && menu.children.length > 0" :index="menu.code">
+            <template #title>
+              <el-icon><component :is="menu.icon" /></el-icon>
+              <span>{{ menu.name }}</span>
+            </template>
+            <el-menu-item v-for="child in menu.children" :key="child.code" :index="child.path">
+              <el-icon><component :is="child.icon" /></el-icon>
+              <span>{{ child.name }}</span>
+            </el-menu-item>
+          </el-sub-menu>
+          <!-- 无子菜单的情况 -->
+          <el-menu-item v-else :index="menu.path">
+            <el-icon><component :is="menu.icon" /></el-icon>
+            <span>{{ menu.name }}</span>
+          </el-menu-item>
+        </template>
+      </el-menu>
+    </el-aside>
+    
+    <!-- 主内容区域 -->
+    <el-main class="layout-main">
+      <router-view />
+    </el-main>
+  </el-container>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { usePermissionStore } from '@/stores/permission'
+import Navbar from '@/components/Navbar.vue'
+
+const route = useRoute()
+const permissionStore = usePermissionStore()
+
+// 当前激活菜单
+const activeMenu = computed(() => route.path)
+
+// 从权限 store 获取菜单树
+const menus = computed(() => permissionStore.menus)
+</script>
+
+<style scoped>
+.layout-container {
+  height: 100vh;
+}
+
+.layout-aside {
+  background-color: #304156;
+  color: #fff;
+}
+
+.sidebar-menu {
+  border-right: none;
+}
+
+.layout-main {
+  background-color: #f0f2f5;
+  padding: 20px;
+}
+</style>
+```
+
+- [ ] **步骤 2：注册 Layout 为全局组件**
+
+```javascript
+// ui/src/main.js 中添加
+import Layout from '@/components/Layout.vue'
+
+const app = createApp(App)
+app.component('Layout', Layout)
+```
+
+- [ ] **步骤 3：提交 Layout 组件**
+
+```bash
+git add ui/src/components/Layout.vue ui/src/main.js
+git commit -m "feat(rbac): add Layout component for dynamic route container"
+```
+
+---
+
 ## 任务 1：创建后端权限 API
 
 **文件：**
@@ -895,6 +1000,7 @@ git commit -m "feat(rbac): apply permission directive to UserList"
 - [x] **版本校验**：前端每30秒轮询版本 ✓、版本不一致自动刷新权限 ✓
 - [x] **权限变更刷新**：退出登录停止轮询 ✓、权限更新静默执行 ✓
 - [x] **版本检查API**：PermissionController.getPermissionVersion()已添加 ✓
+- [x] **新增**：Layout.vue 组件定义 ✓、作为动态路由根组件 ✓、菜单树渲染完整 ✓
 - [x] **建议补充测试**：端到端测试（Playwright/Cypress）验证动态路由和权限指令
 
 ---

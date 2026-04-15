@@ -1018,6 +1018,139 @@ git commit -m "feat(rbac): add role management frontend pages"
 
 ---
 
+## 任务 6：创建循环继承集成测试（新增）
+
+**文件：**
+- 创建：`src/test/java/com/example/demo/service/RoleInheritanceIT.java`
+
+- [ ] **步骤 1：编写循环继承集成测试**
+
+```java
+package com.example.demo.service;
+
+import com.example.demo.domain.permission.aggregate.Role;
+import com.example.demo.domain.permission.repository.RoleRepository;
+import com.example.demo.domain.permission.service.RoleHierarchyService;
+import com.example.demo.domain.permission.valueobject.RoleCode;
+import com.example.demo.domain.permission.valueobject.InheritMode;
+import com.example.demo.exception.BusinessException;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
+import static org.junit.jupiter.api.Assertions.*;
+
+@SpringBootTest
+@ActiveProfiles("test")
+@Transactional
+class RoleInheritanceIT {
+    
+    @Autowired
+    private RoleRepository roleRepository;
+    
+    @Autowired
+    private RoleHierarchyService hierarchyService;
+    
+    @Autowired
+    private RoleService roleService;
+    
+    @Test
+    void shouldDetectCircularInheritance() {
+        // 创建三个角色：A -> B -> C
+        Role roleA = Role.create(new RoleCode("ROLE_A"), "角色A", null, InheritMode.EXTEND);
+        roleA = roleRepository.save(roleA);
+        
+        Role roleB = Role.create(new RoleCode("ROLE_B"), "角色B", roleA.getId(), InheritMode.EXTEND);
+        roleB = roleRepository.save(roleB);
+        
+        Role roleC = Role.create(new RoleCode("ROLE_C"), "角色C", roleB.getId(), InheritMode.EXTEND);
+        roleC = roleRepository.save(roleC);
+        
+        // 验收标准：尝试让 A 以 C 为父角色，形成循环 A -> B -> C -> A
+        boolean wouldCreateCircular = hierarchyService.wouldCreateCircularInheritance(
+            roleA.getId(), roleC.getId()
+        );
+        
+        assertTrue(wouldCreateCircular, "应检测到循环继承");
+    }
+    
+    @Test
+    void shouldGetInheritanceChain() {
+        // 创建角色继承链：SUPER_ADMIN -> ADMIN -> DEPT_MANAGER -> USER
+        // 使用内置角色（已在V3迁移中创建）
+        
+        List<Long> chain = hierarchyService.getInheritanceChain(4L);  // USER角色
+        
+        // 验收标准：继承链应包含 USER -> DEPT_MANAGER -> ADMIN -> SUPER_ADMIN
+        assertEquals(4, chain.size());
+        assertTrue(chain.contains(1L));  // SUPER_ADMIN
+        assertTrue(chain.contains(2L));  // ADMIN
+        assertTrue(chain.contains(3L));  // DEPT_MANAGER
+        assertTrue(chain.contains(4L));  // USER
+    }
+    
+    @Test
+    void shouldRejectSelfAsParent() {
+        Role role = Role.create(new RoleCode("SELF_TEST"), "自继承测试", null, InheritMode.EXTEND);
+        role = roleRepository.save(role);
+        
+        // 尝试以自己为父角色
+        boolean wouldCreateCircular = hierarchyService.wouldCreateCircularInheritance(
+            role.getId(), role.getId()
+        );
+        
+        assertTrue(wouldCreateCircular, "应拒绝自己作为父角色");
+    }
+    
+    @Test
+    void shouldUpdateRoleWithValidParent() {
+        Role parentRole = Role.create(new RoleCode("VALID_PARENT"), "有效父角色", null, InheritMode.EXTEND);
+        parentRole = roleRepository.save(parentRole);
+        
+        Role childRole = Role.create(new RoleCode("VALID_CHILD"), "有效子角色", null, InheritMode.EXTEND);
+        childRole = roleRepository.save(childRole);
+        
+        // 更新子角色，设置有效的父角色
+        RoleUpdateRequest request = new RoleUpdateRequest(
+            childRole.getId(), "更新后名称", parentRole.getId(), "EXTEND", 0
+        );
+        
+        RoleResponse response = roleService.updateRole(request);
+        
+        // 验收标准：有效父角色更新应成功
+        assertEquals(parentRole.getId(), response.parentId());
+        assertNotNull(response.parentName());
+    }
+    
+    @Test
+    void shouldBuildRoleTreeCorrectly() {
+        List<RoleTreeResponse> tree = roleService.getRoleTree();
+        
+        // 验收标准：角色树应正确反映继承关系
+        assertFalse(tree.isEmpty());
+        
+        // 找到根角色（SUPER_ADMIN）
+        RoleTreeResponse root = tree.stream()
+            .filter(r -> r.code().equals("SUPER_ADMIN"))
+            .findFirst()
+            .orElse(null);
+        
+        assertNotNull(root);
+        assertFalse(root.children().isEmpty());  // 应有子角色
+    }
+}
+```
+
+- [ ] **步骤 2：提交集成测试**
+
+```bash
+git add src/test/java/com/example/demo/service/RoleInheritanceIT.java
+git commit -m "feat(rbac): add role inheritance integration tests with circular detection"
+```
+
+---
+
 ## 自检清单
 
 - [x] 规范 P7 覆盖：角色 CRUD ✓、权限分配 ✓、数据范围分配 ✓、继承树 ✓
@@ -1030,7 +1163,139 @@ git commit -m "feat(rbac): add role management frontend pages"
 - [x] **P4依赖确认**：RoleDataScopeRepository.findById()已在P4添加 ✓
 - [x] **类型一致性**：PermissionResponse DTO已定义 ✓、toPermissionResponse方法类型一致 ✓
 - [x] **新增DTO**：DataScopeResponse ✓、RoleTreeResponse ✓
+- [x] **新增**：RoleInheritanceIT 循环继承集成测试 ✓、继承链正确性测试 ✓
+- [x] **新增**：有效父角色更新测试 ✓、角色树构建测试 ✓
+- [x] **改进点补充**：BatchPermissionAssignRequest ✓、batchAssignPermissions批量分配API ✓、批量移除API ✓
 - [x] **建议补充测试**：前端组件单元测试（Vue Test Utils）可后续添加
+
+---
+
+## 任务 7：角色权限批量分配 API（新增 - 改进点）
+
+**文件：**
+- 创建：`src/main/java/com/example/demo/service/dto/BatchPermissionAssignRequest.java`
+- 修改：`src/main/java/com/example/demo/service/RoleService.java`
+- 修改：`src/main/java/com/example/demo/controller/RoleController.java`
+
+> **改进点：** 支持角色权限批量分配，减少多次HTTP请求开销，提升权限配置效率。
+
+- [ ] **步骤 1：编写 BatchPermissionAssignRequest DTO**
+
+```java
+package com.example.demo.service.dto;
+
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import java.util.List;
+
+public record BatchPermissionAssignRequest(
+    @NotEmpty
+    List<Long> resourceIds,
+    
+    @NotNull
+    String effect,  // ALLOW/DENY
+    
+    List<String> actions  // VIEW/CREATE/UPDATE/DELETE/EXECUTE，默认全部
+) {}
+```
+
+- [ ] **步骤 2：在 RoleService 中添加批量分配方法**
+
+```java
+// 在 RoleService.java 中添加
+
+@Transactional
+public void batchAssignPermissions(Long roleId, BatchPermissionAssignRequest request) {
+    Role role = roleRepository.findById(roleId)
+        .orElseThrow(() -> new BusinessException(404, "角色不存在"));
+    
+    if (role.isBuiltin()) {
+        throw new BusinessException(400, "内置角色权限不可修改");
+    }
+    
+    PermissionEffect effect = PermissionEffect.valueOf(request.effect());
+    Set<ActionType> actions = request.actions() != null ?
+        request.actions().stream().map(ActionType::valueOf).collect(Collectors.toSet()) :
+        Set.of(ActionType.VIEW, ActionType.CREATE, ActionType.UPDATE, ActionType.DELETE, ActionType.EXECUTE);
+    
+    // 批量分配权限
+    for (Long resourceId : request.resourceIds()) {
+        role.assignPermission(resourceId, actions, effect);
+    }
+    
+    role.incrementVersion();
+    roleRepository.save(role);
+    
+    // 清除缓存
+    cacheService.clearRoleRelatedPermissions(roleId);
+    
+    // 发布批量权限变更事件
+    for (Long resourceId : request.resourceIds()) {
+        eventPublisher.publish(new RolePermissionChangedEvent(
+            roleId, resourceId, "ADD", UserContext.getCurrentUserId()
+        ));
+    }
+}
+
+/**
+ * 批量移除角色权限
+ */
+@Transactional
+public void batchRemovePermissions(Long roleId, List<Long> resourceIds) {
+    Role role = roleRepository.findById(roleId)
+        .orElseThrow(() -> new BusinessException(404, "角色不存在"));
+    
+    if (role.isBuiltin()) {
+        throw new BusinessException(400, "内置角色权限不可修改");
+    }
+    
+    for (Long resourceId : resourceIds) {
+        role.removePermission(resourceId);
+    }
+    
+    role.incrementVersion();
+    roleRepository.save(role);
+    
+    cacheService.clearRoleRelatedPermissions(roleId);
+}
+```
+
+- [ ] **步骤 3：在 RoleController 中添加批量分配端点**
+
+```java
+// 在 RoleController.java 中添加
+
+/**
+ * 批量分配角色权限
+ */
+@PostMapping("/{id}/permissions/batch")
+public Result<Void> batchAssignPermissions(
+        @PathVariable Long id,
+        @Valid @RequestBody BatchPermissionAssignRequest request) {
+    roleService.batchAssignPermissions(id, request);
+    return Result.success(null);
+}
+
+/**
+ * 批量移除角色权限
+ */
+@DeleteMapping("/{id}/permissions/batch")
+public Result<Void> batchRemovePermissions(
+        @PathVariable Long id,
+        @RequestBody List<Long> resourceIds) {
+    roleService.batchRemovePermissions(id, resourceIds);
+    return Result.success(null);
+}
+```
+
+- [ ] **步骤 4：提交批量分配 API**
+
+```bash
+git add src/main/java/com/example/demo/service/dto/BatchPermissionAssignRequest.java \
+        src/main/java/com/example/demo/service/RoleService.java \
+        src/main/java/com/example/demo/controller/RoleController.java
+git commit -m "feat(rbac): add batch permission assignment API for role configuration efficiency"
+```
 
 ---
 

@@ -573,6 +573,139 @@ git commit -m "feat(rbac): add cache warmup on application startup"
 
 ---
 
+## 任务 6：创建 PermissionBitmap 序列化测试（新增）
+
+**文件：**
+- 创建：`src/test/java/com/example/demo/service/PermissionBitmapSerializationTest.java`
+
+- [ ] **步骤 1：编写序列化/反序列化测试**
+
+```java
+package com.example.demo.service;
+
+import com.example.demo.domain.permission.valueobject.PermissionBitmap;
+import com.example.demo.domain.permission.valueobject.ActionType;
+import com.example.demo.infrastructure.persistence.serializer.PermissionBitmapSerializer;
+import com.example.demo.infrastructure.persistence.serializer.PermissionBitmapDeserializer;
+import org.junit.jupiter.api.Test;
+import java.util.Set;
+import static org.junit.jupiter.api.Assertions.*;
+
+class PermissionBitmapSerializationTest {
+    
+    private final PermissionBitmapSerializer serializer = new PermissionBitmapSerializer();
+    private final PermissionBitmapDeserializer deserializer = new PermissionBitmapDeserializer();
+    
+    @Test
+    void shouldSerializeAndDeserializeCorrectly() {
+        PermissionBitmap original = PermissionBitmap.empty(1234567890L)
+            .addPermission(1L, Set.of(ActionType.VIEW, ActionType.CREATE))
+            .addPermission(2L, Set.of(ActionType.UPDATE));
+        
+        // 序列化
+        String json = serializeToJson(original);
+        
+        // 反序列化
+        PermissionBitmap deserialized = deserializeFromJson(json);
+        
+        // 验证版本号一致
+        assertEquals(original.getVersion(), deserialized.getVersion());
+        
+        // 验证权限位图一致
+        assertTrue(deserialized.hasAction(1L, ActionType.VIEW));
+        assertTrue(deserialized.hasAction(1L, ActionType.CREATE));
+        assertFalse(deserialized.hasAction(1L, ActionType.DELETE));
+        assertTrue(deserialized.hasAction(2L, ActionType.UPDATE));
+        assertFalse(deserialized.hasAction(2L, ActionType.VIEW));
+    }
+    
+    @Test
+    void shouldSerializeEmptyBitmap() {
+        PermissionBitmap empty = PermissionBitmap.empty(System.currentTimeMillis());
+        
+        String json = serializeToJson(empty);
+        PermissionBitmap deserialized = deserializeFromJson(json);
+        
+        assertTrue(deserialized.getActionBits().isEmpty());
+        assertFalse(deserialized.hasAction(1L, ActionType.VIEW));
+    }
+    
+    @Test
+    void shouldPreserveBitSetRepresentation() {
+        PermissionBitmap bitmap = PermissionBitmap.empty()
+            .addPermission(1L, Set.of(ActionType.VIEW, ActionType.CREATE, ActionType.UPDATE, ActionType.DELETE));
+        
+        String json = serializeToJson(bitmap);
+        
+        // BitSet 应表示为二进制字符串 "1111" (VIEW=0, CREATE=1, UPDATE=2, DELETE=3)
+        assertTrue(json.contains("\"1111\"") || json.contains("\"11110\""));
+        
+        PermissionBitmap deserialized = deserializeFromJson(json);
+        
+        // 验证所有操作权限存在
+        assertTrue(deserialized.hasAction(1L, ActionType.VIEW));
+        assertTrue(deserialized.hasAction(1L, ActionType.CREATE));
+        assertTrue(deserialized.hasAction(1L, ActionType.UPDATE));
+        assertTrue(deserialized.hasAction(1L, ActionType.DELETE));
+        assertFalse(deserialized.hasAction(1L, ActionType.EXECUTE));
+    }
+    
+    @Test
+    void shouldHandleMultipleResources() {
+        PermissionBitmap bitmap = PermissionBitmap.empty()
+            .addPermission(1L, Set.of(ActionType.VIEW))
+            .addPermission(2L, Set.of(ActionType.CREATE, ActionType.UPDATE))
+            .addPermission(3L, Set.of(ActionType.DELETE));
+        
+        String json = serializeToJson(bitmap);
+        PermissionBitmap deserialized = deserializeFromJson(json);
+        
+        // 验证多个资源的权限独立保存
+        assertTrue(deserialized.hasAction(1L, ActionType.VIEW));
+        assertFalse(deserialized.hasAction(1L, ActionType.CREATE));
+        
+        assertTrue(deserialized.hasAction(2L, ActionType.CREATE));
+        assertTrue(deserialized.hasAction(2L, ActionType.UPDATE));
+        assertFalse(deserialized.hasAction(2L, ActionType.DELETE));
+        
+        assertTrue(deserialized.hasAction(3L, ActionType.DELETE));
+        assertFalse(deserialized.hasAction(3L, ActionType.VIEW));
+    }
+    
+    private String serializeToJson(PermissionBitmap bitmap) {
+        // 使用 ObjectMapper 或直接调用 serializer
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new SimpleModule()
+            .addSerializer(PermissionBitmap.class, serializer));
+        try {
+            return mapper.writeValueAsString(bitmap);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    private PermissionBitmap deserializeFromJson(String json) {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new SimpleModule()
+            .addDeserializer(PermissionBitmap.class, deserializer));
+        try {
+            return mapper.readValue(json, PermissionBitmap.class);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+```
+
+- [ ] **步骤 2：提交测试**
+
+```bash
+git add src/test/java/com/example/demo/service/PermissionBitmapSerializationTest.java
+git commit -m "feat(rbac): add PermissionBitmap serialization/deserialization tests"
+```
+
+---
+
 ## 自检清单
 
 - [x] 规范 P6 覆盖：L1/L2 缓存 ✓、安全 Key ✓、穿透防护 ✓、版本校验 ✓
@@ -583,6 +716,116 @@ git commit -m "feat(rbac): add cache warmup on application startup"
 - [x] **BitSet序列化**：使用二进制字符串表示 ✓、version字段完整 ✓
 - [x] **缓存预热**：CacheWarmupService启动时加载活跃用户 ✓
 - [x] **测试依赖注入**：CachePenetrationTest 完整依赖注入 ✓、mock配置完整 ✓
+- [x] **新增**：PermissionBitmapSerializationTest ✓、序列化/反序列化正确性测试 ✓
+- [x] **新增**：BitSet表示验证测试 ✓、多资源独立保存测试 ✓、空位图处理测试 ✓
+- [x] **改进点补充**：CacheMetricsController监控端点 ✓、命中率统计 ✓、健康状态检查 ✓
+
+---
+
+## 任务 7：缓存命中率监控端点（新增 - 改进点）
+
+**文件：**
+- 创建：`src/main/java/com/example/demo/controller/CacheMetricsController.java`
+
+> **改进点：** 添加缓存命中率监控端点，用于运维监控和性能调优。
+
+- [ ] **步骤 1：编写 CacheMetricsController**
+
+```java
+package com.example.demo.controller;
+
+import com.example.demo.common.Result;
+import com.example.demo.domain.permission.service.CacheMetricsService;
+import com.example.demo.domain.permission.service.CacheMetricsService.CacheMetrics;
+import org.springframework.web.bind.annotation.*;
+import java.util.Map;
+import java.util.HashMap;
+
+@RestController
+@RequestMapping("/api/cache/metrics")
+public class CacheMetricsController {
+    
+    private final CacheMetricsService cacheMetricsService;
+    
+    /**
+     * 获取缓存命中率指标
+     */
+    @GetMapping("/hit-rate")
+    public Result<Map<String, Object>> getCacheHitRate() {
+        CacheMetrics metrics = cacheMetricsService.getMetrics();
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("l1Hits", metrics.l1Hits());
+        result.put("l1Misses", metrics.l1Misses());
+        result.put("l2Hits", metrics.l2Hits());
+        result.put("l2Misses", metrics.l2Misses());
+        result.put("computations", metrics.computations());
+        result.put("localCacheSize", metrics.localCacheSize());
+        result.put("overallHitRate", metrics.hitRate());
+        
+        // 计算分层命中率
+        long l1Total = metrics.l1Hits() + metrics.l1Misses();
+        long l2Total = metrics.l2Hits() + metrics.l2Misses();
+        
+        result.put("l1HitRate", l1Total > 0 ? (double) metrics.l1Hits() / l1Total : 0.0);
+        result.put("l2HitRate", l2Total > 0 ? (double) metrics.l2Hits() / l2Total : 0.0);
+        
+        return Result.success(result);
+    }
+    
+    /**
+     * 重置缓存指标计数器
+     */
+    @PostMapping("/reset")
+    public Result<Void> resetMetrics() {
+        cacheMetricsService.reset();
+        return Result.success(null);
+    }
+    
+    /**
+     * 获取缓存健康状态
+     */
+    @GetMapping("/health")
+    public Result<Map<String, Object>> getCacheHealth() {
+        CacheMetrics metrics = cacheMetricsService.getMetrics();
+        
+        Map<String, Object> health = new HashMap<>();
+        
+        // 健康判断标准：命中率 > 80%
+        boolean healthy = metrics.hitRate() > 0.8;
+        
+        health.put("status", healthy ? "HEALTHY" : "WARNING");
+        health.put("hitRate", metrics.hitRate());
+        health.put("message", healthy ? 
+            "缓存工作正常，命中率达标" : 
+            "命中率较低，建议检查缓存预热策略");
+        
+        return Result.success(health);
+    }
+}
+```
+
+- [ ] **步骤 2：在 CacheMetricsService 中添加 reset 方法**
+
+```java
+// 在 CacheMetricsService.java 中添加
+
+public void reset() {
+    l1Hits.set(0);
+    l1Misses.set(0);
+    l2Hits.set(0);
+    l2Misses.set(0);
+    computations.set(0);
+}
+```
+
+- [ ] **步骤 3：提交监控端点**
+
+```bash
+git add src/main/java/com/example/demo/controller/CacheMetricsController.java \
+        src/main/java/com/example/demo/domain/permission/service/CacheMetricsService.java
+git commit -m "feat(rbac): add cache metrics monitoring endpoint for hit rate tracking"
+```
 
 ---
 

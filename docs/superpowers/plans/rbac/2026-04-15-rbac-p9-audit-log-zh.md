@@ -517,7 +517,9 @@ git commit -m "feat(rbac): enable async for audit logging"
 - [x] **事件参数匹配**：logPermissionAssign签名与RolePermissionChangedEvent匹配 ✓
 - [x] **仓储接口补充**：PermissionAuditLogRepository已添加 ✓
 - [x] **查询服务补充**：PermissionAuditQueryService已添加 ✓、AuditLogResponse DTO已添加 ✓
-- [x] **建议补充测试**：事件监听器集成测试可后续添加
+- [x] **新增**：集成测试配置文件 application-test.yml 示例 ✓
+- [x] **新增**：事件监听器集成测试完整实现 ✓、RoleCreatedEvent/PermissionAssign/UserRoleAssign 覆盖 ✓
+- [x] **改进点补充**：AuditLogExportService导出服务 ✓、CSV/JSON/ZIP格式导出 ✓、合规审计支持 ✓
 
 ---
 
@@ -634,6 +636,224 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+```
+
+---
+
+## 任务 8：审计日志导出功能（新增 - 改进点）
+
+**文件：**
+- 创建：`src/main/java/com/example/demo/service/AuditLogExportService.java`
+- 修改：`src/main/java/com/example/demo/controller/PermissionAuditController.java`
+- 创建：`src/main/java/com/example/demo/service/dto/AuditLogExportRequest.java`
+
+> **改进点：** 支持审计日志导出功能，用于合规审计和离线分析。
+
+- [ ] **步骤 1：编写 AuditLogExportRequest DTO**
+
+```java
+package com.example.demo.service.dto;
+
+import java.time.LocalDateTime;
+
+public record AuditLogExportRequest(
+    String targetType,      // ROLE/RESOURCE/USER（可选）
+    Long targetId,          // 目标ID（可选）
+    Long operatorId,        // 操作人ID（可选）
+    String changeType,      // 变更类型（可选）
+    LocalDateTime startTime, // 开始时间
+    LocalDateTime endTime,   // 结束时间
+    String format           // CSV/JSON/PDF
+) {}
+```
+
+- [ ] **步骤 2：编写 AuditLogExportService**
+
+```java
+package com.example.demo.service;
+
+import com.example.demo.domain.permission.entity.PermissionAuditLog;
+import com.example.demo.domain.permission.repository.PermissionAuditLogRepository;
+import com.example.demo.service.dto.AuditLogExportRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Service;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+@Service
+public class AuditLogExportService {
+    
+    private final PermissionAuditLogRepository auditLogRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    
+    /**
+     * 导出审计日志为CSV格式
+     */
+    public byte[] exportToCsv(AuditLogExportRequest request) {
+        List<PermissionAuditLog> logs = queryLogs(request);
+        
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        OutputStreamWriter writer = new OutputStreamWriter(baos, StandardCharsets.UTF_8);
+        
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        
+        try {
+            // CSV header
+            writer.write("ID,操作人ID,操作人姓名,变更类型,目标类型,目标ID,变更前值,变更后值,原因,追踪ID,创建时间\n");
+            
+            for (PermissionAuditLog log : logs) {
+                writer.write(String.format("%d,%d,%s,%s,%s,%d,%s,%s,%s,%s,%s\n",
+                    log.getId(),
+                    log.getOperatorId(),
+                    escapeCsv(log.getOperatorName()),
+                    log.getChangeType(),
+                    log.getTargetType(),
+                    log.getTargetId(),
+                    escapeCsv(log.getBeforeValue()),
+                    escapeCsv(log.getAfterValue()),
+                    escapeCsv(log.getReason()),
+                    log.getTraceId(),
+                    log.getCreateTime().format(formatter)
+                ));
+            }
+            
+            writer.flush();
+        } catch (Exception e) {
+            throw new RuntimeException("导出失败", e);
+        }
+        
+        return baos.toByteArray();
+    }
+    
+    /**
+     * 导出审计日志为JSON格式
+     */
+    public byte[] exportToJson(AuditLogExportRequest request) {
+        List<PermissionAuditLog> logs = queryLogs(request);
+        
+        try {
+            return objectMapper.writeValueAsBytes(logs);
+        } catch (Exception e) {
+            throw new RuntimeException("导出失败", e);
+        }
+    }
+    
+    /**
+     * 导出审计日志为压缩包（包含CSV和JSON）
+     */
+    public byte[] exportToZip(AuditLogExportRequest request) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        
+        try (ZipOutputStream zos = new ZipOutputStream(baos)) {
+            // 添加CSV文件
+            ZipEntry csvEntry = new ZipEntry("audit_logs.csv");
+            zos.putNextEntry(csvEntry);
+            zos.write(exportToCsv(request));
+            zos.closeEntry();
+            
+            // 添加JSON文件
+            ZipEntry jsonEntry = new ZipEntry("audit_logs.json");
+            zos.putNextEntry(jsonEntry);
+            zos.write(exportToJson(request));
+            zos.closeEntry();
+        } catch (Exception e) {
+            throw new RuntimeException("导出失败", e);
+        }
+        
+        return baos.toByteArray();
+    }
+    
+    private List<PermissionAuditLog> queryLogs(AuditLogExportRequest request) {
+        // 根据请求参数查询日志
+        if (request.targetType() != null && request.targetId() != null) {
+            return auditLogRepository.findByTarget(request.targetType(), request.targetId(), 10000);
+        } else if (request.operatorId() != null) {
+            return auditLogRepository.findByOperator(request.operatorId(), 10000);
+        } else {
+            return auditLogRepository.findByTypeAndTimeRange(
+                request.changeType(),
+                request.startTime().toString(),
+                request.endTime().toString()
+            );
+        }
+    }
+    
+    private String escapeCsv(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
+    }
+}
+```
+
+- [ ] **步骤 3：在 PermissionAuditController 中添加导出端点**
+
+```java
+// 在 PermissionAuditController.java 中添加
+
+private final AuditLogExportService auditLogExportService;
+
+/**
+ * 导出审计日志
+ */
+@GetMapping("/export")
+public void exportAuditLogs(
+        @RequestParam(required = false) String targetType,
+        @RequestParam(required = false) Long targetId,
+        @RequestParam(required = false) Long operatorId,
+        @RequestParam(required = false) String changeType,
+        @RequestParam LocalDateTime startTime,
+        @RequestParam LocalDateTime endTime,
+        @RequestParam(defaultValue = "CSV") String format,
+        HttpServletResponse response) throws IOException {
+    
+    AuditLogExportRequest request = new AuditLogExportRequest(
+        targetType, targetId, operatorId, changeType,
+        startTime, endTime, format
+    );
+    
+    byte[] content;
+    String filename;
+    String contentType;
+    
+    switch (format.toUpperCase()) {
+        case "JSON":
+            content = auditLogExportService.exportToJson(request);
+            filename = "audit_logs.json";
+            contentType = "application/json";
+            break;
+        case "ZIP":
+            content = auditLogExportService.exportToZip(request);
+            filename = "audit_logs.zip";
+            contentType = "application/zip";
+            break;
+        default:
+            content = auditLogExportService.exportToCsv(request);
+            filename = "audit_logs.csv";
+            contentType = "text/csv";
+    }
+    
+    response.setContentType(contentType);
+    response.setHeader("Content-Disposition", "attachment; filename=" + filename);
+    response.getOutputStream().write(content);
+    response.getOutputStream().flush();
+}
+```
+
+- [ ] **步骤 4：提交导出功能**
+
+```bash
+git add src/main/java/com/example/demo/service/AuditLogExportService.java \
+        src/main/java/com/example/demo/service/dto/AuditLogExportRequest.java \
+        src/main/java/com/example/demo/controller/PermissionAuditController.java
+git commit -m "feat(rbac): add audit log export functionality for compliance reporting"
 ```
 
 ---

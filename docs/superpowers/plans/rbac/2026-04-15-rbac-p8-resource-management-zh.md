@@ -450,13 +450,377 @@ export function deleteResource(id) {
 export function addSensitiveField(resourceId, data) {
   return request.post(`/api/resources/${resourceId}/fields`, data)
 }
+
+export function getResourceFields(resourceId) {
+  return request.get(`/api/resources/${resourceId}/fields`)
+}
 ```
 
-- [ ] **步骤 2：提交前端**
+- [ ] **步骤 2：编写 ResourceList.vue（完整实现）**
+
+```vue
+<!-- ui/src/views/ResourceList.vue -->
+<template>
+  <div class="resource-container">
+    <el-card>
+      <template #header>
+        <div class="card-header">
+          <span>资源管理</span>
+          <el-button v-permission="{ resource: 'RESOURCE', action: 'CREATE' }" 
+                     type="primary" @click="handleAdd">
+            新增资源
+          </el-button>
+        </div>
+      </template>
+      
+      <!-- 资源树形表格 -->
+      <el-table
+        :data="resourceTree"
+        row-key="id"
+        border
+        default-expand-all
+        :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+      >
+        <el-table-column prop="name" label="资源名称" width="200" />
+        <el-table-column prop="code" label="资源编码" width="150" />
+        <el-table-column prop="type" label="类型" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getTypeTag(row.type)">
+              {{ row.type }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="path" label="路径" />
+        <el-table-column prop="pathPattern" label="路径模式" />
+        <el-table-column prop="method" label="方法" width="80" />
+        <el-table-column prop="sort" label="排序" width="80" />
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.status ? 'success' : 'danger'">
+              {{ row.status ? '启用' : '禁用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="250" fixed="right">
+          <template #default="{ row }">
+            <el-button v-permission="{ resource: 'RESOURCE', action: 'UPDATE' }" 
+                       link @click="handleEdit(row)">
+              编辑
+            </el-button>
+            <el-button v-permission="{ resource: 'RESOURCE', action: 'DELETE' }" 
+                       link type="danger" @click="handleDelete(row)">
+              删除
+            </el-button>
+            <el-button v-if="row.type === 'API' || row.type === 'MENU'"
+                       link @click="handleFields(row)">
+              敏感字段
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+    
+    <!-- 资源编辑对话框 -->
+    <ResourceEdit
+      :visible="editVisible"
+      :resource-data="currentResource"
+      @update:visible="editVisible = $event"
+      @success="loadResources"
+    />
+    
+    <!-- 敏感字段配置对话框 -->
+    <SensitiveFieldDialog
+      :visible="fieldVisible"
+      :resource-id="currentResourceId"
+      @update:visible="fieldVisible = $event"
+      @success="loadResources"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { getResourceTree, deleteResource } from '@/api/resource'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import ResourceEdit from './ResourceEdit.vue'
+import SensitiveFieldDialog from './SensitiveFieldDialog.vue'
+
+const resourceTree = ref([])
+const editVisible = ref(false)
+const fieldVisible = ref(false)
+const currentResource = ref(null)
+const currentResourceId = ref(null)
+
+onMounted(async () => {
+  await loadResources()
+})
+
+const loadResources = async () => {
+  const res = await getResourceTree()
+  if (res.code === 200) {
+    resourceTree.value = res.data
+  }
+}
+
+const getTypeTag = (type) => {
+  const map = {
+    MENU: '',
+    OPERATION: 'warning',
+    API: 'success'
+  }
+  return map[type] || 'info'
+}
+
+const handleAdd = () => {
+  currentResource.value = null
+  editVisible.value = true
+}
+
+const handleEdit = (row) => {
+  currentResource.value = row
+  editVisible.value = true
+}
+
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定删除资源 "${row.name}"？`,
+      '提示',
+      { type: 'warning' }
+    )
+    
+    const res = await deleteResource(row.id)
+    if (res.code === 200) {
+      ElMessage.success('删除成功')
+      await loadResources()
+    }
+  } catch (e) {
+    // 用户取消
+  }
+}
+
+const handleFields = (row) => {
+  currentResourceId.value = row.id
+  fieldVisible.value = true
+}
+</script>
+
+<style scoped>
+.resource-container {
+  padding: 20px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+</style>
+```
+
+- [ ] **步骤 3：编写 ResourceEdit.vue（编辑组件）**
+
+```vue
+<!-- ui/src/views/ResourceEdit.vue -->
+<template>
+  <el-dialog
+    :model-value="visible"
+    :title="isEdit ? '编辑资源' : '新增资源'"
+    width="600px"
+    @close="handleClose"
+  >
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+      <el-form-item label="资源编码" prop="code">
+        <el-input v-model="form.code" :disabled="isEdit" placeholder="唯一标识" />
+      </el-form-item>
+      
+      <el-form-item label="资源名称" prop="name">
+        <el-input v-model="form.name" placeholder="显示名称" />
+      </el-form-item>
+      
+      <el-form-item label="资源类型" prop="type">
+        <el-select v-model="form.type" :disabled="isEdit">
+          <el-option value="MENU" label="菜单" />
+          <el-option value="OPERATION" label="操作" />
+          <el-option value="API" label="API接口" />
+        </el-select>
+      </el-form-item>
+      
+      <el-form-item label="父资源" prop="parentId">
+        <el-tree-select
+          v-model="form.parentId"
+          :data="resourceTreeData"
+          :props="{ value: 'id', label: 'name', children: 'children' }"
+          check-strictly
+          clearable
+          placeholder="选择父资源（可选）"
+        />
+      </el-form-item>
+      
+      <!-- 菜单类型字段 -->
+      <el-form-item v-if="form.type === 'MENU'" label="路径" prop="path">
+        <el-input v-model="form.path" placeholder="/system/users" />
+      </el-form-item>
+      
+      <el-form-item v-if="form.type === 'MENU'" label="图标" prop="icon">
+        <el-input v-model="form.icon" placeholder="User" />
+      </el-form-item>
+      
+      <el-form-item v-if="form.type === 'MENU'" label="组件" prop="component">
+        <el-input v-model="form.component" placeholder="UserList" />
+      </el-form-item>
+      
+      <!-- API类型字段 -->
+      <el-form-item v-if="form.type === 'API'" label="路径模式" prop="pathPattern">
+        <el-input v-model="form.pathPattern" placeholder="/api/users/**" />
+      </el-form-item>
+      
+      <el-form-item v-if="form.type === 'API'" label="HTTP方法" prop="method">
+        <el-select v-model="form.method">
+          <el-option value="GET" label="GET" />
+          <el-option value="POST" label="POST" />
+          <el-option value="PUT" label="PUT" />
+          <el-option value="DELETE" label="DELETE" />
+        </el-select>
+      </el-form-item>
+      
+      <el-form-item label="排序" prop="sort">
+        <el-input-number v-model="form.sort" :min="0" :max="999" />
+      </el-form-item>
+    </el-form>
+    
+    <template #footer>
+      <el-button @click="handleClose">取消</el-button>
+      <el-button type="primary" @click="handleSubmit" :loading="loading">
+        {{ isEdit ? '更新' : '创建' }}
+      </el-button>
+    </template>
+  </el-dialog>
+</template>
+
+<script setup>
+import { ref, computed, watch } from 'vue'
+import { createResource, updateResource, getResourceTree } from '@/api/resource'
+import { ElMessage } from 'element-plus'
+
+const props = defineProps({
+  visible: Boolean,
+  resourceData: Object
+})
+
+const emit = defineEmits(['update:visible', 'success'])
+
+const formRef = ref(null)
+const loading = ref(false)
+const resourceTreeData = ref([])
+
+const isEdit = computed(() => !!props.resourceData?.id)
+
+const form = ref({
+  code: '',
+  name: '',
+  type: 'MENU',
+  parentId: null,
+  path: '',
+  pathPattern: '',
+  method: 'GET',
+  icon: '',
+  component: '',
+  sort: 0
+})
+
+const rules = {
+  code: [
+    { required: true, message: '请输入资源编码', trigger: 'blur' },
+    { max: 100, message: '最多100字符', trigger: 'blur' }
+  ],
+  name: [
+    { required: true, message: '请输入资源名称', trigger: 'blur' },
+    { max: 100, message: '最多100字符', trigger: 'blur' }
+  ],
+  type: [
+    { required: true, message: '请选择资源类型', trigger: 'change' }
+  ]
+}
+
+watch(() => props.resourceData, (data) => {
+  if (data) {
+    form.value = {
+      code: data.code,
+      name: data.name,
+      type: data.type,
+      parentId: data.parentId,
+      path: data.path || '',
+      pathPattern: data.pathPattern || '',
+      method: data.method || 'GET',
+      icon: data.icon || '',
+      component: data.component || '',
+      sort: data.sort || 0
+    }
+  } else {
+    resetForm()
+  }
+}, { immediate: true })
+
+watch(() => props.visible, async (visible) => {
+  if (visible) {
+    const res = await getResourceTree()
+    if (res.code === 200) {
+      resourceTreeData.value = res.data
+    }
+  }
+})
+
+const resetForm = () => {
+  form.value = {
+    code: '',
+    name: '',
+    type: 'MENU',
+    parentId: null,
+    path: '',
+    pathPattern: '',
+    method: 'GET',
+    icon: '',
+    component: '',
+    sort: 0
+  }
+  formRef.value?.resetFields()
+}
+
+const handleClose = () => {
+  emit('update:visible', false)
+  resetForm()
+}
+
+const handleSubmit = async () => {
+  await formRef.value.validate()
+  
+  loading.value = true
+  try {
+    if (isEdit.value) {
+      await updateResource(props.resourceData.id, form.value)
+      ElMessage.success('资源更新成功')
+    } else {
+      await createResource(form.value)
+      ElMessage.success('资源创建成功')
+    }
+    
+    emit('success')
+    handleClose()
+  } catch (error) {
+    ElMessage.error(error.message || '操作失败')
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+```
+
+- [ ] **步骤 4：提交前端**
 
 ```bash
-git add ui/src/views/ResourceList.vue ui/src/api/resource.js
-git commit -m "feat(rbac): add resource management frontend"
+git add ui/src/views/ResourceList.vue ui/src/views/ResourceEdit.vue ui/src/api/resource.js
+git commit -m "feat(rbac): add complete resource management frontend with tree table and edit dialog"
 ```
 
 ---
@@ -471,6 +835,9 @@ git commit -m "feat(rbac): add resource management frontend"
 - [x] **缺失方法补充**：getResourceById方法 ✓、toResponse转换方法 ✓
 - [x] **DTO完整性**：SensitiveFieldResponse ✓、ResourceTreeResponse ✓
 - [x] **P1依赖确认**：Resource聚合根和ResourceField实体已在P1定义 ✓
+- [x] **新增**：ResourceList.vue 完整实现 ✓、树形表格展示 ✓、类型标签渲染 ✓
+- [x] **新增**：ResourceEdit.vue 完整实现 ✓、类型字段动态显示 ✓、父资源选择 ✓
+- [x] **改进点补充**：ResourceBatchImportRequest ✓、batchImportResources批量导入API ✓、JSON导入支持 ✓
 - [x] **建议补充测试**：前端组件单元测试（Vue Test Utils）可后续添加
 
 ---
@@ -543,6 +910,164 @@ describe('ResourceList.vue', () => {
 ```bash
 cd ui
 npm install -D vitest @vue/test-utils
+```
+
+---
+
+## 任务 6：资源批量导入 API（新增 - 改进点）
+
+**文件：**
+- 创建：`src/main/java/com/example/demo/service/dto/ResourceBatchImportRequest.java`
+- 修改：`src/main/java/com/example/demo/service/ResourceService.java`
+- 修改：`src/main/java/com/example/demo/controller/ResourceController.java`
+
+> **改进点：** 支持资源批量导入，用于初始化大量菜单/API资源，减少多次HTTP请求开销。
+
+- [ ] **步骤 1：编写 ResourceBatchImportRequest DTO**
+
+```java
+package com.example.demo.service.dto;
+
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import java.util.List;
+
+public record ResourceBatchImportRequest(
+    @NotEmpty
+    List<ResourceImportItem> resources,
+    
+    boolean overwriteExisting  // 是否覆盖已存在的资源
+) {}
+
+public record ResourceImportItem(
+    @NotNull
+    String code,
+    
+    @NotNull
+    String name,
+    
+    Long parentId,
+    
+    @NotNull
+    String type,  // MENU/OPERATION/API
+    
+    String path,
+    String pathPattern,
+    String method,
+    String icon,
+    String component,
+    Integer sort
+) {}
+```
+
+- [ ] **步骤 2：在 ResourceService 中添加批量导入方法**
+
+```java
+// 在 ResourceService.java 中添加
+
+@Transactional
+public List<ResourceResponse> batchImportResources(ResourceBatchImportRequest request) {
+    List<ResourceResponse> results = new ArrayList<>();
+    int successCount = 0;
+    int skipCount = 0;
+    
+    for (ResourceImportItem item : request.resources()) {
+        try {
+            Optional<Resource> existing = resourceRepository.findByCode(item.code());
+            
+            if (existing.isPresent()) {
+                if (request.overwriteExisting()) {
+                    // 覆盖更新
+                    Resource resource = existing.get();
+                    updateResourceFromImport(resource, item);
+                    resource = resourceRepository.save(resource);
+                    results.add(toResponse(resource));
+                    successCount++;
+                } else {
+                    // 跳过已存在的资源
+                    skipCount++;
+                }
+            } else {
+                // 创建新资源
+                ResourceCreateRequest createRequest = new ResourceCreateRequest(
+                    item.code(), item.name(), item.parentId(), item.type(),
+                    item.path(), item.pathPattern(), item.method(),
+                    item.icon(), item.component(), item.sort()
+                );
+                ResourceResponse response = createResource(createRequest);
+                results.add(response);
+                successCount++;
+            }
+        } catch (Exception e) {
+            // 记录失败项，继续处理其他资源
+            results.add(new ResourceResponse(
+                null, item.code(), item.name(), null, item.type(),
+                null, null, null, null, null, 0, false, null
+            ));
+        }
+    }
+    
+    log.info("批量导入资源完成: 成功{}, 跳过{}, 总数{}", 
+        successCount, skipCount, request.resources().size());
+    
+    return results;
+}
+
+private void updateResourceFromImport(Resource resource, ResourceImportItem item) {
+    resource.setName(item.name());
+    resource.setPath(item.path());
+    resource.setIcon(item.icon());
+    resource.setComponent(item.component());
+    resource.setSort(item.sort() != null ? item.sort() : 0);
+}
+```
+
+- [ ] **步骤 3：在 ResourceController 中添加批量导入端点**
+
+```java
+// 在 ResourceController.java 中添加
+
+/**
+ * 批量导入资源
+ */
+@PostMapping("/batch-import")
+public Result<Map<String, Object>> batchImportResources(
+        @Valid @RequestBody ResourceBatchImportRequest request) {
+    List<ResourceResponse> results = resourceService.batchImportResources(request);
+    
+    Map<String, Object> summary = new HashMap<>();
+    summary.put("total", request.resources().size());
+    summary.put("success", results.stream().filter(r -> r.id() != null).count());
+    summary.put("resources", results);
+    
+    return Result.success(summary);
+}
+
+/**
+ * 从JSON文件批量导入资源（示例）
+ */
+@PostMapping("/import-from-json")
+public Result<Map<String, Object>> importFromJson(@RequestBody String jsonContent) {
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+        List<ResourceImportItem> items = mapper.readValue(jsonContent,
+            new TypeReference<List<ResourceImportItem>>() {});
+        
+        ResourceBatchImportRequest request = new ResourceBatchImportRequest(items, false);
+        return batchImportResources(request);
+    } catch (Exception e) {
+        return Result.error(400, "JSON解析失败: " + e.getMessage());
+    }
+}
+```
+
+- [ ] **步骤 4：提交批量导入 API**
+
+```bash
+git add src/main/java/com/example/demo/service/dto/ResourceBatchImportRequest.java \
+        src/main/java/com/example/demo/service/ResourceService.java \
+        src/main/java/com/example/demo/controller/ResourceController.java
+git commit -m "feat(rbac): add resource batch import API for efficient initialization"
 ```
 
 ---

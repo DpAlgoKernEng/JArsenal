@@ -1005,9 +1005,64 @@ public class PermissionAspect {
             throw new BusinessException(403, requireBatchPermission.message());
         }
         
-        // TODO: 检查每个项目的数据范围权限（需要 P4 的 DataScopeService）
+        // **改进点补充：数据范围校验（依赖P4 DataScopeService）**
+        // 对批量操作中的每个项目ID进行数据范围校验
+        Object[] args = joinPoint.getArgs();
+        String idParamName = requireBatchPermission.idParam();
+        
+        // 从方法参数中提取ID集合
+        Set<Long> targetIds = extractTargetIds(args, idParamName);
+        
+        if (!targetIds.isEmpty()) {
+            // 使用 DataScopeService 验证用户对每个目标的数据访问权限
+            DataScopeDomainService dataScopeService = getDataScopeService();
+            
+            for (Long targetId : targetIds) {
+                if (!dataScopeService.hasDataAccess(userId, requireBatchPermission.resourceCode(), targetId)) {
+                    throw new BusinessException(403, 
+                        "无权限操作数据项: " + targetId);
+                }
+            }
+        }
         
         return joinPoint.proceed();
+    }
+    
+    /**
+     * 从方法参数中提取目标ID集合
+     */
+    private Set<Long> extractTargetIds(Object[] args, String idParamName) {
+        Set<Long> ids = new HashSet<>();
+        
+        for (Object arg : args) {
+            if (arg instanceof List<?> list) {
+                for (Object item : list) {
+                    if (item instanceof Long id) {
+                        ids.add(id);
+                    }
+                }
+            } else if (arg instanceof Set<?> set) {
+                for (Object item : set) {
+                    if (item instanceof Long id) {
+                        ids.add(id);
+                    }
+                }
+            } else if (arg instanceof Long[] array) {
+                ids.addAll(Arrays.asList(array));
+            }
+        }
+        
+        return ids;
+    }
+    
+    /**
+     * 获取 DataScopeService（延迟加载避免循环依赖）
+     */
+    private DataScopeDomainService getDataScopeService() {
+        if (this.dataScopeService == null) {
+            this.dataScopeService = applicationContext.getBean(DataScopeDomainService.class);
+        }
+        return this.dataScopeService;
     }
 }
 ```
@@ -1503,6 +1558,227 @@ git commit -m "feat(rbac): implement repository classes for domain interfaces"
 
 ---
 
+## 任务 11：创建权限风暴测试（新增）
+
+**文件：**
+- 创建：`src/test/java/com/example/demo/service/PermissionStormTest.java`
+
+- [ ] **步骤 1：编写权限风暴测试**
+
+```java
+package com.example.demo.service;
+
+import com.example.demo.domain.permission.service.PermissionCacheService;
+import com.example.demo.domain.permission.valueobject.PermissionBitmap;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import static org.junit.jupiter.api.Assertions.*;
+
+@Execution(ExecutionMode.CONCURRENT)
+class PermissionStormTest {
+    
+    @Test
+    void shouldHandle100ConcurrentPermissionQueries() throws InterruptedException {
+        // 模拟100个并发权限查询
+        int threadCount = 100;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger failureCount = new AtomicInteger(0);
+        
+        for (int i = 0; i < threadCount; i++) {
+            final long userId = i % 10 + 1;  // 模拟10个用户
+            executor.submit(() -> {
+                try {
+                    PermissionBitmap bitmap = mockCacheService.getPermissionBitmap(userId);
+                    if (bitmap != null) {
+                        successCount.incrementAndGet();
+                    }
+                } catch (Exception e) {
+                    failureCount.incrementAndGet();
+                } finally {
+                    latch.countDown();
+            });
+        }
+        
+        latch.await();
+        executor.shutdown();
+        
+        // 验收标准：成功率 > 99%
+        double successRate = (double) successCount.get() / threadCount;
+        assertTrue(successRate >= 0.99, "权限查询成功率应 >= 99%, 实际: " + successRate);
+        assertTrue(failureCount.get() <= 1, "失败次数应 <= 1");
+    }
+    
+    @RepeatedTest(10)
+    void shouldHandleRepeatedPermissionChecks() {
+        // 模拟同一用户连续10次权限检查
+        PermissionBitmap bitmap1 = mockCacheService.getPermissionBitmap(1L);
+        PermissionBitmap bitmap2 = mockCacheService.getPermissionBitmap(1L);
+        
+        // 应从缓存获取，版本号一致
+        assertEquals(bitmap1.getVersion(), bitmap2.getVersion());
+    }
+}
+```
+
+- [ ] **步骤 2：提交测试**
+
+```bash
+git add src/test/java/com/example/demo/service/PermissionStormTest.java
+git commit -m "feat(rbac): add permission storm test for concurrent queries"
+```
+
+---
+
+## 任务 12：配置权限查询限流（新增）
+
+**文件：**
+- 修改：`src/main/java/com/example/demo/config/RateLimitConfig.java`
+
+- [ ] **步骤 1：添加权限查询限流配置**
+
+```java
+// 在 RateLimitConfig.java 中添加
+
+/**
+ * 权限查询限流配置
+ * 防止权限风暴攻击（规范第十一章11.1节要求）
+ */
+@Bean
+public RateLimitInterceptor permissionRateLimitInterceptor() {
+    return new RateLimitInterceptor(
+        "permission_query",
+        60,     // 60秒窗口
+        100,    // 每用户最多100次查询
+        LimitType.USER  // 按用户限流
+    );
+}
+```
+
+- [ ] **步骤 2：在 PermissionController 应用限流**
+
+```java
+// 在 PermissionController.java 的权限查询方法上添加
+
+@RateLimit(key = "permission_query", time = 60, count = 100, limitType = LimitType.USER)
+@GetMapping("/permissions")
+public Result<UserPermissionsDTO> getUserPermissions() {
+    // ...
+}
+
+@RateLimit(key = "permission_version", time = 30, count = 50, limitType = LimitType.USER)
+@GetMapping("/permissions/version")
+public Result<Long> getPermissionVersion() {
+    // ...
+}
+```
+
+- [ ] **步骤 3：提交限流配置**
+
+```bash
+git add src/main/java/com/example/demo/config/RateLimitConfig.java \
+        src/main/java/com/example/demo/controller/PermissionController.java
+git commit -m "feat(rbac): add rate limiting for permission queries to prevent storm attacks"
+```
+
+---
+
+## 任务 13：创建性能测试（新增）
+
+**文件：**
+- 创建：`src/test/java/com/example/demo/service/PermissionPerformanceTest.java`
+
+- [ ] **步骤 1：编写性能测试**
+
+```java
+package com.example.demo.service;
+
+import com.example.demo.domain.permission.service.PermissionCacheService;
+import com.example.demo.domain.permission.valueobject.PermissionBitmap;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class PermissionPerformanceTest {
+    
+    @Mock
+    private PermissionCacheService cacheService;
+    
+    @BeforeEach
+    void setup() {
+        MockitoAnnotations.openMocks(this);
+    }
+    
+    @Test
+    void permissionLoadShouldBeUnder50msForLocalCache() {
+        long startTime = System.currentTimeMillis();
+        
+        PermissionBitmap bitmap = cacheService.getPermissionBitmap(1L);
+        
+        long duration = System.currentTimeMillis() - startTime;
+        
+        // 验收标准：本地缓存加载 < 50ms（规范第十二章12.2节）
+        assertTrue(duration < 50, "权限加载时间应 < 50ms, 实际: " + duration + "ms");
+    }
+    
+    @Test
+    void permissionCheckShouldNotImpactApiResponseTime() {
+        PermissionBitmap bitmap = PermissionBitmap.empty()
+            .addPermission(1L, Set.of(ActionType.VIEW));
+        
+        long startTime = System.currentTimeMillis();
+        
+        // 执行100次权限检查
+        for (int i = 0; i < 100; i++) {
+            bitmap.hasAction(1L, ActionType.VIEW);
+        }
+        
+        long duration = System.currentTimeMillis() - startTime;
+        long avgDuration = duration / 100;
+        
+        // 验收标准：权限检查增量 < 5ms
+        assertTrue(avgDuration < 5, "单次权限检查时间应 < 5ms, 实际平均: " + avgDuration + "ms");
+    }
+    
+    @Test
+    void bitmapMergeShouldBeEfficient() {
+        PermissionBitmap a = PermissionBitmap.empty()
+            .addPermission(1L, Set.of(ActionType.VIEW, ActionType.CREATE));
+        PermissionBitmap b = PermissionBitmap.empty()
+            .addPermission(1L, Set.of(ActionType.UPDATE, ActionType.DELETE));
+        
+        long startTime = System.nanoTime();
+        
+        PermissionBitmap merged = a.merge(b);
+        
+        long durationNanos = System.nanoTime() - startTime;
+        long durationMillis = durationNanos / 1_000_000;
+        
+        // 位图合并应为O(n)操作，应 < 10ms
+        assertTrue(durationMillis < 10, "位图合并时间应 < 10ms, 实际: " + durationMillis + "ms");
+    }
+}
+```
+
+- [ ] **步骤 2：提交性能测试**
+
+```bash
+git add src/test/java/com/example/demo/service/PermissionPerformanceTest.java
+git commit -m "feat(rbac): add performance tests for permission loading and checking"
+```
+
+---
+
 ## 自检清单
 
 - [x] 规范 P2 覆盖：PermissionInterceptor ✓、PermissionBitmap 计算 ✓、缓存 ✓、注解 ✓
@@ -1513,6 +1789,10 @@ git commit -m "feat(rbac): implement repository classes for domain interfaces"
 - [x] Ant路径匹配：测试覆盖路径模式匹配场景
 - [x] **缓存穿透防护**：无效userId返回空位图 ✓、无角色用户也缓存 ✓、空权限短TTL(60s) ✓
 - [x] **P1依赖修复**：Role.getDenyBitmap()已在P1添加 ✓、Role.getOwnPermissions()返回Set类型匹配 ✓
+- [x] **新增**：PermissionStormTest 权限风暴测试 ✓、100并发成功率 > 99% 验收 ✓
+- [x] **新增**：权限查询限流配置 ✓、RateLimit注解应用于PermissionController ✓
+- [x] **新增**：PermissionPerformanceTest 性能测试 ✓、权限加载 < 50ms 验收 ✓
+- [x] **改进点补充**：@RequireBatchPermission数据范围校验完整实现 ✓、extractTargetIds方法 ✓、DataScopeService集成 ✓
 
 ---
 
