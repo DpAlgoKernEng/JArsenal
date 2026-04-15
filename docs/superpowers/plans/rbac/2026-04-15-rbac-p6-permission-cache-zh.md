@@ -254,37 +254,84 @@ class CacheKeySecurityTest {
 }
 ```
 
-- [ ] **步骤 2：编写 CachePenetrationTest**
+- [ ] **步骤 2：编写 CachePenetrationTest（更新版 - 完整依赖注入）**
 
 ```java
 package com.example.demo.service;
 
+import com.example.demo.domain.permission.service.PermissionCacheService;
+import com.example.demo.domain.permission.service.PermissionDomainService;
+import com.example.demo.domain.permission.valueobject.PermissionBitmap;
+import com.example.demo.domain.permission.repository.RoleRepository;
+import com.example.demo.domain.permission.repository.UserRoleRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import java.util.List;
 
 class CachePenetrationTest {
     
+    @Mock
+    private RedisTemplate<String, Object> redisTemplate;
+    
+    @Mock
+    private ValueOperations<String, Object> valueOperations;
+    
+    @Mock
+    private PermissionDomainService permissionDomainService;
+    
+    @Mock
+    private UserRoleRepository userRoleRepository;
+    
+    @Mock
+    private RoleRepository roleRepository;
+    
+    private PermissionCacheService cacheService;
+    
+    @BeforeEach
+    void setup() {
+        MockitoAnnotations.openMocks(this);
+        
+        // 配置 RedisTemplate mock
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(redisTemplate.delete(anyString())).thenReturn(true);
+        
+        // 创建 PermissionCacheService 实例（完整依赖注入）
+        cacheService = new PermissionCacheService(
+            redisTemplate,
+            permissionDomainService,
+            userRoleRepository,
+            roleRepository
+        );
+    }
+    
     @Test
     void shouldCacheEmptyPermission() {
-        PermissionCacheService cacheService = new PermissionCacheService();
+        // 无角色的用户 - 返回空位图
+        PermissionBitmap emptyBitmap = PermissionBitmap.empty(System.currentTimeMillis());
+        when(permissionDomainService.computeUserPermissionBitmap(999L)).thenReturn(emptyBitmap);
+        when(roleRepository.findRolesByUserId(999L)).thenReturn(List.of());
         
-        // 无角色的用户
-        PermissionBitmap empty = cacheService.getPermissionBitmap(999L);
+        PermissionBitmap result = cacheService.getPermissionBitmap(999L);
         
         // 应被缓存，不会重复计算
+        assertTrue(result.getActionBits().isEmpty());
+        
+        // 验证只计算一次（后续请求从缓存获取）
         PermissionBitmap cached = cacheService.getPermissionBitmap(999L);
+        assertEquals(result.getVersion(), cached.getVersion());
         
-        assertTrue(empty.getActionBits().isEmpty());
-        assertTrue(cached.getActionBits().isEmpty());
-        
-        // 验证两者是同一实例（来自缓存）
-        assertEquals(empty.getVersion(), cached.getVersion());
+        // 验证计算方法只被调用一次
+        verify(permissionDomainService, times(1)).computeUserPermissionBitmap(999L);
     }
     
     @Test
     void shouldRejectInvalidUserId() {
-        PermissionCacheService cacheService = new PermissionCacheService();
-        
         PermissionBitmap invalid1 = cacheService.getPermissionBitmap(null);
         PermissionBitmap invalid2 = cacheService.getPermissionBitmap(-1L);
         
@@ -295,7 +342,10 @@ class CachePenetrationTest {
     
     @Test
     void shouldNotHitDatabaseRepeatedlyForNonExistentUser() {
-        PermissionCacheService cacheService = new PermissionCacheService();
+        // 模拟空用户返回空位图
+        PermissionBitmap emptyBitmap = PermissionBitmap.empty(System.currentTimeMillis());
+        when(permissionDomainService.computeUserPermissionBitmap(999999L)).thenReturn(emptyBitmap);
+        when(roleRepository.findRolesByUserId(999999L)).thenReturn(List.of());
         
         // 模拟重复请求不存在用户
         for (int i = 0; i < 100; i++) {
@@ -303,8 +353,24 @@ class CachePenetrationTest {
         }
         
         // 验证只有一次计算（其余来自缓存）
-        CacheMetrics metrics = cacheService.getMetrics();
-        assertTrue(metrics.computations() <= 1);
+        verify(permissionDomainService, times(1)).computeUserPermissionBitmap(999999L);
+        
+        // 验证 Redis 只写入一次
+        verify(valueOperations, times(1)).set(anyString(), any(), anyLong(), any());
+    }
+    
+    @Test
+    void shouldCacheWithShortTtlForEmptyPermission() {
+        PermissionBitmap emptyBitmap = PermissionBitmap.empty(System.currentTimeMillis());
+        when(permissionDomainService.computeUserPermissionBitmap(0L)).thenReturn(emptyBitmap);
+        
+        // 缓存无效 userId (使用 cacheEmptyPermission)
+        PermissionBitmap result = cacheService.cacheEmptyPermission(0L);
+        
+        assertTrue(result.getActionBits().isEmpty());
+        
+        // 验证短 TTL (60秒) 用于空权限缓存
+        verify(valueOperations).set(anyString(), eq(emptyBitmap), eq(60L), any());
     }
 }
 ```
@@ -323,8 +389,105 @@ git commit -m "feat(rbac): add cache security and penetration tests"
 
 **文件：**
 - 修改：`src/main/java/com/example/demo/config/RedisConfig.java`
+- 创建：`src/main/java/com/example/demo/infrastructure/persistence/serializer/PermissionBitmapSerializer.java`
+- 创建：`src/main/java/com/example/demo/infrastructure/persistence/serializer/PermissionBitmapDeserializer.java`
 
-- [ ] **步骤 1：配置 PermissionBitmap 序列化**
+- [ ] **步骤 1：编写 PermissionBitmapSerializer**
+
+```java
+package com.example.demo.infrastructure.persistence.serializer;
+
+import com.example.demo.domain.permission.valueobject.PermissionBitmap;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import java.io.IOException;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
+
+public class PermissionBitmapSerializer extends JsonSerializer<PermissionBitmap> {
+    
+    @Override
+    public void serialize(PermissionBitmap value, JsonGenerator gen, SerializerProvider provider) throws IOException {
+        gen.writeStartObject();
+        
+        // 序列化版本号
+        gen.writeNumberField("version", value.getVersion());
+        
+        // 序列化actionBits Map（将BitSet转为字符串）
+        gen.writeObjectFieldStart("actionBits");
+        Map<Long, BitSet> bits = value.getActionBits();
+        for (Map.Entry<Long, BitSet> entry : bits.entrySet()) {
+            // BitSet转二进制字符串表示
+            gen.writeStringField(String.valueOf(entry.getKey()), bitsToString(entry.getValue()));
+        }
+        gen.writeEndObject();
+        
+        gen.writeEndObject();
+    }
+    
+    private String bitsToString(BitSet bitSet) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < bitSet.length(); i++) {
+            sb.append(bitSet.get(i) ? '1' : '0');
+        }
+        return sb.toString();
+    }
+}
+```
+
+- [ ] **步骤 2：编写 PermissionBitmapDeserializer**
+
+```java
+package com.example.demo.infrastructure.persistence.serializer;
+
+import com.example.demo.domain.permission.valueobject.PermissionBitmap;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.io.IOException;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
+
+public class PermissionBitmapDeserializer extends JsonDeserializer<PermissionBitmap> {
+    
+    @Override
+    public PermissionBitmap deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+        JsonNode node = p.getCodec().readTree(p);
+        
+        // 解析版本号
+        long version = node.has("version") ? node.get("version").asLong() : System.currentTimeMillis();
+        
+        // 解析actionBits Map
+        Map<Long, BitSet> actionBits = new HashMap<>();
+        JsonNode bitsNode = node.get("actionBits");
+        if (bitsNode != null && bitsNode.isObject()) {
+            bitsNode.fields().forEachRemaining(entry -> {
+                Long resourceId = Long.parseLong(entry.getKey());
+                BitSet bitSet = stringToBits(entry.getValue().asText());
+                actionBits.put(resourceId, bitSet);
+            });
+        }
+        
+        return new PermissionBitmap(actionBits, version);
+    }
+    
+    private BitSet stringToBits(String str) {
+        BitSet bitSet = new BitSet();
+        for (int i = 0; i < str.length(); i++) {
+            if (str.charAt(i) == '1') {
+                bitSet.set(i);
+            }
+        }
+        return bitSet;
+    }
+}
+```
+
+- [ ] **步骤 3：配置 Redis 序列化器**
 
 ```java
 // 在 RedisConfig.java 中 - 添加 PermissionBitmap 序列化器
@@ -350,11 +513,13 @@ public RedisTemplate<String, PermissionBitmap> permissionBitmapRedisTemplate(Red
 }
 ```
 
-- [ ] **步骤 2：提交 Redis 配置**
+- [ ] **步骤 4：提交 Redis 配置**
 
 ```bash
-git add src/main/java/com/example/demo/config/RedisConfig.java
-git commit -m "feat(rbac): configure PermissionBitmap Redis serialization"
+git add src/main/java/com/example/demo/config/RedisConfig.java \
+        src/main/java/com/example/demo/infrastructure/persistence/serializer/PermissionBitmapSerializer.java \
+        src/main/java/com/example/demo/infrastructure/persistence/serializer/PermissionBitmapDeserializer.java
+git commit -m "feat(rbac): add complete PermissionBitmap Redis serializers"
 ```
 
 ---
@@ -414,6 +579,10 @@ git commit -m "feat(rbac): add cache warmup on application startup"
 - [x] 无占位符：所有代码完整
 - [x] 安全：SHA256 哈希 Key 防止枚举
 - [x] 性能：Caffeine L1 + Redis L2，5min/1hour TTL
+- [x] **序列化器完整**：PermissionBitmapSerializer + PermissionBitmapDeserializer ✓
+- [x] **BitSet序列化**：使用二进制字符串表示 ✓、version字段完整 ✓
+- [x] **缓存预热**：CacheWarmupService启动时加载活跃用户 ✓
+- [x] **测试依赖注入**：CachePenetrationTest 完整依赖注入 ✓、mock配置完整 ✓
 
 ---
 

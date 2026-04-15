@@ -1035,8 +1035,9 @@ public class Role extends BaseEntity {
     private boolean isDeleted;
     private int version;
     private int sort;
-    private Set<RolePermission> permissions;
-    private Set<Long> dataScopeIds; // 关联RoleDataScope实体ID
+    private Set<RolePermission> permissions;      // 值对象集合，不可变
+    private Set<RoleDataScope> dataScopes;         // 改为Set，防止重复维度（规范P1优化）
+    private List<FieldPermission> fieldPerms;
     
     // 工厂方法
     public static Role create(RoleCode code, String name, Long parentId, InheritMode mode) {
@@ -1050,7 +1051,8 @@ public class Role extends BaseEntity {
         role.isBuiltin = false;
         role.version = 0;
         role.permissions = new HashSet<>();
-        role.dataScopeIds = new HashSet<>();
+        role.dataScopes = new HashSet<>();         // Set防止重复维度
+        role.fieldPerms = new ArrayList<>();
         return role;
     }
     
@@ -1086,9 +1088,25 @@ public class Role extends BaseEntity {
         this.version++;
     }
     
-    // 获取角色自身权限（不含继承）
+    // 获取角色自身权限（不含继承）- 供PermissionDomainService使用
+    // 权限位图计算移至PermissionDomainService（符合DDD领域服务职责）
     public Set<RolePermission> getOwnPermissions() {
         return Collections.unmodifiableSet(permissions);
+    }
+    
+    // 获取角色自身数据范围 - 供DataScopeDomainService使用
+    public Set<RoleDataScope> getOwnDataScopes() {
+        return Collections.unmodifiableSet(dataScopes);
+    }
+    
+    // 添加数据范围（使用Set防止重复维度）
+    public void assignDataScope(RoleDataScope dataScope) {
+        dataScopes.add(dataScope);
+    }
+    
+    // 移除数据范围
+    public void removeDataScope(String dimensionCode) {
+        dataScopes.removeIf(ds -> ds.getDimensionCode().equals(dimensionCode));
     }
     
     // 检查是否有DENY权限
@@ -1096,13 +1114,33 @@ public class Role extends BaseEntity {
         return permissions.stream().anyMatch(p -> p.getEffect() == PermissionEffect.DENY);
     }
     
-    // 获取DENY位图
-    public PermissionBitmap getDenyBitmap() {
-        PermissionBitmap bitmap = PermissionBitmap.empty();
-        permissions.stream()
+    // 获取DENY权限列表（供PermissionDomainService构建位图）
+    public List<RolePermission> getDenyPermissions() {
+        return permissions.stream()
             .filter(p -> p.getEffect() == PermissionEffect.DENY)
-            .forEach(p -> bitmap.addPermission(p.getResourceId(), p.getActions()));
+            .toList();
+    }
+    
+    /**
+     * 获取DENY权限位图（新增 - P2依赖）
+     * 供PermissionDomainService.computeRolePermissionBitmap使用
+     */
+    public PermissionBitmap getDenyBitmap() {
+        PermissionBitmap bitmap = PermissionBitmap.empty(System.currentTimeMillis());
+        for (RolePermission p : getDenyPermissions()) {
+            bitmap = bitmap.addPermission(p.getResourceId(), p.getActions());
+        }
         return bitmap;
+    }
+    
+    /**
+     * 获取数据范围ID集合（新增 - P7依赖）
+     * 供RoleService.toResponse使用
+     */
+    public Set<Long> getDataScopeIds() {
+        return dataScopes.stream()
+            .map(RoleDataScope::getId)
+            .collect(Collectors.toSet());
     }
     
     // Getter/Setter
@@ -1114,6 +1152,7 @@ public class Role extends BaseEntity {
     public Long getParentId() { return parentId; }
     public void setParentId(Long parentId) { this.parentId = parentId; }
     public RoleStatus getStatus() { return status; }
+    public void setStatus(RoleStatus status) { this.status = status; }
     public InheritMode getInheritMode() { return inheritMode; }
     public void setInheritMode(InheritMode inheritMode) { this.inheritMode = inheritMode; }
     public boolean isBuiltin() { return isBuiltin; }
@@ -1122,8 +1161,7 @@ public class Role extends BaseEntity {
     public int getVersion() { return version; }
     public int getSort() { return sort; }
     public void setSort(int sort) { this.sort = sort; }
-    public Set<Long> getDataScopeIds() { return Collections.unmodifiableSet(dataScopeIds); }
-    public void setDataScopeIds(Set<Long> dataScopeIds) { this.dataScopeIds = dataScopeIds; }
+    public List<FieldPermission> getFieldPerms() { return Collections.unmodifiableList(fieldPerms); }
 }
 ```
 
@@ -1245,6 +1283,140 @@ mvn test -Dtest=RoleTest -v
 git add src/main/java/com/example/demo/domain/permission/aggregate/Role.java \
         src/test/java/com/example/demo/domain/permission/RoleTest.java
 git commit -m "feat(rbac): add Role aggregate root with business behaviors and tests"
+```
+
+---
+
+## 任务 9.5：创建 RoleDataScope 和 FieldPermission 实体
+
+**文件：**
+- 创建：`src/main/java/com/example/demo/domain/permission/entity/RoleDataScope.java`
+- 创建：`src/main/java/com/example/demo/domain/permission/entity/FieldPermission.java`
+- 创建：`src/main/java/com/example/demo/domain/permission/entity/Permission.java`（新增）
+
+> **说明：** 根据设计规范2.1节，RoleDataScope是独立实体（有scopeId），FieldPermission也是实体。Role聚合根通过Set<RoleDataScope>关联。
+> **修复：** 补充Permission实体类，供P2/P4/P7引用。
+
+- [ ] **步骤 1：编写 RoleDataScope 实体**
+
+```java
+package com.example.demo.domain.permission.entity;
+
+import com.example.demo.domain.permission.valueobject.ScopeType;
+import com.example.demo.entity.BaseEntity;
+
+public class RoleDataScope extends BaseEntity {
+    private Long id;                    // scopeId
+    private Long roleId;
+    private String dimensionCode;       // 维度编码：DEPARTMENT/PROJECT/CUSTOMER
+    private ScopeType scopeType;        // 范围类型：ALL/SELF/SELF_DEPT/DEPT_TREE/CUSTOM
+    private Set<Long> scopeValueIds;    // 范围值ID集合（子表关联）
+    
+    public static RoleDataScope create(Long roleId, String dimensionCode, ScopeType scopeType) {
+        RoleDataScope scope = new RoleDataScope();
+        scope.roleId = roleId;
+        scope.dimensionCode = dimensionCode;
+        scope.scopeType = scopeType;
+        scope.scopeValueIds = new HashSet<>();
+        return scope;
+    }
+    
+    public void setScopeValues(Set<Long> values) {
+        this.scopeValueIds = values != null ? new HashSet<>(values) : new HashSet<>();
+    }
+    
+    // Getter
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getRoleId() { return roleId; }
+    public String getDimensionCode() { return dimensionCode; }
+    public ScopeType getScopeType() { return scopeType; }
+    public Set<Long> getScopeValueIds() { return Collections.unmodifiableSet(scopeValueIds); }
+}
+```
+
+- [ ] **步骤 2：编写 FieldPermission 实体**
+
+```java
+package com.example.demo.domain.permission.entity;
+
+import com.example.demo.entity.BaseEntity;
+
+public class FieldPermission extends BaseEntity {
+    private Long id;
+    private Long roleId;
+    private Long fieldId;               // 关联ResourceField
+    private boolean canView;
+    private boolean canEdit;
+    
+    public static FieldPermission create(Long roleId, Long fieldId, boolean canView, boolean canEdit) {
+        FieldPermission perm = new FieldPermission();
+        perm.roleId = roleId;
+        perm.fieldId = fieldId;
+        perm.canView = canView;
+        perm.canEdit = canEdit;
+        return perm;
+    }
+    
+    // Getter
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getRoleId() { return roleId; }
+    public Long getFieldId() { return fieldId; }
+    public boolean canView() { return canView; }
+    public boolean canEdit() { return canEdit; }
+    
+    // Setter（允许修改权限）
+    public void setCanView(boolean canView) { this.canView = canView; }
+    public void setCanEdit(boolean canEdit) { this.canEdit = canEdit; }
+}
+```
+
+- [ ] **步骤 3：编写 Permission 实体（新增 - 修复P2/P4/P7依赖）**
+
+```java
+package com.example.demo.domain.permission.entity;
+
+import com.example.demo.domain.permission.valueobject.PermissionEffect;
+import com.example.demo.entity.BaseEntity;
+
+/**
+ * 权限实体 - 角色与资源的关联
+ * 供PermissionRepository.findByRoleId返回使用
+ */
+public class Permission extends BaseEntity {
+    private Long id;
+    private Long roleId;
+    private Long resourceId;
+    private PermissionEffect effect;
+    
+    public static Permission create(Long roleId, Long resourceId, PermissionEffect effect) {
+        Permission perm = new Permission();
+        perm.roleId = roleId;
+        perm.resourceId = resourceId;
+        perm.effect = effect != null ? effect : PermissionEffect.ALLOW;
+        return perm;
+    }
+    
+    // Getter/Setter
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getRoleId() { return roleId; }
+    public void setRoleId(Long roleId) { this.roleId = roleId; }
+    public Long getResourceId() { return resourceId; }
+    public void setResourceId(Long resourceId) { this.resourceId = resourceId; }
+    public PermissionEffect getEffect() { return effect; }
+    public void setEffect(PermissionEffect effect) { this.effect = effect; }
+}
+```
+
+- [ ] **步骤 4：提交实体**
+
+```bash
+git add src/main/java/com/example/demo/domain/permission/entity/RoleDataScope.java \
+        src/main/java/com/example/demo/domain/permission/entity/FieldPermission.java \
+        src/main/java/com/example/demo/domain/permission/entity/Permission.java
+git commit -m "feat(rbac): add RoleDataScope, FieldPermission and Permission entities for Role aggregate"
 ```
 
 ---
@@ -1950,6 +2122,9 @@ mysql -u root -proot demo -e "SHOW TRIGGERS LIKE 'role';"
 - [x] 测试：RoleTest、RolePermissionTest、PermissionBitmapTest、RoleCodeTest 覆盖关键行为
 - [x] 循环继承：数据库触发器防止 + RoleDomainService 代码校验（P2）
 - [x] TypeHandler：值对象持久化转换器完整
+- [x] **规范P1优化**：Role.dataScopes改为Set ✓、权限位图计算移至PermissionDomainService ✓
+- [x] **实体完整性**：RoleDataScope、FieldPermission、Permission实体已定义 ✓
+- [x] **跨阶段依赖修复**：Role.getDenyBitmap() ✓、Role.getDataScopeIds() ✓、Permission实体 ✓
 
 ---
 

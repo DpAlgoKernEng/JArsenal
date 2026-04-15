@@ -377,9 +377,14 @@ public class PermissionCacheService {
     }
     
     /**
-     * 获取权限位图（二级缓存）
+     * 获取权限位图（二级缓存 + 穿透防护）
      */
     public PermissionBitmap getPermissionBitmap(Long userId) {
+        // 输入校验：防止无效userId穿透
+        if (userId == null || userId <= 0) {
+            return cacheEmptyPermission(0L);  // 缓存空位图
+        }
+        
         // L1: 本地缓存
         PermissionBitmap cached = localCache.getIfPresent(userId);
         if (cached != null && !cached.isExpired()) {
@@ -390,6 +395,12 @@ public class PermissionCacheService {
         String key = safeKey(userId);
         PermissionBitmap redisCached = (PermissionBitmap) redisTemplate.opsForValue().get(key);
         if (redisCached != null) {
+            // 检查是否是空权限缓存（穿透保护标记）
+            if (redisCached.getActionBits().isEmpty()) {
+                localCache.put(userId, redisCached);
+                return redisCached;  // 返回空权限，不重新计算
+            }
+            
             if (validateVersion(redisCached.getVersion(), userId)) {
                 localCache.put(userId, redisCached);
                 return redisCached;
@@ -397,12 +408,27 @@ public class PermissionCacheService {
             redisTemplate.delete(key);
         }
         
-        // 计算 + 写入缓存
+        // 计算 + 写入缓存（即使是空权限也缓存，防止穿透）
         PermissionBitmap fresh = permissionDomainService.computeUserPermissionBitmap(userId);
         redisTemplate.opsForValue().set(key, fresh, REDIS_EXPIRE_SECONDS, TimeUnit.SECONDS);
         localCache.put(userId, fresh);
         
         return fresh;
+    }
+    
+    /**
+     * 缓存空权限（防止缓存穿透）
+     * 用于无效userId或无角色用户
+     */
+    public PermissionBitmap cacheEmptyPermission(Long userId) {
+        PermissionBitmap empty = PermissionBitmap.empty(System.currentTimeMillis());
+        String key = safeKey(userId);
+        
+        // 空权限使用较短TTL（60秒），减少资源占用
+        redisTemplate.opsForValue().set(key, empty, 60, TimeUnit.SECONDS);
+        localCache.put(userId, empty);
+        
+        return empty;
     }
     
     /**
@@ -446,7 +472,7 @@ public class PermissionCacheService {
 
 ```bash
 git add pom.xml src/main/java/com/example/demo/domain/permission/service/PermissionCacheService.java
-git commit -m "feat(rbac): add PermissionCacheService with L1/L2 cache"
+git commit -m "feat(rbac): add PermissionCacheService with L1/L2 cache and penetration protection"
 ```
 
 ---
@@ -1485,6 +1511,8 @@ git commit -m "feat(rbac): implement repository classes for domain interfaces"
 - [x] 测试：PermissionDomainServiceTest + PermissionInterceptorTest + PermissionAspectTest 覆盖核心场景
 - [x] 安全：使用 SHA256 哈希的安全缓存 Key
 - [x] Ant路径匹配：测试覆盖路径模式匹配场景
+- [x] **缓存穿透防护**：无效userId返回空位图 ✓、无角色用户也缓存 ✓、空权限短TTL(60s) ✓
+- [x] **P1依赖修复**：Role.getDenyBitmap()已在P1添加 ✓、Role.getOwnPermissions()返回Set类型匹配 ✓
 
 ---
 

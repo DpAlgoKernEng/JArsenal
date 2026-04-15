@@ -120,68 +120,82 @@ INSERT INTO resource (code, name, type, path_pattern, method, sort, status) VALU
 ('API_ROLE_DELETE', '角色删除API', 'API', '/api/roles/*', 'DELETE', 8, 1);
 ```
 
-- [ ] **步骤 2：编写默认权限分配**
+- [ ] **步骤 2：编写默认权限分配（使用变量避免硬编码ID）**
 
 ```sql
 -- 超级管理员权限（全部）
-INSERT INTO permission (role_id, resource_id, effect) VALUES
-(1, 1, 'ALLOW'),
-(1, 2, 'ALLOW'),
-(1, 3, 'ALLOW'),
-(1, 4, 'ALLOW'),
-(1, 5, 'ALLOW');
+-- 使用查询获取实际ID，避免硬编码
 
--- 系统管理员权限
-INSERT INTO permission (role_id, resource_id, effect) VALUES
-(2, 1, 'ALLOW'),
-(2, 2, 'ALLOW'),
-(2, 3, 'ALLOW'),
-(2, 4, 'ALLOW');
+-- 创建权限记录
+INSERT INTO permission (role_id, resource_id, effect)
+SELECT 1, id, 'ALLOW' FROM resource WHERE code IN ('SYSTEM', 'USER_MANAGE', 'ROLE_MANAGE', 'RESOURCE_MANAGE', 'PERMISSION');
 
--- 部门管理员权限（仅查看用户）
-INSERT INTO permission (role_id, resource_id, effect) VALUES
-(3, 1, 'ALLOW'),
-(3, 2, 'ALLOW');
+INSERT INTO permission (role_id, resource_id, effect)
+SELECT 2, id, 'ALLOW' FROM resource WHERE code IN ('SYSTEM', 'USER_MANAGE', 'ROLE_MANAGE', 'RESOURCE_MANAGE');
 
--- 普通用户无系统管理权限
+INSERT INTO permission (role_id, resource_id, effect)
+SELECT 3, id, 'ALLOW' FROM resource WHERE code IN ('SYSTEM', 'USER_MANAGE');
 
--- 权限操作配置
--- 为每个permission添加action记录
-
+-- 为每个permission添加action记录（使用子查询获取permission_id）
 -- 超级管理员对所有资源有全部操作权限
-INSERT INTO permission_action (permission_id, action) VALUES
-(1, 'VIEW'), (1, 'CREATE'), (1, 'UPDATE'), (1, 'DELETE'), (1, 'EXECUTE'),
-(2, 'VIEW'), (2, 'CREATE'), (2, 'UPDATE'), (2, 'DELETE'), (2, 'EXECUTE'),
-(3, 'VIEW'), (3, 'CREATE'), (3, 'UPDATE'), (3, 'DELETE'), (3, 'EXECUTE'),
-(4, 'VIEW'), (4, 'CREATE'), (4, 'UPDATE'), (4, 'DELETE'), (4, 'EXECUTE'),
-(5, 'VIEW'), (5, 'CREATE'), (5, 'UPDATE'), (5, 'DELETE'), (5, 'EXECUTE');
+INSERT INTO permission_action (permission_id, action)
+SELECT p.id, a.action
+FROM permission p
+CROSS JOIN (SELECT 'VIEW' AS action UNION SELECT 'CREATE' UNION SELECT 'UPDATE' UNION SELECT 'DELETE' UNION SELECT 'EXECUTE') a
+WHERE p.role_id = 1;
 
--- 系统管理员对系统菜单有全部操作权限
-INSERT INTO permission_action (permission_id, action) VALUES
-(6, 'VIEW'), (6, 'CREATE'), (6, 'UPDATE'), (6, 'DELETE'),
-(7, 'VIEW'), (7, 'CREATE'), (7, 'UPDATE'), (7, 'DELETE'),
-(8, 'VIEW'), (8, 'CREATE'), (8, 'UPDATE'), (8, 'DELETE'),
-(9, 'VIEW'), (9, 'CREATE'), (9, 'UPDATE'), (9, 'DELETE');
+-- 系统管理员对系统菜单有全部操作权限（除EXECUTE）
+INSERT INTO permission_action (permission_id, action)
+SELECT p.id, a.action
+FROM permission p
+CROSS JOIN (SELECT 'VIEW' AS action UNION SELECT 'CREATE' UNION SELECT 'UPDATE' UNION SELECT 'DELETE') a
+WHERE p.role_id = 2;
 
 -- 部门管理员仅有查看和编辑权限
-INSERT INTO permission_action (permission_id, action) VALUES
-(10, 'VIEW'), (10, 'UPDATE'),
-(11, 'VIEW'), (11, 'UPDATE');
+INSERT INTO permission_action (permission_id, action)
+SELECT p.id, a.action
+FROM permission p
+CROSS JOIN (SELECT 'VIEW' AS action UNION SELECT 'UPDATE') a
+WHERE p.role_id = 3;
 ```
 
-- [ ] **步骤 3：编写敏感字段定义**
+- [ ] **步骤 3：编写敏感字段定义（修复Flyway变量语法）**
 
 ```sql
--- 用户敏感字段
-INSERT INTO resource (code, name, type, sort, status) VALUES
-('USER_ENTITY', '用户实体', 'API', 0, 1);
+-- 用户敏感字段 - Flyway不支持SET变量，改用子查询
+-- 先创建USER_ENTITY资源（如果不存在）
+INSERT INTO resource (code, name, type, sort, status)
+SELECT 'USER_ENTITY', '用户实体', 'API', 0, 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM resource WHERE code = 'USER_ENTITY');
 
-INSERT INTO resource_field (resource_id, field_code, field_name, sensitive_level, mask_pattern) VALUES
--- resource_id需要根据实际查询结果调整
-(LAST_INSERT_ID(), 'phone', '手机号', 'ENCRYPTED', 'PHONE'),
-(LAST_INSERT_ID(), 'salary', '薪资', 'ENCRYPTED', 'SALARY'),
-(LAST_INSERT_ID(), 'idCard', '身份证号', 'ENCRYPTED', 'ID_CARD'),
-(LAST_INSERT_ID(), 'password', '密码', 'HIDDEN', NULL);
+-- 使用子查询插入敏感字段
+INSERT INTO resource_field (resource_id, field_code, field_name, sensitive_level, mask_pattern)
+SELECT id, 'phone', '手机号', 'ENCRYPTED', 'PHONE'
+FROM resource WHERE code = 'USER_ENTITY';
+
+INSERT INTO resource_field (resource_id, field_code, field_name, sensitive_level, mask_pattern)
+SELECT id, 'salary', '薪资', 'ENCRYPTED', 'SALARY'
+FROM resource WHERE code = 'USER_ENTITY';
+
+INSERT INTO resource_field (resource_id, field_code, field_name, sensitive_level, mask_pattern)
+SELECT id, 'idCard', '身份证号', 'ENCRYPTED', 'ID_CARD'
+FROM resource WHERE code = 'USER_ENTITY';
+
+INSERT INTO resource_field (resource_id, field_code, field_name, sensitive_level, mask_pattern)
+SELECT id, 'password', '密码', 'HIDDEN', NULL
+FROM resource WHERE code = 'USER_ENTITY';
+```
+
+- [ ] **步骤 4：补充菜单资源的component路径**
+
+```sql
+-- 更新菜单资源的component路径（用于前端动态路由）
+UPDATE resource SET component = 'Layout' WHERE code = 'SYSTEM';
+UPDATE resource SET component = 'UserList' WHERE code = 'USER_MANAGE';
+UPDATE resource SET component = 'RoleList' WHERE code = 'ROLE_MANAGE';
+UPDATE resource SET component = 'ResourceList' WHERE code = 'RESOURCE_MANAGE';
+UPDATE resource SET component = 'Layout' WHERE code = 'PERMISSION';
 ```
 
 - [ ] **步骤 4：提交迁移**
@@ -337,6 +351,9 @@ UPDATE role SET parent_id = id WHERE code = 'USER';
 - [x] 无占位符：所有数据已初始化
 - [x] 触发器验证：循环继承已阻止
 - [x] 启动验证：服务检查数据完整性
+- [x] **预设数据可靠性**：permission使用查询获取ID ✓（避免硬编码）
+- [x] **敏感字段定义**：改用子查询代替SET变量 ✓（Flyway兼容）
+- [x] **菜单component路径**：完整映射已补充 ✓
 
 ---
 

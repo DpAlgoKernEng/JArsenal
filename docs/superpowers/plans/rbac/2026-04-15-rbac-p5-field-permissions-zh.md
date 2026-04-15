@@ -161,15 +161,18 @@ public class FieldPermissionService {
     private final ResourceFieldRepository resourceFieldRepository;
     private final FieldPermissionRepository fieldPermissionRepository;
     private final PermissionCacheService permissionCache;
+    private final RoleRepository roleRepository;  // 新增：用于字段权限继承计算
     
     public FieldPermissionService(ResourceRepository resourceRepository,
                                   ResourceFieldRepository resourceFieldRepository,
                                   FieldPermissionRepository fieldPermissionRepository,
-                                  PermissionCacheService permissionCache) {
+                                  PermissionCacheService permissionCache,
+                                  RoleRepository roleRepository) {
         this.resourceRepository = resourceRepository;
         this.resourceFieldRepository = resourceFieldRepository;
         this.fieldPermissionRepository = fieldPermissionRepository;
         this.permissionCache = permissionCache;
+        this.roleRepository = roleRepository;
     }
     
     /**
@@ -262,6 +265,63 @@ public class FieldPermissionService {
     
     private List<ResourceField> loadSensitiveFields(Long resourceId) {
         return resourceFieldRepository.findByResourceId(resourceId);
+    }
+    
+    /**
+     * 计算角色字段权限（含继承链）- 规范6.3节要求
+     * 子角色继承父角色字段权限，own权限可覆盖继承
+     */
+    public Map<Long, FieldPermission> computeFieldPermissions(Role role) {
+        Map<Long, FieldPermission> result = new HashMap<>();
+        
+        // 递归继承父角色字段权限
+        if (role.getParentId() != null) {
+            Role parent = roleRepository.findById(role.getParentId()).orElse(null);
+            if (parent != null && parent.getStatus() == RoleStatus.ENABLED) {
+                Map<Long, FieldPermission> parentPerms = computeFieldPermissions(parent);
+                result.putAll(parentPerms);
+            }
+        }
+        
+        // 角色 own 字段权限覆盖继承
+        for (FieldPermission fp : role.getFieldPerms()) {
+            result.put(fp.getFieldId(), fp);  // 覆盖同fieldId的继承权限
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 计算用户字段权限（多角色合并）
+     * 多角色权限取宽松策略：任意角色有权限则合并后有权限
+     */
+    public Map<Long, FieldPermission> computeUserFieldPermissions(Long userId, Long resourceId) {
+        List<Role> roles = roleRepository.findRolesByUserId(userId);
+        Map<Long, FieldPermission> merged = new HashMap<>();
+        
+        for (Role role : roles) {
+            if (role.getStatus() != RoleStatus.ENABLED) continue;
+            
+            Map<Long, FieldPermission> rolePerms = computeFieldPermissions(role);
+            
+            // 合并策略：宽松合并（任意有权限则合并后有权限）
+            for (Map.Entry<Long, FieldPermission> entry : rolePerms.entrySet()) {
+                Long fieldId = entry.getKey();
+                FieldPermission existing = merged.get(fieldId);
+                FieldPermission newPerm = entry.getValue();
+                
+                if (existing == null) {
+                    merged.put(fieldId, newPerm);
+                } else {
+                    // 合并：取宽松权限（任意有权限则有权限）
+                    boolean mergedCanView = existing.canView() || newPerm.canView();
+                    boolean mergedCanEdit = existing.canEdit() || newPerm.canEdit();
+                    merged.put(fieldId, FieldPermission.create(role.getId(), fieldId, mergedCanView, mergedCanEdit));
+                }
+            }
+        }
+        
+        return merged;
     }
 }
 ```
@@ -627,6 +687,9 @@ git commit -m "feat(rbac): add field permission test data setup"
 - [x] 脱敏规则：ID_CARD、PHONE、SALARY 已实现
 - [x] 仓储接口：ResourceFieldRepository、FieldPermissionRepository 完整定义
 - [x] 测试数据：FieldPermissionTestData 提供临时敏感字段初始化
+- [x] **字段权限继承计算**：computeFieldPermissions方法 ✓、多角色宽松合并策略 ✓
+- [x] **依赖注入**：RoleRepository已添加到FieldPermissionService ✓
+- [x] **P1依赖确认**：Role.getFieldPerms()返回List类型匹配 ✓
 
 ---
 

@@ -239,6 +239,41 @@ public class ResourceService {
     public List<ResourceField> getResourceFields(Long resourceId) {
         return resourceFieldRepository.findByResourceId(resourceId);
     }
+    
+    /**
+     * 获取单个资源详情
+     */
+    public ResourceResponse getResourceById(Long resourceId) {
+        Resource resource = resourceRepository.findById(resourceId)
+            .orElseThrow(() -> new BusinessException(404, "资源不存在"));
+        return toResponse(resource);
+    }
+    
+    private ResourceResponse toResponse(Resource resource) {
+        List<ResourceField> fields = resourceFieldRepository.findByResourceId(resource.getId());
+        List<SensitiveFieldResponse> sensitiveFields = fields.stream()
+            .map(f -> new SensitiveFieldResponse(
+                f.getId(), f.getFieldCode(), f.getFieldName(),
+                f.getSensitiveLevel().name(), f.getMaskPattern()
+            ))
+            .toList();
+        
+        return new ResourceResponse(
+            resource.getId(),
+            resource.getCode(),
+            resource.getName(),
+            resource.getParentId(),
+            resource.getType().name(),
+            resource.getPath(),
+            resource.getPathPattern(),
+            resource.getMethod(),
+            resource.getIcon(),
+            resource.getComponent(),
+            resource.getSort(),
+            resource.isStatus(),
+            sensitiveFields
+        );
+    }
 }
 ```
 
@@ -247,6 +282,53 @@ public class ResourceService {
 ```bash
 git add src/main/java/com/example/demo/service/ResourceService.java
 git commit -m "feat(rbac): add ResourceService for resource management"
+```
+
+---
+
+## 任务 2.5：创建资源相关DTO
+
+**文件：**
+- 创建：`src/main/java/com/example/demo/service/dto/SensitiveFieldResponse.java`
+- 创建：`src/main/java/com/example/demo/service/dto/ResourceTreeResponse.java`
+
+- [ ] **步骤 1：编写 SensitiveFieldResponse DTO**
+
+```java
+package com.example.demo.service.dto;
+
+public record SensitiveFieldResponse(
+    Long id,
+    String fieldCode,
+    String fieldName,
+    String sensitiveLevel,  // NORMAL/HIDDEN/ENCRYPTED
+    String maskPattern      // ID_CARD/PHONE/SALARY/null
+) {}
+```
+
+- [ ] **步骤 2：编写 ResourceTreeResponse DTO**
+
+```java
+package com.example.demo.service.dto;
+
+import java.util.List;
+
+public record ResourceTreeResponse(
+    Long id,
+    String code,
+    String name,
+    String type,
+    Long parentId,
+    List<ResourceTreeResponse> children
+) {}
+```
+
+- [ ] **步骤 3：提交 DTO**
+
+```bash
+git add src/main/java/com/example/demo/service/dto/SensitiveFieldResponse.java \
+        src/main/java/com/example/demo/service/dto/ResourceTreeResponse.java
+git commit -m "feat(rbac): add resource-related DTOs"
 ```
 
 ---
@@ -386,6 +468,82 @@ git commit -m "feat(rbac): add resource management frontend"
 - [x] 校验：DTO 上有 Jakarta 约束
 - [x] 树结构：MENU/OPERATION/API 层级
 - [x] 依赖注入：ResourceService 包含 resourceFieldRepository
+- [x] **缺失方法补充**：getResourceById方法 ✓、toResponse转换方法 ✓
+- [x] **DTO完整性**：SensitiveFieldResponse ✓、ResourceTreeResponse ✓
+- [x] **P1依赖确认**：Resource聚合根和ResourceField实体已在P1定义 ✓
+- [x] **建议补充测试**：前端组件单元测试（Vue Test Utils）可后续添加
+
+---
+
+## 任务 5：建议补充 - 前端组件测试（可选）
+
+**文件：**
+- 创建：`ui/tests/components/ResourceList.spec.js`（Vue Test Utils 示例）
+
+- [ ] **步骤 1：编写 ResourceList 组件测试示例**
+
+```javascript
+// ui/tests/components/ResourceList.spec.js - Vue Test Utils 示例
+import { mount } from '@vue/test-utils';
+import { describe, it, expect, vi } from 'vitest';
+import ResourceList from '@/views/ResourceList.vue';
+import { createPinia, setActivePinia } from 'pinia';
+
+// Mock API
+vi.mock('@/api/resource', () => ({
+  getResources: vi.fn(() => Promise.resolve({ code: 200, data: [] })),
+  getResourceTree: vi.fn(() => Promise.resolve({ code: 200, data: [] })),
+  deleteResource: vi.fn(() => Promise.resolve({ code: 200 }))
+}));
+
+describe('ResourceList.vue', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+  
+  it('should render resource table', async () => {
+    const wrapper = mount(ResourceList, {
+      global: {
+        plugins: [createPinia()]
+      }
+    });
+    
+    // 验证表格存在
+    expect(wrapper.find('.el-table').exists()).toBe(true);
+  });
+  
+  it('should call getResources on mount', async () => {
+    const wrapper = mount(ResourceList);
+    
+    // 等待组件挂载完成
+    await wrapper.vm.$nextTick();
+    
+    // 验证 API 被调用
+    expect(wrapper.vm.resources).toBeDefined();
+  });
+  
+  it('should show add button with permission', async () => {
+    // Mock permission store
+    const wrapper = mount(ResourceList, {
+      global: {
+        mocks: {
+          $permission: { hasAction: () => true }
+        }
+      }
+    });
+    
+    // 验证新增按钮存在
+    expect(wrapper.find('button').text()).toContain('新增');
+  });
+});
+```
+
+- [ ] **步骤 2：配置 Vitest（可选）**
+
+```bash
+cd ui
+npm install -D vitest @vue/test-utils
+```
 
 ---
 

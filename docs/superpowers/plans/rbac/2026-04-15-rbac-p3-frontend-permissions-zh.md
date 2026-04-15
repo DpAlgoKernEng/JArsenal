@@ -358,7 +358,7 @@ export function checkPermission(resourceCode, action) {
 ```javascript
 // ui/src/stores/permission.js
 import { defineStore } from 'pinia'
-import { getUserPermissions } from '@/api/permission'
+import { getUserPermissions, checkPermissionVersion } from '@/api/permission'
 
 export const usePermissionStore = defineStore('permission', {
   state: () => ({
@@ -366,7 +366,8 @@ export const usePermissionStore = defineStore('permission', {
     actions: {},      // { 'USER': ['VIEW', 'CREATE'] }
     fields: {},       // { 'USER': { 'salary': { canView: true, canEdit: false } } }
     loaded: false,
-    version: 0
+    version: 0,
+    pollingTimer: null   // 权限变更轮询定时器
   }),
   
   actions: {
@@ -378,6 +379,47 @@ export const usePermissionStore = defineStore('permission', {
         this.fields = res.data.fields
         this.version = res.data.version
         this.loaded = true
+        
+        // 启动权限变更监听（每30秒检查版本）
+        this.startPermissionPolling()
+      }
+    },
+    
+    /**
+     * 版本校验：检查后端权限版本是否变更
+     * 如果变更则重新加载权限
+     */
+    async checkVersionAndRefresh() {
+      try {
+        const res = await checkPermissionVersion()
+        if (res.code === 200 && res.data.version !== this.version) {
+          // 版本不一致，重新加载权限
+          await this.loadPermissions()
+          console.log('权限已更新，版本:', res.data.version)
+        }
+      } catch (error) {
+        // 静默失败，不影响用户操作
+        console.warn('权限版本检查失败:', error)
+      }
+    },
+    
+    /**
+     * 启动权限变更轮询（每30秒）
+     */
+    startPermissionPolling() {
+      if (this.pollingTimer) return
+      this.pollingTimer = setInterval(() => {
+        this.checkVersionAndRefresh()
+      }, 30000)  // 30秒轮询
+    },
+    
+    /**
+     * 停止权限变更监听
+     */
+    stopPermissionPolling() {
+      if (this.pollingTimer) {
+        clearInterval(this.pollingTimer)
+        this.pollingTimer = null
       }
     },
     
@@ -401,7 +443,11 @@ export const usePermissionStore = defineStore('permission', {
       return fields[fieldCode]?.canEdit !== false
     },
     
+    /**
+     * 清除权限（退出登录时）
+     */
     clear() {
+      this.stopPermissionPolling()
       this.menus = []
       this.actions = {}
       this.fields = {}
@@ -412,11 +458,56 @@ export const usePermissionStore = defineStore('permission', {
 })
 ```
 
+- [ ] **步骤 1.5：添加权限版本检查API**
+
+```javascript
+// ui/src/api/permission.js - 添加版本检查方法
+export function checkPermissionVersion() {
+  return request.get('/api/auth/permissions/version')
+}
+```
+
 - [ ] **步骤 3：提交权限 store**
 
 ```bash
 git add ui/src/stores/permission.js ui/src/api/permission.js
-git commit -m "feat(rbac): add Pinia permission store and API"
+git commit -m "feat(rbac): add Pinia permission store with version check and auto refresh"
+```
+
+---
+
+## 任务 2.5：添加后端权限版本检查API
+
+**文件：**
+- 修改：`src/main/java/com/example/demo/controller/PermissionController.java`
+
+- [ ] **步骤 1：添加版本检查端点**
+
+```java
+// 在 PermissionController.java 中添加
+
+@GetMapping("/permissions/version")
+public Result<Long> getPermissionVersion() {
+    Long userId = UserContext.getCurrentUserId();
+    if (userId == null) {
+        return Result.error(401, "未登录");
+    }
+    
+    // 计算用户权限版本（角色版本之和）
+    List<Role> roles = roleRepository.findRolesByUserId(userId);
+    long version = roles.stream()
+        .mapToLong(Role::getVersion)
+        .sum();
+    
+    return Result.success(version);
+}
+```
+
+- [ ] **步骤 2：提交版本检查API**
+
+```bash
+git add src/main/java/com/example/demo/controller/PermissionController.java
+git commit -m "feat(rbac): add permission version check API for frontend polling"
 ```
 
 ---
@@ -798,9 +889,79 @@ git commit -m "feat(rbac): apply permission directive to UserList"
 
 - [x] 规范 P3 覆盖：Pinia store ✓、动态路由 ✓、v-permission ✓、路由守卫 ✓
 - [x] 无占位符：所有代码完整（PermissionQueryService 完整实现）
-- [x] API 端点：/api/auth/permissions、/api/auth/menus、/api/auth/actions、/api/auth/fields
+- [x] API 端点：/api/auth/permissions、/api/auth/menus、/api/auth/actions、/api/auth/fields、/api/auth/permissions/version
 - [x] 测试：前端测试可选（建议补充端到端测试）
 - [x] 字段权限：getUserFields 方法完整实现
+- [x] **版本校验**：前端每30秒轮询版本 ✓、版本不一致自动刷新权限 ✓
+- [x] **权限变更刷新**：退出登录停止轮询 ✓、权限更新静默执行 ✓
+- [x] **版本检查API**：PermissionController.getPermissionVersion()已添加 ✓
+- [x] **建议补充测试**：端到端测试（Playwright/Cypress）验证动态路由和权限指令
+
+---
+
+## 任务 9：建议补充 - 端到端测试（可选）
+
+**文件：**
+- 创建：`tests/e2e/permission.spec.js`（Playwright 示例）
+
+- [ ] **步骤 1：编写 E2E 测试示例**
+
+```javascript
+// tests/e2e/permission.spec.js - Playwright 示例
+import { test, expect } from '@playwright/test';
+
+test.describe('权限系统 E2E 测试', () => {
+  
+  test.beforeEach(async ({ page }) => {
+    // 登录
+    await page.goto('/login');
+    await page.fill('[placeholder="用户名"]', 'admin');
+    await page.fill('[placeholder="密码"]', 'password');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('/');
+  });
+  
+  test('动态路由 - 无权限菜单不显示', async ({ page }) => {
+    // 检查菜单树
+    const menuItems = await page.locator('.el-menu-item').allTextContents();
+    
+    // 验证管理员能看到所有菜单
+    expect(menuItems).toContain('用户管理');
+    expect(menuItems).toContain('角色管理');
+  });
+  
+  test('v-permission 指令 - 无权限按钮不渲染', async ({ page }) => {
+    await page.goto('/system/users');
+    
+    // 检查删除按钮是否存在（取决于权限）
+    const deleteButton = page.locator('button').filter({ hasText: '删除' });
+    
+    // 根据测试用户权限验证按钮可见性
+    // 如果用户有 DELETE 权限，按钮应可见
+    // 如果用户无 DELETE 权限，按钮不应存在
+  });
+  
+  test('路由守卫 - 无权限页面跳转 403', async ({ page }) => {
+    // 尝试访问无权限的路由
+    await page.goto('/system/roles');
+    
+    // 如果无权限，应被重定向到 403 页面
+    // await expect(page).toHaveURL('/403');
+  });
+  
+  test('版本轮询 - 权限变更自动刷新', async ({ page }) => {
+    // 模拟权限变更（需要后端配合）
+    // 验证前端检测到版本变化后自动刷新权限
+  });
+});
+```
+
+- [ ] **步骤 2：配置 Playwright（可选）**
+
+```bash
+npm install -D @playwright/test
+npx playwright install
+```
 
 ---
 

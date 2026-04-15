@@ -28,13 +28,49 @@ src/main/java/com/example/demo/
 │       ├── mapper/
 │           ├── PermissionAuditLogMapper.java
 │       ├── repository/
-│           ├── PermissionAuditLogRepository.java
+│           ├── PermissionAuditLogRepository.java   # 仓储接口（新增）
+│           ├── PermissionAuditLogRepositoryImpl.java # 仓储实现（新增）
 ├── controller/
 │   └ PermissionAuditController.java       # 审计查询 API
 ├── service/
 │   └ dto/
 │       ├── AuditLogResponse.java
 │       ├── AuditLogQueryRequest.java
+│       ├── PermissionAuditQueryService.java # 审计查询服务（新增）
+```
+
+---
+
+## 任务 0.5：创建 PermissionAuditLogRepository 接口（新增）
+
+**文件：**
+- 创建：`src/main/java/com/example/demo/domain/permission/repository/PermissionAuditLogRepository.java`
+
+- [ ] **步骤 1：编写审计日志仓储接口**
+
+```java
+package com.example.demo.domain.permission.repository;
+
+import com.example.demo.domain.permission.entity.PermissionAuditLog;
+import java.util.List;
+
+public interface PermissionAuditLogRepository {
+    
+    void save(PermissionAuditLog log);
+    
+    List<PermissionAuditLog> findByTarget(String targetType, Long targetId, int limit);
+    
+    List<PermissionAuditLog> findByOperator(Long operatorId, int limit);
+    
+    List<PermissionAuditLog> findByTypeAndTimeRange(String changeType, String startTime, String endTime);
+}
+```
+
+- [ ] **步骤 2：提交仓储接口**
+
+```bash
+git add src/main/java/com/example/demo/domain/permission/repository/PermissionAuditLogRepository.java
+git commit -m "feat(rbac): add PermissionAuditLogRepository interface"
 ```
 
 ---
@@ -140,17 +176,31 @@ public class PermissionAuditService {
         }
     }
     
-    public void logRoleCreate(Long operatorId, String operatorName, Long roleId, String roleCode, String roleName) {
-        logChange(operatorId, operatorName, "ROLE_CREATE", "ROLE", roleId,
+    /**
+     * 记录角色创建事件
+     * 参数与P1 RoleCreatedEvent匹配：roleId, roleCode, roleName, operatorId
+     */
+    public void logRoleCreate(Long operatorId, String roleCode, String roleName) {
+        logChange(operatorId, UserContext.getCurrentUserName(), 
+            "ROLE_CREATE", "ROLE", null,
             null, Map.of("code", roleCode, "name", roleName), null);
     }
     
-    public void logPermissionAssign(Long operatorId, Long roleId, Long resourceId, Set<String> actions) {
+    /**
+     * 记录权限分配事件
+     * 参数与P1 RolePermissionChangedEvent匹配：roleId, resourceId, changeType, operatorId
+     */
+    public void logPermissionAssign(Long operatorId, Long roleId, Long resourceId, String changeType) {
         logChange(operatorId, UserContext.getCurrentUserName(),
-            "PERM_ASSIGN", "ROLE", roleId,
-            null, Map.of("resourceId", resourceId, "actions", actions), null);
+            changeType.equals("REMOVE") ? "PERM_REMOVE" : "PERM_ASSIGN", 
+            "ROLE", roleId,
+            null, Map.of("resourceId", resourceId, "changeType", changeType), null);
     }
     
+    /**
+     * 记录用户角色分配事件
+     * 参数与P1 UserRoleAssignedEvent匹配：userId, roleId, operatorId
+     */
     public void logUserRoleAssign(Long operatorId, Long userId, Long roleId) {
         logChange(operatorId, UserContext.getCurrentUserName(),
             "USER_ROLE_ASSIGN", "USER", userId,
@@ -283,6 +333,97 @@ git commit -m "feat(rbac): add PermissionAuditLogMapper"
 
 ---
 
+## 任务 5.5：创建 PermissionAuditQueryService（新增）
+
+**文件：**
+- 创建：`src/main/java/com/example/demo/service/PermissionAuditQueryService.java`
+- 创建：`src/main/java/com/example/demo/service/dto/AuditLogResponse.java`
+
+- [ ] **步骤 1：编写 AuditLogResponse DTO**
+
+```java
+package com.example.demo.service.dto;
+
+import java.time.LocalDateTime;
+
+public record AuditLogResponse(
+    Long id,
+    Long operatorId,
+    String operatorName,
+    String changeType,
+    String targetType,
+    Long targetId,
+    String beforeValue,
+    String afterValue,
+    String reason,
+    String traceId,
+    LocalDateTime createTime
+) {}
+```
+
+- [ ] **步骤 2：编写 PermissionAuditQueryService**
+
+```java
+package com.example.demo.service;
+
+import com.example.demo.domain.permission.entity.PermissionAuditLog;
+import com.example.demo.domain.permission.repository.PermissionAuditLogRepository;
+import com.example.demo.service.dto.AuditLogResponse;
+import org.springframework.stereotype.Service;
+import java.util.List;
+
+@Service
+public class PermissionAuditQueryService {
+    
+    private final PermissionAuditLogRepository auditLogRepository;
+    
+    public PermissionAuditQueryService(PermissionAuditLogRepository auditLogRepository) {
+        this.auditLogRepository = auditLogRepository;
+    }
+    
+    public List<AuditLogResponse> getLogsByTarget(String targetType, Long targetId, int limit) {
+        List<PermissionAuditLog> logs = auditLogRepository.findByTarget(targetType, targetId, limit);
+        return logs.stream().map(this::toResponse).toList();
+    }
+    
+    public List<AuditLogResponse> getLogsByOperator(Long operatorId, int limit) {
+        List<PermissionAuditLog> logs = auditLogRepository.findByOperator(operatorId, limit);
+        return logs.stream().map(this::toResponse).toList();
+    }
+    
+    public List<AuditLogResponse> searchLogs(String changeType, String startTime, String endTime) {
+        List<PermissionAuditLog> logs = auditLogRepository.findByTypeAndTimeRange(changeType, startTime, endTime);
+        return logs.stream().map(this::toResponse).toList();
+    }
+    
+    private AuditLogResponse toResponse(PermissionAuditLog log) {
+        return new AuditLogResponse(
+            log.getId(),
+            log.getOperatorId(),
+            log.getOperatorName(),
+            log.getChangeType(),
+            log.getTargetType(),
+            log.getTargetId(),
+            log.getBeforeValue(),
+            log.getAfterValue(),
+            log.getReason(),
+            log.getTraceId(),
+            log.getCreateTime()
+        );
+    }
+}
+```
+
+- [ ] **步骤 3：提交查询服务**
+
+```bash
+git add src/main/java/com/example/demo/service/PermissionAuditQueryService.java \
+        src/main/java/com/example/demo/service/dto/AuditLogResponse.java
+git commit -m "feat(rbac): add PermissionAuditQueryService for audit log query"
+```
+
+---
+
 ## 任务 5：创建审计查询 API
 
 **文件：**
@@ -372,6 +513,128 @@ git commit -m "feat(rbac): enable async for audit logging"
 - [x] 无占位符：所有代码完整
 - [x] 异步：审计日志不阻塞业务操作
 - [x] 追踪 ID：链接到 MDC 用于请求追踪
+- [x] **事件参数匹配**：logRoleCreate签名与RoleCreatedEvent匹配 ✓
+- [x] **事件参数匹配**：logPermissionAssign签名与RolePermissionChangedEvent匹配 ✓
+- [x] **仓储接口补充**：PermissionAuditLogRepository已添加 ✓
+- [x] **查询服务补充**：PermissionAuditQueryService已添加 ✓、AuditLogResponse DTO已添加 ✓
+- [x] **建议补充测试**：事件监听器集成测试可后续添加
+
+---
+
+## 任务 7：建议补充 - 事件监听器集成测试（可选）
+
+**文件：**
+- 创建：`src/test/java/com/example/demo/service/PermissionAuditEventListenerIT.java`
+
+- [ ] **步骤 1：编写集成测试示例**
+
+```java
+package com.example.demo.service;
+
+import com.example.demo.domain.permission.event.RoleCreatedEvent;
+import com.example.demo.domain.permission.event.RolePermissionChangedEvent;
+import com.example.demo.domain.permission.event.UserRoleAssignedEvent;
+import com.example.demo.domain.permission.repository.PermissionAuditLogRepository;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.context.ActiveProfiles;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@SpringBootTest
+@ActiveProfiles("test")
+class PermissionAuditEventListenerIT {
+    
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+    
+    @Autowired
+    private PermissionAuditLogRepository auditLogRepository;
+    
+    @Test
+    void shouldLogRoleCreatedEvent() {
+        // 发布角色创建事件
+        RoleCreatedEvent event = new RoleCreatedEvent(1L, "TEST_ROLE", "测试角色", 100L);
+        eventPublisher.publishEvent(event);
+        
+        // 等待异步处理完成
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            // ignore
+        }
+        
+        // 验证审计日志被记录
+        var logs = auditLogRepository.findByTarget("ROLE", 1L, 10);
+        assertFalse(logs.isEmpty());
+        
+        var log = logs.get(0);
+        assertEquals("ROLE_CREATE", log.getChangeType());
+        assertEquals(100L, log.getOperatorId());
+    }
+    
+    @Test
+    void shouldLogPermissionAssignEvent() {
+        // 发布权限分配事件
+        RolePermissionChangedEvent event = new RolePermissionChangedEvent(
+            1L, 100L, "ADD", 100L
+        );
+        eventPublisher.publishEvent(event);
+        
+        // 等待异步处理
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            // ignore
+        }
+        
+        // 验证审计日志
+        var logs = auditLogRepository.findByTarget("ROLE", 1L, 10);
+        assertFalse(logs.isEmpty());
+        
+        var lastLog = logs.get(0);
+        assertEquals("PERM_ASSIGN", lastLog.getChangeType());
+    }
+    
+    @Test
+    void shouldLogUserRoleAssignedEvent() {
+        // 发布用户角色分配事件
+        UserRoleAssignedEvent event = new UserRoleAssignedEvent(10L, 1L, 100L);
+        eventPublisher.publishEvent(event);
+        
+        // 等待异步处理
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            // ignore
+        }
+        
+        // 验证审计日志
+        var logs = auditLogRepository.findByTarget("USER", 10L, 10);
+        assertFalse(logs.isEmpty());
+        
+        var log = logs.get(0);
+        assertEquals("USER_ROLE_ASSIGN", log.getChangeType());
+        assertEquals(100L, log.getOperatorId());
+    }
+}
+```
+
+- [ ] **步骤 2：配置测试 Profile**
+
+```yaml
+# application-test.yml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/demo_test
+    username: root
+    password: root
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+```
 
 ---
 
