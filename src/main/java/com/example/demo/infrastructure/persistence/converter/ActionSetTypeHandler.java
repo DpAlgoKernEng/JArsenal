@@ -1,6 +1,7 @@
 package com.example.demo.infrastructure.persistence.converter;
 
 import com.example.demo.domain.permission.valueobject.ActionType;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import java.sql.CallableStatement;
@@ -14,6 +15,7 @@ import java.util.HashSet;
  * MyBatis TypeHandler for Set&lt;ActionType&gt;.
  * Converts between Set of ActionType enum and database comma-separated string.
  */
+@Slf4j
 public class ActionSetTypeHandler extends BaseTypeHandler<Set<ActionType>> {
 
     @Override
@@ -54,7 +56,7 @@ public class ActionSetTypeHandler extends BaseTypeHandler<Set<ActionType>> {
             try {
                 result.add(ActionType.valueOf(part.trim()));
             } catch (IllegalArgumentException e) {
-                // ignore invalid action values
+                log.warn("Invalid action type found in database, ignoring: {}", part.trim());
             }
         }
         return result;

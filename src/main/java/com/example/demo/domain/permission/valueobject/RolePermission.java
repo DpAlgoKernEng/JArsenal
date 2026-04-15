@@ -1,6 +1,6 @@
 package com.example.demo.domain.permission.valueobject;
 
-import com.example.demo.domain.permission.exception.DomainException;
+import com.example.demo.domain.shared.exception.DomainException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;

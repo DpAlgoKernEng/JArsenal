@@ -3,7 +3,7 @@ package com.example.demo.domain.permission;
 import com.example.demo.domain.permission.valueobject.RolePermission;
 import com.example.demo.domain.permission.valueobject.ActionType;
 import com.example.demo.domain.permission.valueobject.PermissionEffect;
-import com.example.demo.domain.permission.exception.DomainException;
+import com.example.demo.domain.shared.exception.DomainException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

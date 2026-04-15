@@ -1,6 +1,6 @@
 package com.example.demo.domain.permission.valueobject;
 
-import com.example.demo.domain.permission.exception.DomainException;
+import com.example.demo.domain.shared.exception.DomainException;
 import java.util.regex.Pattern;
 
 public record RoleCode(String value) {
