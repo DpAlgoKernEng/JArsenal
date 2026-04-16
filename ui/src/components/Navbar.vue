@@ -38,15 +38,20 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Moon, Sunny, SwitchButton } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
+import { usePermissionStore } from '../stores/permission'
 import { useTheme } from '../composables/useTheme'
+import { cleanupPermissionOnLogout } from '../router'
 
 const router = useRouter()
 const userStore = useUserStore()
+const permissionStore = usePermissionStore()
 const { theme, toggleTheme } = useTheme()
 
 const handleLogout = async () => {
   try {
     await userStore.logout()
+    // 清理权限数据和动态路由
+    cleanupPermissionOnLogout()
     ElMessage.success('已退出登录')
     router.push('/login')
   } catch (error) {

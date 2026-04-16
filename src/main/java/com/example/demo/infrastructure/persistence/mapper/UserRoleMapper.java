@@ -34,4 +34,10 @@ public interface UserRoleMapper {
 
     @Select("SELECT COUNT(*) FROM user_role WHERE user_id = #{userId} AND role_id = #{roleId}")
     int existsByUserIdAndRoleId(@Param("userId") Long userId, @Param("roleId") Long roleId);
+
+    /**
+     * 获取活跃用户ID列表（按角色数量排序，用于缓存预热）
+     */
+    @Select("SELECT user_id FROM user_role GROUP BY user_id ORDER BY COUNT(*) DESC LIMIT #{limit}")
+    List<Long> findActiveUserIds(@Param("limit") int limit);
 }

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.util.AntPathMatcher;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -100,8 +101,10 @@ public class PermissionInterceptor implements HandlerInterceptor {
     private void sendError(HttpServletResponse response, int code, String message) throws Exception {
         response.setStatus(code);
         response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write(objectMapper.writeValueAsString(
-            Map.of("code", code, "message", message, "data", null)
-        ));
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", code);
+        result.put("message", message);
+        result.put("data", null);
+        response.getWriter().write(objectMapper.writeValueAsString(result));
     }
 }

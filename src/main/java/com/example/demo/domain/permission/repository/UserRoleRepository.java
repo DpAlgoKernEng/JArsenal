@@ -33,4 +33,10 @@ public interface UserRoleRepository {
      * 获取用户的所有角色ID集合
      */
     Set<Long> findUserRoleIds(Long userId);
+
+    /**
+     * 获取活跃用户ID列表（用于缓存预热）
+     * @param limit 最大返回数量
+     */
+    List<Long> findActiveUserIds(int limit);
 }

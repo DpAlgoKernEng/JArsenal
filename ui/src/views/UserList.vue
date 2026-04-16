@@ -7,7 +7,11 @@
 
       <!-- 操作按钮 -->
       <div class="action-bar">
-        <el-button class="create-button" @click="showCreateDialog">
+        <el-button
+          class="create-button"
+          @click="showCreateDialog"
+          v-permission="{ resource: 'USER', action: 'CREATE' }"
+        >
           <el-icon><Plus /></el-icon>
           新增用户
         </el-button>
@@ -51,6 +55,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus } from '@element-plus/icons-vue'
 import { usePagination } from '../composables/usePagination'
+import { usePermission } from '../composables/usePermission'
 import { userApi } from '../api'
 import Navbar from '../components/Navbar.vue'
 import UserSearchForm from '../components/UserSearchForm.vue'
@@ -59,6 +64,9 @@ import UserDialog from '../components/UserDialog.vue'
 
 const router = useRouter()
 const searchFormRef = ref()
+
+// 使用权限 composable
+const { hasPermission } = usePermission()
 
 // 使用分页 composable
 const { pageNum, pageSize, total, resetPagination, getPaginationParams } = usePagination(10)

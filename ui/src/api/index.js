@@ -128,4 +128,7 @@ export const userApi = {
   delete: (id) => api.delete(`/users/${id}`)
 }
 
+// 权限 API
+export { permissionApi } from './permission'
+
 export default api

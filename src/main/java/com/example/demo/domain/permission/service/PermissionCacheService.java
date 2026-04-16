@@ -23,4 +23,10 @@ public interface PermissionCacheService {
      * Clear role-related user caches
      */
     void clearRoleRelatedPermissions(Long roleId);
+
+    /**
+     * Cache empty permission to prevent cache penetration
+     * Used when userId is invalid or user has no roles
+     */
+    PermissionBitmap cacheEmptyPermission(Long userId);
 }

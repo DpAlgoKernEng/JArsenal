@@ -1,5 +1,10 @@
 package com.example.demo.config;
 
+import com.example.demo.domain.permission.valueobject.PermissionBitmap;
+import com.example.demo.infrastructure.persistence.serializer.PermissionBitmapSerializer;
+import com.example.demo.infrastructure.persistence.serializer.PermissionBitmapDeserializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -38,5 +43,17 @@ public class RedisConfig {
         StringRedisTemplate template = new StringRedisTemplate();
         template.setConnectionFactory(factory);
         return template;
+    }
+
+    /**
+     * ObjectMapper configured for PermissionBitmap serialization
+     */
+    @Bean
+    public ObjectMapper permissionBitmapObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new SimpleModule()
+            .addSerializer(PermissionBitmap.class, new PermissionBitmapSerializer())
+            .addDeserializer(PermissionBitmap.class, new PermissionBitmapDeserializer()));
+        return mapper;
     }
 }

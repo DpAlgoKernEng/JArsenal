@@ -51,9 +51,11 @@ import { ElMessage } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 import { authApi } from '../api'
 import { useUserStore } from '../stores/user'
+import { usePermissionStore } from '../stores/permission'
 
 const router = useRouter()
 const userStore = useUserStore()
+const permissionStore = usePermissionStore()
 const formRef = ref()
 const loading = ref(false)
 
@@ -73,6 +75,14 @@ const handleLogin = async () => {
     loading.value = true
     const data = await authApi.login(form.username, form.password)
     userStore.setUser(data)
+
+    // 加载用户权限
+    try {
+      await permissionStore.loadPermissions()
+    } catch (permError) {
+      console.warn('加载权限失败，将使用默认权限:', permError)
+    }
+
     ElMessage.success('登录成功')
     router.push('/users')
   } catch (error) {

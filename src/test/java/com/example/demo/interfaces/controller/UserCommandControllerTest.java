@@ -3,6 +3,9 @@ package com.example.demo.interfaces.controller;
 import com.example.demo.application.command.RegisterCommand;
 import com.example.demo.application.command.UpdateUserCommand;
 import com.example.demo.application.service.UserApplicationService;
+import com.example.demo.domain.permission.repository.ResourceRepository;
+import com.example.demo.domain.permission.service.PermissionCacheServiceImpl;
+import com.example.demo.domain.permission.valueobject.PermissionBitmap;
 import com.example.demo.domain.shared.exception.DomainException;
 import com.example.demo.domain.user.aggregate.User;
 import com.example.demo.domain.user.valueobject.Email;
@@ -29,6 +32,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -64,12 +68,25 @@ class UserCommandControllerTest {
     @MockBean
     private JwtUtil jwtUtil;
 
+    @MockBean
+    private PermissionCacheServiceImpl permissionCacheService;
+
+    @MockBean
+    private ResourceRepository resourceRepository;
+
     @BeforeEach
     void setUp() {
         // Mock JwtUtil 让所有 token 都有效
         when(jwtUtil.validateAccessToken(anyString())).thenReturn(true);
         when(jwtUtil.getUserIdFromToken(anyString())).thenReturn(1L);
         when(jwtUtil.getUsernameFromToken(anyString())).thenReturn("testuser");
+
+        // Mock PermissionCacheServiceImpl 返回空的权限位图（允许通过）
+        PermissionBitmap emptyBitmap = PermissionBitmap.empty(System.currentTimeMillis());
+        when(permissionCacheService.getPermissionBitmap(anyLong())).thenReturn(emptyBitmap);
+
+        // Mock ResourceRepository 返回空的 API 资源列表（让 PermissionInterceptor 跳过权限检查）
+        when(resourceRepository.findAllApis()).thenReturn(Collections.emptyList());
     }
 
     private User createTestUser(Long id, String username, String email, UserStatus status) {

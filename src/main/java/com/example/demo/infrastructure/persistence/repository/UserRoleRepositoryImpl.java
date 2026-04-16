@@ -46,4 +46,9 @@ public class UserRoleRepositoryImpl implements UserRoleRepository {
     public Set<Long> findUserRoleIds(Long userId) {
         return userRoleMapper.findUserRoleIds(userId);
     }
+
+    @Override
+    public List<Long> findActiveUserIds(int limit) {
+        return userRoleMapper.findActiveUserIds(limit);
+    }
 }
