@@ -20,8 +20,9 @@ export const useUserStore = defineStore('user', () => {
     // Refresh Token 已通过 HttpOnly Cookie 安全存储
   }
 
-  const setAccessToken = (token) => {
-    accessToken.value = token
+  const setAccessToken = (newToken) => {
+    accessToken.value = newToken
+    token.value = newToken  // 同时更新兼容字段
   }
 
   const logout = () => {

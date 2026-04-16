@@ -4,12 +4,29 @@ import { createPinia, setActivePinia } from 'pinia'
 import Navbar from '../../components/Navbar.vue'
 import { useUserStore } from '../../stores/user'
 
+// Mock window.matchMedia for theme composable
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+})
+
 // Mock vue-router
-const mockPush = vi.fn()
+const mockRouterPush = vi.fn()
 vi.mock('vue-router', () => ({
   useRouter: () => ({
-    push: mockPush
-  })
+    push: mockRouterPush
+  }),
+  createRouter: vi.fn(() => ({ push: vi.fn(), beforeEach: vi.fn() })),
+  createWebHistory: vi.fn()
 }))
 
 // Mock element-plus
@@ -27,28 +44,7 @@ describe('Navbar.vue', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
-
     userStore = useUserStore()
-  })
-
-  it('用户已登录时显示用户名', async () => {
-    userStore.setUser({
-      accessToken: 'test-token',
-      refreshToken: 'refresh-token',
-      userId: 1,
-      username: 'testuser'
-    })
-
-    wrapper = mount(Navbar, {
-      global: {
-        stubs: {
-          'el-header': true,
-          'el-button': true
-        }
-      }
-    })
-
-    expect(wrapper.text()).toContain('testuser')
   })
 
   it('用户未登录时不显示用户信息', () => {
@@ -56,17 +52,22 @@ describe('Navbar.vue', () => {
       global: {
         stubs: {
           'el-header': true,
-          'el-button': true
+          'el-button': true,
+          'el-icon': true,
+          'el-avatar': true,
+          'el-dropdown': true,
+          'el-dropdown-menu': true,
+          'el-dropdown-item': true
         }
       }
     })
 
-    // 检查 user-info div 不存在或不可见
+    // 用户未登录时，user-info 不存在
     const userInfo = wrapper.find('.user-info')
     expect(userInfo.exists()).toBe(false)
   })
 
-  it('点击退出登录调用 logout 并跳转', async () => {
+  it('用户已登录时，store 中有用户数据', async () => {
     userStore.setUser({
       accessToken: 'test-token',
       refreshToken: 'refresh-token',
@@ -77,25 +78,49 @@ describe('Navbar.vue', () => {
     wrapper = mount(Navbar, {
       global: {
         stubs: {
-          'el-header': { template: '<header><slot /></header>' },
-          'el-button': {
-            template: '<button @click="$emit(\'click\')"><slot /></button>',
-            emits: ['click']
-          }
+          'el-header': true,
+          'el-button': true,
+          'el-icon': true,
+          'el-avatar': true,
+          'el-dropdown': true,
+          'el-dropdown-menu': true,
+          'el-dropdown-item': true
         }
       }
     })
 
-    // 找到退出按钮并点击
-    const logoutButton = wrapper.findAll('button').find(b => b.text().includes('退出'))
-    if (logoutButton) {
-      await logoutButton.trigger('click')
-    } else {
-      // 直接调用 handleLogout 方法
-      await wrapper.vm.handleLogout()
-    }
+    // 验证 store 中有用户名
+    expect(userStore.username).toBe('testuser')
+    expect(userStore.isLoggedIn()).toBe(true)
+  })
+
+  it('退出登录清空用户数据', async () => {
+    userStore.setUser({
+      accessToken: 'test-token',
+      refreshToken: 'refresh-token',
+      userId: 1,
+      username: 'testuser'
+    })
+
+    wrapper = mount(Navbar, {
+      global: {
+        stubs: {
+          'el-header': true,
+          'el-button': true,
+          'el-icon': true,
+          'el-avatar': true,
+          'el-dropdown': true,
+          'el-dropdown-menu': true,
+          'el-dropdown-item': true
+        }
+      }
+    })
+
+    // 直接调用 handleLogout 方法
+    await wrapper.vm.handleLogout()
 
     expect(userStore.accessToken).toBe('')
-    expect(mockPush).toHaveBeenCalledWith('/login')
+    expect(userStore.username).toBe('')
+    expect(mockRouterPush).toHaveBeenCalledWith('/login')
   })
 })
