@@ -65,5 +65,9 @@ public interface RoleMapper {
 
     List<Role> findRolesWithPermissionsByUserId(@Param("userId") Long userId);
 
+    @Select("SELECT r.code FROM role r INNER JOIN user_role ur ON r.id = ur.role_id " +
+            "WHERE ur.user_id = #{userId} AND r.is_deleted = 0")
+    List<String> findRoleCodesByUserId(@Param("userId") Long userId);
+
     List<Long> findAncestorRoleIds(@Param("roleId") Long roleId);
 }

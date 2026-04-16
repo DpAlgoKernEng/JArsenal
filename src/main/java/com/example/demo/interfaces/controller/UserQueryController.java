@@ -1,6 +1,8 @@
 package com.example.demo.interfaces.controller;
 
 import com.example.demo.annotation.RateLimit;
+import com.example.demo.application.dto.UserPermissionsDTO;
+import com.example.demo.application.service.PermissionQueryService;
 import com.example.demo.application.service.UserApplicationService;
 import com.example.demo.common.Result;
 import com.example.demo.domain.user.aggregate.User;
@@ -21,12 +23,13 @@ import java.util.List;
  */
 @Tag(name = "用户管理", description = "用户查询接口")
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserQueryController {
 
     private final UserApplicationService userApplicationService;
     private final UserAssembler userAssembler;
+    private final PermissionQueryService permissionQueryService;
 
     /**
      * 分页查询用户列表
@@ -66,5 +69,41 @@ public class UserQueryController {
             return Result.error(404, "用户不存在");
         }
         return Result.success(userAssembler.toResponse(user));
+    }
+
+    /**
+     * 查询用户权限详情
+     */
+    @Operation(summary = "查询用户权限", description = "获取指定用户的菜单、操作和字段权限")
+    @RateLimit(key = "userPermissionsQuery", time = 60, count = 50)
+    @GetMapping("/{id}/permissions")
+    public Result<UserPermissionsDTO> getUserPermissions(
+            @Parameter(description = "用户ID") @PathVariable Long id) {
+        // 验证用户存在
+        User user = userApplicationService.getUserById(id);
+        if (user == null) {
+            return Result.error(404, "用户不存在");
+        }
+
+        UserPermissionsDTO permissions = permissionQueryService.getUserPermissionsByUserId(id);
+        return Result.success(permissions);
+    }
+
+    /**
+     * 查询用户角色列表
+     */
+    @Operation(summary = "查询用户角色", description = "获取指定用户的角色编码列表")
+    @RateLimit(key = "userRolesQuery", time = 60, count = 50)
+    @GetMapping("/{id}/roles")
+    public Result<List<String>> getUserRoles(
+            @Parameter(description = "用户ID") @PathVariable Long id) {
+        // 验证用户存在
+        User user = userApplicationService.getUserById(id);
+        if (user == null) {
+            return Result.error(404, "用户不存在");
+        }
+
+        List<String> roles = permissionQueryService.getUserRoles(id);
+        return Result.success(roles);
     }
 }

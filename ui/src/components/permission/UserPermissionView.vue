@@ -88,6 +88,28 @@
           </el-table-column>
         </el-table>
       </div>
+
+      <!-- 操作权限详情 -->
+      <div class="permissions-card">
+        <div class="card-header">
+          <h3 class="card-title">操作权限</h3>
+          <el-button size="small" @click="loadUserPermissions" :loading="permissionsLoading">
+            查看详情
+          </el-button>
+        </div>
+
+        <el-table :data="userActions" v-if="userActions.length > 0">
+          <el-table-column prop="resourceCode" label="资源" min-width="150" />
+          <el-table-column prop="actions" label="操作权限" min-width="200">
+            <template #default="{ row }">
+              <el-tag v-for="action in row.actions" :key="action" effect="plain" size="small" class="action-tag">
+                {{ action }}
+              </el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-empty v-else-if="!permissionsLoading" description="点击"查看详情"加载权限" :image-size="60" />
+      </div>
     </div>
 
     <!-- 添加角色弹窗 -->
@@ -129,6 +151,10 @@ const selectedUser = ref(null)
 const userRoles = ref([])
 const rolesLoading = ref(false)
 
+// 权限详情
+const userActions = ref([])
+const permissionsLoading = ref(false)
+
 const addRoleVisible = ref(false)
 const roleTreeRef = ref()
 const addLoading = ref(false)
@@ -150,6 +176,7 @@ const handleSearch = async () => {
 // 选择用户
 const handleSelectUser = async (row) => {
   selectedUser.value = row
+  userActions.value = [] // 清空权限详情
   await loadUserRoles()
 }
 
@@ -161,6 +188,20 @@ const loadUserRoles = async () => {
     userRoles.value = await roleApi.getUserRoles(selectedUser.value.id)
   } finally {
     rolesLoading.value = false
+  }
+}
+
+// 加载用户权限详情
+const loadUserPermissions = async () => {
+  if (!selectedUser.value) return
+  permissionsLoading.value = true
+  try {
+    const data = await userApi.getPermissions(selectedUser.value.id)
+    userActions.value = data.actions || []
+  } catch (error) {
+    // error handled
+  } finally {
+    permissionsLoading.value = false
   }
 }
 
@@ -246,7 +287,7 @@ onMounted(() => {
   }
 
   .user-detail {
-    .info-card, .roles-card {
+    .info-card, .roles-card, .permissions-card {
       @include glass-card;
       padding: 20px;
       margin-bottom: 16px;
@@ -267,6 +308,11 @@ onMounted(() => {
 
     .remove-btn {
       color: var(--el-color-danger);
+    }
+
+    .action-tag {
+      margin-right: 4px;
+      margin-bottom: 4px;
     }
   }
 }

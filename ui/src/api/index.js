@@ -125,7 +125,11 @@ export const userApi = {
   get: (id) => api.get(`/users/${id}`),
   create: (data) => api.post('/users', data),
   update: (id, data) => api.put(`/users/${id}`, data),
-  delete: (id) => api.delete(`/users/${id}`)
+  delete: (id) => api.delete(`/users/${id}`),
+  // 查询用户权限
+  getPermissions: (id) => api.get(`/users/${id}/permissions`),
+  // 查询用户角色编码列表
+  getRoleCodes: (id) => api.get(`/users/${id}/roles`)
 }
 
 // 权限 API

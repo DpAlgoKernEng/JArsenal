@@ -119,6 +119,30 @@ public class PermissionQueryService {
     }
 
     /**
+     * 获取指定用户完整权限信息（管理员查看用户权限）
+     */
+    public UserPermissionsDTO getUserPermissionsByUserId(Long userId) {
+        if (userId == null) {
+            return new UserPermissionsDTO(List.of(), List.of(), List.of(), 0L);
+        }
+
+        PermissionBitmap bitmap = permissionCacheService.getPermissionBitmap(userId);
+
+        List<MenuDTO> menus = getUserMenus(bitmap);
+        List<ActionPermissionDTO> actions = getUserActions(bitmap);
+        List<FieldPermissionDTO> fields = getUserFields(userId, bitmap);
+
+        return new UserPermissionsDTO(menus, actions, fields, bitmap.getVersion());
+    }
+
+    /**
+     * 获取指定用户的角色列表
+     */
+    public List<String> getUserRoles(Long userId) {
+        return roleRepository.findRoleCodesByUserId(userId);
+    }
+
+    /**
      * 构建菜单树结构
      */
     private List<MenuDTO> getUserMenus(PermissionBitmap bitmap) {

@@ -52,6 +52,11 @@ public interface RoleRepository {
     List<Role> findRolesWithPermissionsByUserId(Long userId);
 
     /**
+     * 根据用户ID查找其拥有的角色编码列表
+     */
+    List<String> findRoleCodesByUserId(Long userId);
+
+    /**
      * 删除角色
      */
     void deleteById(Long id);
