@@ -131,4 +131,10 @@ export const userApi = {
 // 权限 API
 export { permissionApi } from './permission'
 
+// 角色管理 API
+export { roleApi } from './role'
+
+// 资源管理 API
+export { resourceApi } from './resource'
+
 export default api
