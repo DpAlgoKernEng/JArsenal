@@ -1,10 +1,10 @@
 package com.example.demo.interfaces.controller;
 
-import com.example.demo.annotation.RateLimit;
+import com.example.demo.infrastructure.annotation.RateLimit;
 import com.example.demo.application.dto.UserPermissionsDTO;
 import com.example.demo.application.service.PermissionQueryService;
 import com.example.demo.application.service.UserApplicationService;
-import com.example.demo.common.Result;
+import com.example.demo.infrastructure.common.Result;
 import com.example.demo.domain.user.aggregate.User;
 import com.example.demo.interfaces.assembler.UserAssembler;
 import com.example.demo.interfaces.dto.request.UserQueryRequest;

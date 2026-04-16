@@ -1,14 +1,27 @@
 server:
   port: ${SERVER_PORT:8080}
+  # HTTP请求大小限制（防止DoS攻击）
+  tomcat:
+    max-http-request-header-size: 8KB
+    max-http-form-post-size: 10MB
+  # 最大请求体大小
+  max-http-request-size: 10MB
 
 spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
+  # HTTP请求大小限制（防止超大请求DoS攻击）
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
+
   flyway:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    out-of-order: true
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver

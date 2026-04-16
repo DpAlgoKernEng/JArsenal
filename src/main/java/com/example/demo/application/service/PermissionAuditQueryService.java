@@ -4,12 +4,15 @@ import com.example.demo.application.dto.AuditLogResponse;
 import com.example.demo.domain.permission.entity.PermissionAuditLog;
 import com.example.demo.domain.permission.repository.PermissionAuditLogRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
  * 权限审计查询服务
+ * 纯查询服务，标记readOnly优化数据库读操作
  */
 @Service
+@Transactional(readOnly = true)
 public class PermissionAuditQueryService {
 
     private final PermissionAuditLogRepository auditLogRepository;

@@ -25,6 +25,7 @@ public class ResourceResponse {
     private String component;
     private int sort;
     private boolean status;
+    private String dataDimensionCode;  // 数据维度编码
     private List<SensitiveFieldResponse> sensitiveFields;
 
     /**

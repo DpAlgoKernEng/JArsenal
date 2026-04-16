@@ -67,11 +67,11 @@ class ResourceApplicationServiceTest {
         testField.setSensitiveLevel(SensitiveLevel.ENCRYPTED);
 
         createMenuCommand = new CreateResourceCommand(
-            "TEST_MENU", "测试菜单", null, "MENU", "/test", null, null, "TestIcon", "TestComponent", 1
+            "TEST_MENU", "测试菜单", null, "MENU", "/test", null, null, "TestIcon", "TestComponent", 1, null
         );
 
         createApiCommand = new CreateResourceCommand(
-            "TEST_API", "测试API", null, "API", null, "/api/test/**", "GET", null, null, 1
+            "TEST_API", "测试API", null, "API", null, "/api/test/**", "GET", null, null, 1, null
         );
     }
 
@@ -126,7 +126,7 @@ class ResourceApplicationServiceTest {
     @DisplayName("创建资源 - 父资源不存在")
     void createResource_parentNotFound() {
         CreateResourceCommand command = new CreateResourceCommand(
-            "TEST_OPERATION", "测试操作", 999L, "OPERATION", null, null, null, null, null, 1
+            "TEST_OPERATION", "测试操作", 999L, "OPERATION", null, null, null, null, null, 1, null
         );
 
         when(resourceRepository.findByCode("TEST_OPERATION")).thenReturn(Optional.empty());
@@ -141,7 +141,7 @@ class ResourceApplicationServiceTest {
     @DisplayName("更新资源 - 成功")
     void updateResource_success() {
         UpdateResourceCommand command = new UpdateResourceCommand(
-            1L, "更新菜单", null, "/test/updated", null, null, "NewIcon", null, null, null
+            1L, "更新菜单", null, "/test/updated", null, null, "NewIcon", null, null, null, null
         );
 
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(testMenuResource));
@@ -156,7 +156,7 @@ class ResourceApplicationServiceTest {
     @Test
     @DisplayName("更新资源 - 资源不存在")
     void updateResource_notFound() {
-        UpdateResourceCommand command = new UpdateResourceCommand(999L, "更新菜单", null, null, null, null, null, null, null, null);
+        UpdateResourceCommand command = new UpdateResourceCommand(999L, "更新菜单", null, null, null, null, null, null, null, null, null);
 
         when(resourceRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -271,7 +271,7 @@ class ResourceApplicationServiceTest {
     @Test
     @DisplayName("循环引用验证 - 自引用")
     void validateCircularReference_selfReference() {
-        UpdateResourceCommand command = new UpdateResourceCommand(1L, null, 1L, null, null, null, null, null, null, null);
+        UpdateResourceCommand command = new UpdateResourceCommand(1L, null, 1L, null, null, null, null, null, null, null, null);
 
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(testMenuResource));
 

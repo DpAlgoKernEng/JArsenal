@@ -7,7 +7,7 @@ import com.example.demo.domain.permission.entity.ResourceField;
 import com.example.demo.domain.permission.repository.*;
 import com.example.demo.domain.permission.service.PermissionCacheService;
 import com.example.demo.domain.permission.valueobject.*;
-import com.example.demo.security.UserContext;
+import com.example.demo.infrastructure.security.UserContext;
 import org.junit.jupiter.api.*;
 import org.mockito.*;
 

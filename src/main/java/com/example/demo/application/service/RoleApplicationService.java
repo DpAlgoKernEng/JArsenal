@@ -171,6 +171,7 @@ public class RoleApplicationService {
     /**
      * 根据ID查询角色
      */
+    @Transactional(readOnly = true)
     public Role getRoleById(Long roleId) {
         return roleRepository.findById(roleId).orElse(null);
     }
@@ -178,6 +179,7 @@ public class RoleApplicationService {
     /**
      * 查询所有角色列表
      */
+    @Transactional(readOnly = true)
     public List<Role> listAllRoles() {
         return roleRepository.findAllNotDeleted();
     }
@@ -185,6 +187,7 @@ public class RoleApplicationService {
     /**
      * 查询角色树结构
      */
+    @Transactional(readOnly = true)
     public List<Role> getRoleTree() {
         return roleRepository.findAllNotDeleted();
     }
@@ -192,6 +195,7 @@ public class RoleApplicationService {
     /**
      * 根据用户ID查询角色列表
      */
+    @Transactional(readOnly = true)
     public List<Role> getRolesByUserId(Long userId) {
         return roleRepository.findRolesByUserId(userId);
     }
@@ -279,6 +283,7 @@ public class RoleApplicationService {
     /**
      * 获取用户的角色ID列表
      */
+    @Transactional(readOnly = true)
     public List<Long> getUserRoleIds(Long userId) {
         return userRoleRepository.findRoleIdsByUserId(userId);
     }

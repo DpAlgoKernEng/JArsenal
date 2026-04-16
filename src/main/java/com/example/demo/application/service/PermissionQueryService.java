@@ -15,7 +15,7 @@ import com.example.demo.domain.permission.service.PermissionCacheService;
 import com.example.demo.domain.permission.valueobject.ActionType;
 import com.example.demo.domain.permission.valueobject.PermissionBitmap;
 import com.example.demo.domain.permission.valueobject.ResourceType;
-import com.example.demo.security.UserContext;
+import com.example.demo.infrastructure.security.UserContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

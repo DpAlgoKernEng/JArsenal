@@ -1,13 +1,13 @@
 package com.example.demo.interfaces.controller;
 
-import com.example.demo.annotation.RateLimit;
+import com.example.demo.infrastructure.annotation.RateLimit;
 import com.example.demo.application.dto.ActionPermissionDTO;
 import com.example.demo.application.dto.FieldPermissionDTO;
 import com.example.demo.application.dto.MenuDTO;
 import com.example.demo.application.dto.UserPermissionsDTO;
 import com.example.demo.application.service.PermissionQueryService;
-import com.example.demo.common.Result;
-import com.example.demo.security.UserContext;
+import com.example.demo.infrastructure.common.Result;
+import com.example.demo.infrastructure.security.UserContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ import java.util.List;
  */
 @Tag(name = "权限查询", description = "前端权限查询接口")
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class PermissionQueryController {
 

@@ -21,4 +21,5 @@ public class CreateResourceCommand {
     private String icon;
     private String component;
     private Integer sort;
+    private String dataDimensionCode;  // 数据维度编码
 }

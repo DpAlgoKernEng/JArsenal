@@ -1,8 +1,8 @@
 package com.example.demo.interfaces.controller;
 
-import com.example.demo.annotation.RateLimit;
+import com.example.demo.infrastructure.annotation.RateLimit;
 import com.example.demo.application.service.RoleApplicationService;
-import com.example.demo.common.Result;
+import com.example.demo.infrastructure.common.Result;
 import com.example.demo.domain.permission.aggregate.Role;
 import com.example.demo.interfaces.assembler.RoleAssembler;
 import com.example.demo.interfaces.dto.response.RoleResponse;
@@ -19,7 +19,7 @@ import java.util.List;
  */
 @Tag(name = "角色管理", description = "角色查询接口")
 @RestController
-@RequestMapping("/api/roles")
+@RequestMapping("/api/v1/roles")
 @RequiredArgsConstructor
 public class RoleQueryController {
 

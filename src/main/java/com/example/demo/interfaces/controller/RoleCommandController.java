@@ -1,12 +1,12 @@
 package com.example.demo.interfaces.controller;
 
-import com.example.demo.annotation.RateLimit;
+import com.example.demo.infrastructure.annotation.RateLimit;
 import com.example.demo.application.command.AssignPermissionCommand;
 import com.example.demo.application.command.AssignRoleCommand;
 import com.example.demo.application.command.CreateRoleCommand;
 import com.example.demo.application.command.UpdateRoleCommand;
 import com.example.demo.application.service.RoleApplicationService;
-import com.example.demo.common.Result;
+import com.example.demo.infrastructure.common.Result;
 import com.example.demo.domain.permission.aggregate.Role;
 import com.example.demo.interfaces.assembler.RoleAssembler;
 import com.example.demo.interfaces.dto.request.AssignPermissionRequest;
@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "角色管理", description = "角色增删改接口")
 @RestController
-@RequestMapping("/api/roles")
+@RequestMapping("/api/v1/roles")
 @RequiredArgsConstructor
 public class RoleCommandController {
 

@@ -88,6 +88,11 @@ public class ResourceApplicationService {
             resource.setParentId(command.getParentId());
         }
 
+        // 设置数据维度编码
+        if (command.getDataDimensionCode() != null) {
+            resource.setDataDimensionCode(command.getDataDimensionCode());
+        }
+
         // 持久化
         resourceRepository.save(resource);
 
@@ -134,6 +139,11 @@ public class ResourceApplicationService {
         if (command.getStatus() != null) {
             boolean enabled = "ENABLED".equals(command.getStatus());
             resource.setStatus(enabled);
+        }
+
+        // 更新数据维度编码
+        if (command.getDataDimensionCode() != null) {
+            resource.setDataDimensionCode(command.getDataDimensionCode());
         }
 
         resourceRepository.save(resource);
@@ -192,6 +202,7 @@ public class ResourceApplicationService {
     /**
      * 根据ID查询资源
      */
+    @Transactional(readOnly = true)
     public Resource getResourceById(Long resourceId) {
         return resourceRepository.findById(resourceId).orElse(null);
     }
@@ -199,6 +210,7 @@ public class ResourceApplicationService {
     /**
      * 查询所有资源列表
      */
+    @Transactional(readOnly = true)
     public List<Resource> listAllResources() {
         return resourceRepository.findAll();
     }
@@ -206,6 +218,7 @@ public class ResourceApplicationService {
     /**
      * 查询资源树结构
      */
+    @Transactional(readOnly = true)
     public List<Resource> getResourceTree() {
         return resourceRepository.findAll();
     }
@@ -238,6 +251,7 @@ public class ResourceApplicationService {
     /**
      * 查询资源的敏感字段列表
      */
+    @Transactional(readOnly = true)
     public List<ResourceField> getResourceFields(Long resourceId) {
         return resourceFieldRepository.findByResourceId(resourceId);
     }
@@ -245,6 +259,7 @@ public class ResourceApplicationService {
     /**
      * 获取资源详情（包含敏感字段）
      */
+    @Transactional(readOnly = true)
     public ResourceResponse getResourceDetail(Long resourceId) {
         Resource resource = resourceRepository.findById(resourceId)
             .orElseThrow(() -> new DomainException("资源不存在: " + resourceId));
@@ -256,6 +271,7 @@ public class ResourceApplicationService {
     /**
      * 获取资源列表响应
      */
+    @Transactional(readOnly = true)
     public List<ResourceResponse> listResourcesResponse() {
         List<Resource> resources = resourceRepository.findAll();
         return resourceAssembler.toResponseList(resources);
@@ -264,6 +280,7 @@ public class ResourceApplicationService {
     /**
      * 获取资源树响应
      */
+    @Transactional(readOnly = true)
     public List<ResourceResponse> getResourceTreeResponse() {
         List<Resource> resources = resourceRepository.findAll();
         return resourceAssembler.buildResourceTree(resources);
@@ -272,6 +289,7 @@ public class ResourceApplicationService {
     /**
      * 获取ResourceTreeResponse树结构
      */
+    @Transactional(readOnly = true)
     public List<ResourceTreeResponse> getResourceTreeResponseV2() {
         List<Resource> resources = resourceRepository.findAll();
         return resourceAssembler.buildTreeResponse(resources);
@@ -280,6 +298,7 @@ public class ResourceApplicationService {
     /**
      * 获取敏感字段响应列表
      */
+    @Transactional(readOnly = true)
     public List<SensitiveFieldResponse> getSensitiveFieldResponses(Long resourceId) {
         List<ResourceField> fields = resourceFieldRepository.findByResourceId(resourceId);
         return fields.stream()
@@ -296,6 +315,7 @@ public class ResourceApplicationService {
     /**
      * 根据类型查询资源
      */
+    @Transactional(readOnly = true)
     public List<Resource> getResourcesByType(ResourceType type) {
         return resourceRepository.findByType(type);
     }
@@ -303,6 +323,7 @@ public class ResourceApplicationService {
     /**
      * 查询所有API资源
      */
+    @Transactional(readOnly = true)
     public List<Resource> getAllApiResources() {
         return resourceRepository.findAllApis();
     }

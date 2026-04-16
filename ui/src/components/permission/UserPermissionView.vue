@@ -108,7 +108,7 @@
             </template>
           </el-table-column>
         </el-table>
-        <el-empty v-else-if="!permissionsLoading" description="点击"查看详情"加载权限" :image-size="60" />
+        <el-empty v-else-if="!permissionsLoading" description="点击查看详情按钮加载权限" :image-size="60" />
       </div>
     </div>
 

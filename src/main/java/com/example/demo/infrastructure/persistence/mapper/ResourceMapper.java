@@ -12,14 +12,14 @@ import java.util.List;
 @Mapper
 public interface ResourceMapper {
 
-    @Insert("INSERT INTO resource(code, name, parent_id, type, path, path_pattern, method, icon, component, sort, status, is_deleted) " +
-            "VALUES(#{code}, #{name}, #{parentId}, #{type}, #{path}, #{pathPattern}, #{method}, #{icon}, #{component}, #{sort}, #{status}, #{isDeleted})")
+    @Insert("INSERT INTO resource(code, name, parent_id, type, path, path_pattern, method, icon, component, sort, status, is_deleted, data_dimension_code) " +
+            "VALUES(#{code}, #{name}, #{parentId}, #{type}, #{path}, #{pathPattern}, #{method}, #{icon}, #{component}, #{sort}, #{status}, #{isDeleted}, #{dataDimensionCode})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Resource resource);
 
     @Update("UPDATE resource SET name=#{name}, parent_id=#{parentId}, path=#{path}, " +
             "path_pattern=#{pathPattern}, method=#{method}, icon=#{icon}, component=#{component}, " +
-            "sort=#{sort}, status=#{status} WHERE id=#{id}")
+            "sort=#{sort}, status=#{status}, data_dimension_code=#{dataDimensionCode} WHERE id=#{id}")
     int update(Resource resource);
 
     @Select("SELECT * FROM resource WHERE id = #{id} AND is_deleted = 0")
@@ -36,7 +36,8 @@ public interface ResourceMapper {
             @Result(property = "component", column = "component"),
             @Result(property = "sort", column = "sort"),
             @Result(property = "status", column = "status"),
-            @Result(property = "isDeleted", column = "is_deleted")
+            @Result(property = "isDeleted", column = "is_deleted"),
+            @Result(property = "dataDimensionCode", column = "data_dimension_code")
     })
     Resource findById(@Param("id") Long id);
 

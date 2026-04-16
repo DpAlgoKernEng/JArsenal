@@ -38,6 +38,7 @@ public class ResourceAssembler {
         response.setComponent(resource.getComponent());
         response.setSort(resource.getSort());
         response.setStatus(resource.isStatus());
+        response.setDataDimensionCode(resource.getDataDimensionCode());
 
         if (fields != null && !fields.isEmpty()) {
             List<SensitiveFieldResponse> sensitiveFields = fields.stream()

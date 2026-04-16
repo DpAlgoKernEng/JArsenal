@@ -21,4 +21,5 @@ public class UpdateResourceCommand {
     private String component;
     private String status;
     private Integer sort;
+    private String dataDimensionCode;  // 数据维度编码
 }

@@ -112,6 +112,7 @@ public class UserApplicationService {
     /**
      * 根据ID查询用户
      */
+    @Transactional(readOnly = true)
     public User getUserById(Long userId) {
         return userRepository.findById(new UserId(userId));
     }
@@ -119,6 +120,7 @@ public class UserApplicationService {
     /**
      * 分页查询用户列表
      */
+    @Transactional(readOnly = true)
     public List<User> listUsers(String username, Integer status, int pageNum, int pageSize) {
         return userRepository.findAll(username, status, pageNum, pageSize);
     }
@@ -126,6 +128,7 @@ public class UserApplicationService {
     /**
      * 统计用户总数
      */
+    @Transactional(readOnly = true)
     public long countUsers(String username, Integer status) {
         return userRepository.count(username, status);
     }

@@ -12,7 +12,7 @@ import com.example.demo.domain.permission.repository.RoleRepository;
 import com.example.demo.domain.permission.valueobject.RoleStatus;
 import com.example.demo.domain.permission.valueobject.SensitiveLevel;
 import com.example.demo.domain.shared.exception.DomainException;
-import com.example.demo.security.UserContext;
+import com.example.demo.infrastructure.security.UserContext;
 import org.springframework.stereotype.Service;
 import java.util.*;
 

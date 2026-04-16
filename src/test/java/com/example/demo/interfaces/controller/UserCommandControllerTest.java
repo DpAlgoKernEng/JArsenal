@@ -17,7 +17,7 @@ import com.example.demo.interfaces.assembler.UserAssembler;
 import com.example.demo.interfaces.dto.request.UserCreateRequest;
 import com.example.demo.interfaces.dto.request.UserUpdateRequest;
 import com.example.demo.interfaces.dto.response.UserResponse;
-import com.example.demo.util.JwtUtil;
+import com.example.demo.infrastructure.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -114,7 +114,7 @@ class UserCommandControllerTest {
         when(userAssembler.toResponse(createdUser)).thenReturn(response);
 
         // when & then
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/v1/users")
                 .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -136,7 +136,7 @@ class UserCommandControllerTest {
             .thenThrow(new DomainException("用户名已存在"));
 
         // when & then
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/v1/users")
                 .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -152,7 +152,7 @@ class UserCommandControllerTest {
         UserCreateRequest request = new UserCreateRequest("a", "password123", "test@example.com", 1);
 
         // when & then
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/v1/users")
                 .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -169,7 +169,7 @@ class UserCommandControllerTest {
         UserCreateRequest request = new UserCreateRequest("validuser", "password123", "invalid-email", 1);
 
         // when & then
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/v1/users")
                 .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -192,7 +192,7 @@ class UserCommandControllerTest {
         doNothing().when(userApplicationService).updateUser(any(UpdateUserCommand.class));
 
         // when & then
-        mockMvc.perform(put("/api/users/1")
+        mockMvc.perform(put("/api/v1/users/1")
                 .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -214,7 +214,7 @@ class UserCommandControllerTest {
             .when(userApplicationService).updateUser(any(UpdateUserCommand.class));
 
         // when & then
-        mockMvc.perform(put("/api/users/999")
+        mockMvc.perform(put("/api/v1/users/999")
                 .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -236,7 +236,7 @@ class UserCommandControllerTest {
         doNothing().when(userApplicationService).updateUser(any(UpdateUserCommand.class));
 
         // when & then
-        mockMvc.perform(put("/api/users/1")
+        mockMvc.perform(put("/api/v1/users/1")
                 .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -257,7 +257,7 @@ class UserCommandControllerTest {
         doNothing().when(userApplicationService).updateUser(any(UpdateUserCommand.class));
 
         // when & then
-        mockMvc.perform(put("/api/users/1")
+        mockMvc.perform(put("/api/v1/users/1")
                 .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -272,7 +272,7 @@ class UserCommandControllerTest {
         doNothing().when(userApplicationService).deleteUser(1L);
 
         // when & then
-        mockMvc.perform(delete("/api/users/1")
+        mockMvc.perform(delete("/api/v1/users/1")
                 .header("Authorization", "Bearer test-token"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200));
@@ -287,7 +287,7 @@ class UserCommandControllerTest {
         doNothing().when(userApplicationService).deleteUser(999L);
 
         // when & then
-        mockMvc.perform(delete("/api/users/999")
+        mockMvc.perform(delete("/api/v1/users/999")
                 .header("Authorization", "Bearer test-token"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200));

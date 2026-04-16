@@ -8,7 +8,7 @@ import com.example.demo.domain.permission.repository.UserDimensionRepository;
 import com.example.demo.domain.permission.service.DataScopeDomainService;
 import com.example.demo.domain.permission.valueobject.ScopeType;
 import com.example.demo.infrastructure.persistence.annotation.DataScope;
-import com.example.demo.security.UserContext;
+import com.example.demo.infrastructure.security.UserContext;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;

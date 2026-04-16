@@ -64,7 +64,7 @@ class RoleQueryControllerTest {
         when(roleApplicationService.getRoleTree()).thenReturn(Arrays.asList(role1, role2));
 
         // when & then
-        mockMvc.perform(get("/api/roles"))
+        mockMvc.perform(get("/api/v1/roles"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200))
             .andExpect(jsonPath("$.data").isArray())
@@ -79,7 +79,7 @@ class RoleQueryControllerTest {
         when(roleApplicationService.getRoleTree()).thenReturn(Collections.emptyList());
 
         // when & then
-        mockMvc.perform(get("/api/roles"))
+        mockMvc.perform(get("/api/v1/roles"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200))
             .andExpect(jsonPath("$.data").isArray())
@@ -93,7 +93,7 @@ class RoleQueryControllerTest {
         when(roleApplicationService.getRoleById(1L)).thenReturn(testRole);
 
         // when & then
-        mockMvc.perform(get("/api/roles/1"))
+        mockMvc.perform(get("/api/v1/roles/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200))
             .andExpect(jsonPath("$.data.id").value(1))
@@ -109,7 +109,7 @@ class RoleQueryControllerTest {
         when(roleApplicationService.getRoleById(999L)).thenReturn(null);
 
         // when & then
-        mockMvc.perform(get("/api/roles/999"))
+        mockMvc.perform(get("/api/v1/roles/999"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(404))
             .andExpect(jsonPath("$.message").value("角色不存在"));
@@ -122,7 +122,7 @@ class RoleQueryControllerTest {
         when(roleApplicationService.getRolesByUserId(1L)).thenReturn(Arrays.asList(testRole));
 
         // when & then
-        mockMvc.perform(get("/api/roles/user/1"))
+        mockMvc.perform(get("/api/v1/roles/user/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200))
             .andExpect(jsonPath("$.data").isArray())
@@ -136,7 +136,7 @@ class RoleQueryControllerTest {
         when(roleApplicationService.getRolesByUserId(1L)).thenReturn(Collections.emptyList());
 
         // when & then
-        mockMvc.perform(get("/api/roles/user/1"))
+        mockMvc.perform(get("/api/v1/roles/user/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200))
             .andExpect(jsonPath("$.data").isArray())

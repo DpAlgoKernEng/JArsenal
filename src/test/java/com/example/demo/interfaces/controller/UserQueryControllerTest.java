@@ -12,7 +12,7 @@ import com.example.demo.domain.user.valueobject.Username;
 import com.example.demo.domain.user.valueobject.UserStatus;
 import com.example.demo.interfaces.assembler.UserAssembler;
 import com.example.demo.interfaces.dto.response.UserResponse;
-import com.example.demo.util.JwtUtil;
+import com.example.demo.infrastructure.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -110,7 +110,7 @@ class UserQueryControllerTest {
         when(userAssembler.toResponseList(users)).thenReturn(Arrays.asList(response1, response2));
 
         // when & then
-        mockMvc.perform(get("/api/users")
+        mockMvc.perform(get("/api/v1/users")
                 .param("pageNum", "1")
                 .param("pageSize", "10")
                 .param("username", "张")
@@ -136,7 +136,7 @@ class UserQueryControllerTest {
         when(userAssembler.toResponseList(any())).thenReturn(Collections.emptyList());
 
         // when & then
-        mockMvc.perform(get("/api/users")
+        mockMvc.perform(get("/api/v1/users")
                 .param("pageNum", "1")
                 .param("pageSize", "10")
                 .header("Authorization", "Bearer test-token"))
@@ -159,7 +159,7 @@ class UserQueryControllerTest {
         when(userAssembler.toResponseList(any())).thenReturn(Arrays.asList(response));
 
         // when & then
-        mockMvc.perform(get("/api/users")
+        mockMvc.perform(get("/api/v1/users")
                 .param("pageNum", "1")
                 .param("pageSize", "10")
                 .param("status", "1")
@@ -179,7 +179,7 @@ class UserQueryControllerTest {
         when(userAssembler.toResponse(user)).thenReturn(response);
 
         // when & then
-        mockMvc.perform(get("/api/users/1")
+        mockMvc.perform(get("/api/v1/users/1")
                 .header("Authorization", "Bearer test-token")
                 .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -197,7 +197,7 @@ class UserQueryControllerTest {
         when(userApplicationService.getUserById(999L)).thenReturn(null);
 
         // when & then
-        mockMvc.perform(get("/api/users/999")
+        mockMvc.perform(get("/api/v1/users/999")
                 .header("Authorization", "Bearer test-token")
                 .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -218,7 +218,7 @@ class UserQueryControllerTest {
         when(userAssembler.toResponseList(any())).thenReturn(Collections.emptyList());
 
         // when & then - 不传参数时，应使用默认值
-        mockMvc.perform(get("/api/users")
+        mockMvc.perform(get("/api/v1/users")
                 .header("Authorization", "Bearer test-token"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200));

@@ -63,7 +63,7 @@ class AuthControllerTest {
         when(authApplicationService.login(any(LoginCommand.class))).thenReturn(tokenPair);
 
         // when & then
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
@@ -83,7 +83,7 @@ class AuthControllerTest {
         LoginRequest request = new LoginRequest("", "password123");
 
         // when & then
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest())
@@ -99,7 +99,7 @@ class AuthControllerTest {
         LoginRequest request = new LoginRequest("testuser", "12345"); // 少于6位
 
         // when & then
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest())
@@ -121,7 +121,7 @@ class AuthControllerTest {
         when(authApplicationService.refreshToken(any(RefreshTokenCommand.class))).thenReturn(tokenPair);
 
         // when & then - refreshToken 通过 Cookie 发送，不需要 request body
-        mockMvc.perform(post("/api/auth/refresh")
+        mockMvc.perform(post("/api/v1/auth/refresh")
                 .cookie(new Cookie("refreshToken", "old-refresh-token")))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200))
@@ -135,7 +135,7 @@ class AuthControllerTest {
     @DisplayName("刷新Token失败 - 无Cookie")
     void refreshToken_noCookie_shouldReturnError() throws Exception {
         // when & then
-        mockMvc.perform(post("/api/auth/refresh"))
+        mockMvc.perform(post("/api/v1/auth/refresh"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(401))
             .andExpect(jsonPath("$.message").value("Refresh Token 不存在"));
@@ -150,7 +150,7 @@ class AuthControllerTest {
         RegisterRequest request = new RegisterRequest("newuser", "password123", "test@example.com");
 
         // when & then
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
@@ -164,7 +164,7 @@ class AuthControllerTest {
         RegisterRequest request = new RegisterRequest("newuser", "password123", "invalid-email");
 
         // when & then
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest())
@@ -178,7 +178,7 @@ class AuthControllerTest {
         doNothing().when(authApplicationService).logout("refresh-token-value");
 
         // when & then - refreshToken 通过 Cookie 发送
-        mockMvc.perform(post("/api/auth/logout")
+        mockMvc.perform(post("/api/v1/auth/logout")
                 .cookie(new Cookie("refreshToken", "refresh-token-value")))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200))
@@ -191,7 +191,7 @@ class AuthControllerTest {
     @DisplayName("登出 - 无Cookie时也返回成功")
     void logout_noCookie_shouldReturnSuccess() throws Exception {
         // when & then
-        mockMvc.perform(post("/api/auth/logout"))
+        mockMvc.perform(post("/api/v1/auth/logout"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200));
 
@@ -210,7 +210,7 @@ class AuthControllerTest {
         when(authApplicationService.login(any(LoginCommand.class))).thenReturn(tokenPair);
 
         // When & Then
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())

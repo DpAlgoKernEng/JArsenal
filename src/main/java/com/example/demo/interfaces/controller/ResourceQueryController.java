@@ -1,8 +1,8 @@
 package com.example.demo.interfaces.controller;
 
-import com.example.demo.annotation.RateLimit;
+import com.example.demo.infrastructure.annotation.RateLimit;
 import com.example.demo.application.service.ResourceApplicationService;
-import com.example.demo.common.Result;
+import com.example.demo.infrastructure.common.Result;
 import com.example.demo.domain.permission.aggregate.Resource;
 import com.example.demo.domain.permission.entity.ResourceField;
 import com.example.demo.interfaces.assembler.ResourceAssembler;
@@ -22,7 +22,7 @@ import java.util.List;
  */
 @Tag(name = "资源管理", description = "资源查询接口")
 @RestController
-@RequestMapping("/api/resources")
+@RequestMapping("/api/v1/resources")
 @RequiredArgsConstructor
 public class ResourceQueryController {
 

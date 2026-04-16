@@ -44,4 +44,6 @@ public class ResourceCreateRequest {
     @Min(value = 0, message = "排序值必须大于等于0")
     @Max(value = 999, message = "排序值必须小于等于999")
     private Integer sort = 0;
+
+    private String dataDimensionCode;  // 数据维度编码（可选）
 }

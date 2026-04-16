@@ -1,5 +1,12 @@
 # 生产环境配置 - 所有敏感配置必须通过环境变量提供
 
+server:
+  # 生产环境请求大小限制（更严格）
+  tomcat:
+    max-http-request-header-size: 8KB
+    max-http-form-post-size: 10MB
+  max-http-request-size: 10MB
+
 spring:
   datasource:
     url: ${DB_URL}
@@ -11,6 +18,12 @@ spring:
       idle-timeout: 300000
       max-lifetime: 1200000
       connection-timeout: 30000
+
+  # HTTP请求大小限制（防止超大请求DoS攻击）
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
 
   data:
     redis:

@@ -2,7 +2,7 @@ package com.example.demo.domain.permission.service;
 
 import com.example.demo.domain.permission.entity.PermissionAuditLog;
 import com.example.demo.domain.permission.repository.PermissionAuditLogRepository;
-import com.example.demo.security.UserContext;
+import com.example.demo.infrastructure.security.UserContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.MDC;
 import org.springframework.scheduling.annotation.Async;

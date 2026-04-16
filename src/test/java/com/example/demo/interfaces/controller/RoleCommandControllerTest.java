@@ -72,7 +72,7 @@ class RoleCommandControllerTest {
         when(roleApplicationService.getRoleById(1L)).thenReturn(testRole);
 
         // when & then
-        mockMvc.perform(post("/api/roles")
+        mockMvc.perform(post("/api/v1/roles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isOk())
@@ -92,7 +92,7 @@ class RoleCommandControllerTest {
             """;
 
         // when & then
-        mockMvc.perform(post("/api/roles")
+        mockMvc.perform(post("/api/v1/roles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isBadRequest());
@@ -114,7 +114,7 @@ class RoleCommandControllerTest {
         when(roleApplicationService.getRoleById(1L)).thenReturn(testRole);
 
         // when & then
-        mockMvc.perform(put("/api/roles/1")
+        mockMvc.perform(put("/api/v1/roles/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isOk())
@@ -128,7 +128,7 @@ class RoleCommandControllerTest {
         doNothing().when(roleApplicationService).deleteRole(1L);
 
         // when & then
-        mockMvc.perform(delete("/api/roles/1"))
+        mockMvc.perform(delete("/api/v1/roles/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200));
 
@@ -150,7 +150,7 @@ class RoleCommandControllerTest {
         doNothing().when(roleApplicationService).assignPermission(any());
 
         // when & then
-        mockMvc.perform(post("/api/roles/1/permissions")
+        mockMvc.perform(post("/api/v1/roles/1/permissions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isOk())
@@ -170,7 +170,7 @@ class RoleCommandControllerTest {
             """;
 
         // when & then
-        mockMvc.perform(post("/api/roles/1/permissions")
+        mockMvc.perform(post("/api/v1/roles/1/permissions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isBadRequest());
@@ -189,7 +189,7 @@ class RoleCommandControllerTest {
         doNothing().when(roleApplicationService).assignRolesToUser(any());
 
         // when & then
-        mockMvc.perform(post("/api/roles/user/1/roles")
+        mockMvc.perform(post("/api/v1/roles/user/1/roles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isOk())
@@ -209,7 +209,7 @@ class RoleCommandControllerTest {
             """;
 
         // when & then
-        mockMvc.perform(post("/api/roles/user/1/roles")
+        mockMvc.perform(post("/api/v1/roles/user/1/roles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isBadRequest());
@@ -222,7 +222,7 @@ class RoleCommandControllerTest {
         doNothing().when(roleApplicationService).removeRoleFromUser(1L, 1L);
 
         // when & then
-        mockMvc.perform(delete("/api/roles/user/1/roles/1"))
+        mockMvc.perform(delete("/api/v1/roles/user/1/roles/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200));
 

@@ -25,6 +25,7 @@ public class Resource extends BaseEntity<Long> {
     private int sort;
     private boolean status;      // true-启用
     private boolean isDeleted;
+    private String dataDimensionCode;  // 数据维度编码（用于数据权限检查）
     private List<ResourceField> sensitiveFields;
 
     /**
@@ -176,6 +177,14 @@ public class Resource extends BaseEntity<Long> {
 
     public boolean isDeleted() {
         return isDeleted;
+    }
+
+    public String getDataDimensionCode() {
+        return dataDimensionCode;
+    }
+
+    public void setDataDimensionCode(String dataDimensionCode) {
+        this.dataDimensionCode = dataDimensionCode;
     }
 
     public List<ResourceField> getSensitiveFields() {

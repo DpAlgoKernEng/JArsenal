@@ -3,7 +3,7 @@
   <div class="user-edit-container">
     <div class="edit-card">
       <div class="edit-header">
-        <el-button class="back-button" @click="router.push('/users')">
+        <el-button class="back-button" @click="router.push('/system/users')">
           <el-icon><ArrowLeft /></el-icon>
           返回列表
         </el-button>
@@ -37,7 +37,7 @@
             <el-icon><Check /></el-icon>
             保存
           </el-button>
-          <el-button @click="router.push('/users')">
+          <el-button @click="router.push('/system/users')">
             取消
           </el-button>
         </el-form-item>
@@ -93,7 +93,7 @@ const fetchUser = async () => {
     form.createTime = data.createTime
     form.updateTime = data.updateTime
   } catch (error) {
-    router.push('/users')
+    router.push('/system/users')
   } finally {
     loading.value = false
   }

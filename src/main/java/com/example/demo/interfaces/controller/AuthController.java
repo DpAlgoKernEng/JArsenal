@@ -1,19 +1,19 @@
 package com.example.demo.interfaces.controller;
 
-import com.example.demo.annotation.RateLimit;
+import com.example.demo.infrastructure.annotation.RateLimit;
 import com.example.demo.application.command.LoginCommand;
 import com.example.demo.application.command.RefreshTokenCommand;
 import com.example.demo.application.command.RegisterCommand;
 import com.example.demo.application.service.AuthApplicationService;
 import com.example.demo.application.service.UserApplicationService;
-import com.example.demo.common.Result;
+import com.example.demo.infrastructure.common.Result;
 import com.example.demo.domain.auth.valueobject.TokenPair;
 import com.example.demo.interfaces.assembler.AuthAssembler;
 import com.example.demo.interfaces.dto.request.LoginRequest;
 import com.example.demo.interfaces.dto.request.RefreshTokenRequest;
 import com.example.demo.interfaces.dto.request.RegisterRequest;
 import com.example.demo.interfaces.dto.response.LoginResponse;
-import com.example.demo.util.JwtUtil;
+import com.example.demo.infrastructure.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
@@ -32,7 +32,7 @@ import java.util.Arrays;
  */
 @Tag(name = "认证管理", description = "用户登录注册接口")
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 

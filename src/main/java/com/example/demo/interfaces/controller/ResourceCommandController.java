@@ -1,11 +1,11 @@
 package com.example.demo.interfaces.controller;
 
-import com.example.demo.annotation.RateLimit;
+import com.example.demo.infrastructure.annotation.RateLimit;
 import com.example.demo.application.command.AddSensitiveFieldCommand;
 import com.example.demo.application.command.CreateResourceCommand;
 import com.example.demo.application.command.UpdateResourceCommand;
 import com.example.demo.application.service.ResourceApplicationService;
-import com.example.demo.common.Result;
+import com.example.demo.infrastructure.common.Result;
 import com.example.demo.domain.permission.aggregate.Resource;
 import com.example.demo.interfaces.assembler.ResourceAssembler;
 import com.example.demo.interfaces.dto.request.ResourceCreateRequest;
@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "资源管理", description = "资源增删改接口")
 @RestController
-@RequestMapping("/api/resources")
+@RequestMapping("/api/v1/resources")
 @RequiredArgsConstructor
 public class ResourceCommandController {
 
@@ -48,7 +48,8 @@ public class ResourceCommandController {
             request.getMethod(),
             request.getIcon(),
             request.getComponent(),
-            request.getSort()
+            request.getSort(),
+            request.getDataDimensionCode()
         );
 
         Long resourceId = resourceApplicationService.createResource(command);
@@ -77,7 +78,8 @@ public class ResourceCommandController {
             request.getIcon(),
             request.getComponent(),
             request.getStatus(),
-            request.getSort()
+            request.getSort(),
+            request.getDataDimensionCode()
         );
 
         resourceApplicationService.updateResource(command);
