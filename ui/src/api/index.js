@@ -4,7 +4,7 @@ import router from '../router'
 import { useUserStore } from '../stores/user'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
   timeout: 10000,
   withCredentials: true  // 确保发送 Cookie（用于 Refresh Token）
 })
@@ -56,7 +56,7 @@ api.interceptors.response.use(
         try {
           // 调用刷新 Token 接口（Refresh Token 通过 Cookie 自动发送）
           const response = await axios.post(
-            (import.meta.env.VITE_API_BASE_URL || '/api') + '/auth/refresh',
+            (import.meta.env.VITE_API_BASE_URL || '/api/v1') + '/auth/refresh',
             {},
             { withCredentials: true }  // 确保发送 Cookie
           )
