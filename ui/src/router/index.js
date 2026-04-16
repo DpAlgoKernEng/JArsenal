@@ -76,7 +76,7 @@ const routes = [
       {
         path: 'system/permissions',
         name: 'PermissionList',
-        component: () => import('../views/Placeholder.vue'),
+        component: () => import('../views/PermissionList.vue'),
         meta: {
           title: '权限管理',
           resource: 'PERMISSION'
