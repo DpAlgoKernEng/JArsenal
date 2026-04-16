@@ -74,8 +74,7 @@ const editResourceData = ref(null)
 // 加载资源树
 const loadResources = async () => {
   try {
-    const response = await resourceApi.tree()
-    allResources.value = response.data || []
+    allResources.value = await resourceApi.tree() || []
   } catch (error) {
     // error handled by interceptor
   }

@@ -1,5 +1,4 @@
 <template>
-  <Navbar />
   <div class="permission-list-container">
     <div class="content-card">
       <!-- Tab切换 -->
@@ -17,7 +16,6 @@
 
 <script setup>
 import { ref } from 'vue'
-import Navbar from '../components/Navbar.vue'
 import RolePermissionPanel from '../components/permission/RolePermissionPanel.vue'
 import UserPermissionView from '../components/permission/UserPermissionView.vue'
 

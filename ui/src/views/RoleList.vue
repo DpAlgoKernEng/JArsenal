@@ -32,6 +32,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useRoleStore } from '../stores/role'
 import { roleApi } from '../api/role'
@@ -40,6 +41,7 @@ import RoleDetail from '../components/role/RoleDetail.vue'
 import RoleForm from '../components/role/RoleForm.vue'
 
 const roleStore = useRoleStore()
+const router = useRouter()
 
 // 角色树引用
 const roleTreeRef = ref()
@@ -91,8 +93,8 @@ const handleDelete = async (roleId) => {
 
 // 配置权限
 const handleConfigPermission = (role) => {
-  // TODO: 后续实现权限配置弹窗
-  ElMessage.info('权限配置功能即将上线')
+  // 导航到权限管理页面，自动选中角色
+  router.push(`/system/permissions?roleId=${role.id}`)
 }
 
 // 表单提交成功

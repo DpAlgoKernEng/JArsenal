@@ -1,5 +1,4 @@
 <template>
-  <Navbar />
   <div class="user-list-container">
     <div class="content-card">
       <!-- 搜索表单 -->
@@ -57,7 +56,6 @@ import { Plus } from '@element-plus/icons-vue'
 import { usePagination } from '../composables/usePagination'
 import { usePermission } from '../composables/usePermission'
 import { userApi } from '../api'
-import Navbar from '../components/Navbar.vue'
 import UserSearchForm from '../components/UserSearchForm.vue'
 import UserTable from '../components/UserTable.vue'
 import UserDialog from '../components/UserDialog.vue'
@@ -123,7 +121,7 @@ const showCreateDialog = () => {
 
 // 编辑用户
 const handleEdit = (id) => {
-  router.push(`/users/${id}`)
+  router.push(`/system/users/${id}`)
 }
 
 onMounted(() => {
