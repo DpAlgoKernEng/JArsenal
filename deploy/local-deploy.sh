@@ -11,7 +11,15 @@ echo "=== 本地 Docker Compose 部署 ==="
 # 检查 .env 文件
 if [ ! -f ".env" ]; then
     echo ">>> 创建默认环境配置..."
-    cp .env.example .env
+    cat > .env << 'EOF'
+# 数据库配置
+DB_PASSWORD=rootpassword
+DB_USERNAME=demo
+# Redis 配置
+REDIS_PASSWORD=redispassword
+# JWT 密钥 (必须 >= 32 字符)
+JWT_SECRET=change-this-to-a-strong-random-secret-key-at-least-256-bits
+EOF
     echo "警告: 请修改 .env 文件中的敏感配置!"
 fi
 
@@ -44,7 +52,10 @@ docker-compose ps
 echo ""
 echo "=== 部署完成 ==="
 echo "前端: http://localhost"
-echo "后端 API: http://localhost:8080/api"
+echo "后端 API: http://localhost:8080/api/v1"
+echo "Swagger UI: http://localhost:8080/swagger-ui.html"
 echo "健康检查: http://localhost:8080/actuator/health"
+echo ""
+echo "提示: Flyway 自动执行数据库迁移 (V0-V6)"
 echo ""
 echo "查看日志: docker-compose logs -f"
