@@ -25,7 +25,9 @@ public class PermissionBitmapSerializer extends JsonSerializer<PermissionBitmap>
         gen.writeObjectFieldStart("actionBits");
         Map<Long, BitSet> bits = value.getActionBits();
         for (Map.Entry<Long, BitSet> entry : bits.entrySet()) {
-            gen.writeStringField(String.valueOf(entry.getKey()), bitsToString(entry.getValue()));
+            if (entry.getKey() != null && entry.getValue() != null) {
+                gen.writeStringField(String.valueOf(entry.getKey()), bitsToString(entry.getValue()));
+            }
         }
         gen.writeEndObject();
 
@@ -33,6 +35,9 @@ public class PermissionBitmapSerializer extends JsonSerializer<PermissionBitmap>
     }
 
     private String bitsToString(BitSet bitSet) {
+        if (bitSet == null) {
+            return "";
+        }
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < bitSet.length(); i++) {
             sb.append(bitSet.get(i) ? '1' : '0');

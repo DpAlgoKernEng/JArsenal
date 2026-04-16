@@ -28,7 +28,8 @@ public class PermissionDomainService {
      * 性能从O(n^2)优化到O(n)
      */
     public PermissionBitmap computeUserPermissionBitmap(Long userId) {
-        List<Role> roles = roleRepository.findRolesByUserId(userId);
+        // 使用带权限的角色查询
+        List<Role> roles = roleRepository.findRolesWithPermissionsByUserId(userId);
 
         if (roles.isEmpty()) {
             return PermissionBitmap.empty(System.currentTimeMillis());

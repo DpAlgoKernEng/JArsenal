@@ -30,7 +30,7 @@ class PermissionDomainServiceTest {
 
     @Test
     void shouldComputeEmptyBitmapForNoRoles() {
-        when(roleRepository.findRolesByUserId(1L)).thenReturn(List.of());
+        when(roleRepository.findRolesWithPermissionsByUserId(1L)).thenReturn(List.of());
 
         PermissionBitmap bitmap = service.computeUserPermissionBitmap(1L);
 
@@ -43,7 +43,7 @@ class PermissionDomainServiceTest {
         role.setId(1L);
         role.assignPermission(100L, Set.of(ActionType.VIEW, ActionType.CREATE), PermissionEffect.ALLOW);
 
-        when(roleRepository.findRolesByUserId(1L)).thenReturn(List.of(role));
+        when(roleRepository.findRolesWithPermissionsByUserId(1L)).thenReturn(List.of(role));
 
         PermissionBitmap bitmap = service.computeUserPermissionBitmap(1L);
 
@@ -62,7 +62,7 @@ class PermissionDomainServiceTest {
         role2.setId(2L);
         role2.assignPermission(100L, Set.of(ActionType.CREATE, ActionType.DELETE), PermissionEffect.ALLOW);
 
-        when(roleRepository.findRolesByUserId(1L)).thenReturn(List.of(role1, role2));
+        when(roleRepository.findRolesWithPermissionsByUserId(1L)).thenReturn(List.of(role1, role2));
 
         PermissionBitmap bitmap = service.computeUserPermissionBitmap(1L);
 
@@ -83,7 +83,7 @@ class PermissionDomainServiceTest {
         denyRole.setId(2L);
         denyRole.assignPermission(100L, Set.of(ActionType.DELETE), PermissionEffect.DENY);
 
-        when(roleRepository.findRolesByUserId(1L)).thenReturn(List.of(allowRole, denyRole));
+        when(roleRepository.findRolesWithPermissionsByUserId(1L)).thenReturn(List.of(allowRole, denyRole));
 
         PermissionBitmap bitmap = service.computeUserPermissionBitmap(1L);
 
@@ -103,7 +103,7 @@ class PermissionDomainServiceTest {
         disabledRole.disable();
         disabledRole.assignPermission(100L, Set.of(ActionType.DELETE), PermissionEffect.ALLOW);
 
-        when(roleRepository.findRolesByUserId(1L)).thenReturn(List.of(enabledRole, disabledRole));
+        when(roleRepository.findRolesWithPermissionsByUserId(1L)).thenReturn(List.of(enabledRole, disabledRole));
 
         PermissionBitmap bitmap = service.computeUserPermissionBitmap(1L);
 
@@ -121,7 +121,7 @@ class PermissionDomainServiceTest {
         childRole.setId(2L);
         childRole.assignPermission(200L, Set.of(ActionType.DELETE), PermissionEffect.ALLOW);
 
-        when(roleRepository.findRolesByUserId(1L)).thenReturn(List.of(childRole));
+        when(roleRepository.findRolesWithPermissionsByUserId(1L)).thenReturn(List.of(childRole));
         when(roleRepository.findById(1L)).thenReturn(Optional.of(parentRole));
 
         PermissionBitmap bitmap = service.computeUserPermissionBitmap(1L);
@@ -142,7 +142,7 @@ class PermissionDomainServiceTest {
         // DENY父角色的DELETE权限
         childRole.assignPermission(100L, Set.of(ActionType.DELETE), PermissionEffect.DENY);
 
-        when(roleRepository.findRolesByUserId(1L)).thenReturn(List.of(childRole));
+        when(roleRepository.findRolesWithPermissionsByUserId(1L)).thenReturn(List.of(childRole));
         when(roleRepository.findById(1L)).thenReturn(Optional.of(parentRole));
 
         PermissionBitmap bitmap = service.computeUserPermissionBitmap(1L);
@@ -163,7 +163,7 @@ class PermissionDomainServiceTest {
         childRole.setId(2L);
         childRole.assignPermission(200L, Set.of(ActionType.CREATE), PermissionEffect.ALLOW);
 
-        when(roleRepository.findRolesByUserId(1L)).thenReturn(List.of(childRole));
+        when(roleRepository.findRolesWithPermissionsByUserId(1L)).thenReturn(List.of(childRole));
         when(roleRepository.findById(1L)).thenReturn(Optional.of(parentRole));
 
         PermissionBitmap bitmap = service.computeUserPermissionBitmap(1L);

@@ -170,6 +170,7 @@ public class PermissionQueryService {
 
         // 查找所有父资源（菜单）的code映射
         Map<Long, String> resourceCodeMap = resourceRepository.findAll().stream()
+            .filter(r -> r.getCode() != null)
             .collect(Collectors.toMap(Resource::getId, Resource::getCode));
 
         // 构建操作权限DTO
@@ -218,6 +219,7 @@ public class PermissionQueryService {
 
         // 查找这些资源的敏感字段
         Map<Long, String> resourceCodeMap = resourceRepository.findAll().stream()
+            .filter(r -> r.getCode() != null)
             .collect(Collectors.toMap(Resource::getId, Resource::getCode));
 
         for (Long resourceId : accessibleResourceIds) {

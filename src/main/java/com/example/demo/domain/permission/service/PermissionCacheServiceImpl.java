@@ -3,12 +3,9 @@ package com.example.demo.domain.permission.service;
 import com.example.demo.domain.permission.valueobject.PermissionBitmap;
 import com.example.demo.domain.permission.repository.RoleRepository;
 import com.example.demo.domain.permission.repository.UserRoleRepository;
-import com.example.demo.infrastructure.persistence.serializer.PermissionBitmapSerializer;
-import com.example.demo.infrastructure.persistence.serializer.PermissionBitmapDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -35,8 +32,8 @@ public class PermissionCacheServiceImpl implements PermissionCacheService {
     private final PermissionDomainService permissionDomainService;
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
-    private final RedisTemplate<String, Object> redisTemplate;
-    private final ValueOperations<String, Object> valueOps;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final ObjectMapper objectMapper;
     private final CacheMetricsService metricsService;
 
     private final Cache<Long, PermissionBitmap> localCache;
@@ -50,13 +47,14 @@ public class PermissionCacheServiceImpl implements PermissionCacheService {
     public PermissionCacheServiceImpl(PermissionDomainService permissionDomainService,
                                        UserRoleRepository userRoleRepository,
                                        RoleRepository roleRepository,
-                                       RedisTemplate<String, Object> redisTemplate,
+                                       StringRedisTemplate stringRedisTemplate,
+                                       ObjectMapper objectMapper,
                                        CacheMetricsService metricsService) {
         this.permissionDomainService = permissionDomainService;
         this.userRoleRepository = userRoleRepository;
         this.roleRepository = roleRepository;
-        this.redisTemplate = redisTemplate;
-        this.valueOps = redisTemplate.opsForValue();
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.objectMapper = objectMapper;
         this.metricsService = metricsService;
 
         this.localCache = Caffeine.newBuilder()
@@ -95,7 +93,10 @@ public class PermissionCacheServiceImpl implements PermissionCacheService {
         String key = safeKey(userId);
         PermissionBitmap redisCached = null;
         try {
-            redisCached = (PermissionBitmap) valueOps.get(key);
+            String json = stringRedisTemplate.opsForValue().get(key);
+            if (json != null) {
+                redisCached = objectMapper.readValue(json, PermissionBitmap.class);
+            }
         } catch (Exception e) {
             log.warn("Redis read failed for key {}: {}", key, e.getMessage());
             // Graceful degradation - proceed without L2 cache
@@ -116,7 +117,7 @@ public class PermissionCacheServiceImpl implements PermissionCacheService {
             }
             // Version mismatch - invalidate stale cache
             try {
-                redisTemplate.delete(key);
+                stringRedisTemplate.delete(key);
             } catch (Exception e) {
                 log.warn("Redis delete failed for key {}: {}", key, e.getMessage());
             }
@@ -132,7 +133,8 @@ public class PermissionCacheServiceImpl implements PermissionCacheService {
         // Cache the result (even empty permissions to prevent penetration)
         try {
             long ttl = fresh.getActionBits().isEmpty() ? EMPTY_PERMISSION_TTL : REDIS_EXPIRE_SECONDS;
-            valueOps.set(key, fresh, ttl, TimeUnit.SECONDS);
+            String json = objectMapper.writeValueAsString(fresh);
+            stringRedisTemplate.opsForValue().set(key, json, ttl, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.warn("Redis write failed for key {}: {}", key, e.getMessage());
         }
@@ -152,7 +154,8 @@ public class PermissionCacheServiceImpl implements PermissionCacheService {
 
         // Use short TTL for empty permissions
         try {
-            valueOps.set(key, empty, EMPTY_PERMISSION_TTL, TimeUnit.SECONDS);
+            String json = objectMapper.writeValueAsString(empty);
+            stringRedisTemplate.opsForValue().set(key, json, EMPTY_PERMISSION_TTL, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.warn("Redis write failed for empty permission key {}: {}", key, e.getMessage());
         }
@@ -185,7 +188,7 @@ public class PermissionCacheServiceImpl implements PermissionCacheService {
     public void clearUserPermissions(Long userId) {
         localCache.invalidate(userId);
         try {
-            redisTemplate.delete(safeKey(userId));
+            stringRedisTemplate.delete(safeKey(userId));
         } catch (Exception e) {
             log.warn("Redis delete failed during cache clear: {}", e.getMessage());
         }

@@ -67,6 +67,11 @@ public class RoleRepositoryImpl implements RoleRepository {
     }
 
     @Override
+    public List<Role> findRolesWithPermissionsByUserId(Long userId) {
+        return roleMapper.findRolesWithPermissionsByUserId(userId);
+    }
+
+    @Override
     public void deleteById(Long id) {
         roleMapper.softDelete(id);
     }

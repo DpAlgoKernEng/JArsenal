@@ -22,9 +22,9 @@ public class Role extends BaseEntity<Long> {
     private boolean isDeleted;
     private int version;
     private int sort;
-    private Set<RolePermission> permissions;
-    private Set<RoleDataScope> dataScopes;
-    private List<FieldPermission> fieldPerms;
+    private Set<RolePermission> permissions = new HashSet<>();  // 默认初始化
+    private Set<RoleDataScope> dataScopes = new HashSet<>();    // 默认初始化
+    private List<FieldPermission> fieldPerms = new ArrayList<>(); // 默认初始化
 
     /**
      * 工厂方法：创建角色

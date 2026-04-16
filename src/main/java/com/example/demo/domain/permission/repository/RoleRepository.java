@@ -46,6 +46,12 @@ public interface RoleRepository {
     List<Role> findRolesByUserId(Long userId);
 
     /**
+     * 根据用户ID查找其拥有的角色（包含权限）
+     * 用于权限位图计算
+     */
+    List<Role> findRolesWithPermissionsByUserId(Long userId);
+
+    /**
      * 删除角色
      */
     void deleteById(Long id);

@@ -24,22 +24,38 @@
     <!-- ResultMap for Role with Permissions (for permission bitmap calculation) -->
     <resultMap id="RoleWithPermissionsResultMap" type="com.example.demo.domain.permission.aggregate.Role" extends="RoleResultMap">
         <collection property="permissions" ofType="com.example.demo.domain.permission.valueobject.RolePermission">
-            <result property="resourceId" column="perm_resource_id"/>
-            <result property="effect" column="perm_effect" typeHandler="com.example.demo.infrastructure.persistence.converter.PermissionEffectTypeHandler"/>
-            <result property="actions" column="perm_actions" typeHandler="com.example.demo.infrastructure.persistence.converter.ActionSetTypeHandler"/>
+            <constructor>
+                <idArg column="rp_resource_id" javaType="Long"/>
+                <arg column="rp_actions" typeHandler="com.example.demo.infrastructure.persistence.converter.ActionSetTypeHandler" javaType="java.util.Set"/>
+                <arg column="rp_effect" typeHandler="com.example.demo.infrastructure.persistence.converter.PermissionEffectTypeHandler" javaType="com.example.demo.domain.permission.valueobject.PermissionEffect"/>
+            </constructor>
         </collection>
     </resultMap>
 
     <!-- Query role with its permissions (for permission bitmap calculation) -->
     <select id="findRoleWithPermissions" resultMap="RoleWithPermissionsResultMap">
         SELECT r.*,
-               p.resource_id as perm_resource_id,
-               p.effect as perm_effect,
-               GROUP_CONCAT(pa.action) as perm_actions
+               p.resource_id as rp_resource_id,
+               p.effect as rp_effect,
+               GROUP_CONCAT(pa.action) as rp_actions
         FROM role r
         LEFT JOIN permission p ON r.id = p.role_id
         LEFT JOIN permission_action pa ON p.id = pa.permission_id
         WHERE r.id = #{roleId} AND r.is_deleted = 0
+        GROUP BY r.id, p.id, p.resource_id, p.effect
+    </select>
+
+    <!-- Query user's roles with their permissions -->
+    <select id="findRolesWithPermissionsByUserId" resultMap="RoleWithPermissionsResultMap">
+        SELECT r.*,
+               p.resource_id as rp_resource_id,
+               p.effect as rp_effect,
+               GROUP_CONCAT(pa.action) as rp_actions
+        FROM role r
+        INNER JOIN user_role ur ON r.id = ur.role_id
+        INNER JOIN permission p ON r.id = p.role_id
+        LEFT JOIN permission_action pa ON p.id = pa.permission_id
+        WHERE ur.user_id = #{userId} AND r.is_deleted = 0 AND r.status = 1
         GROUP BY r.id, p.id, p.resource_id, p.effect
     </select>
 

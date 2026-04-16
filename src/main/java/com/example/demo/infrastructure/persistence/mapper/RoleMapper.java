@@ -63,5 +63,7 @@ public interface RoleMapper {
 
     Role findRoleWithPermissions(@Param("roleId") Long roleId);
 
+    List<Role> findRolesWithPermissionsByUserId(@Param("userId") Long userId);
+
     List<Long> findAncestorRoleIds(@Param("roleId") Long roleId);
 }

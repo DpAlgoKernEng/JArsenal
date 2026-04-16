@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -37,6 +38,7 @@ public class RedisConfig {
     /**
      * 用于限流等场景的 StringRedisTemplate (纯字符串序列化)
      * Lua 脚本参数传递需要纯字符串，避免 JSON 序列化导致 tonumber() 失败
+     * 也用于 PermissionBitmap 的手动序列化存储
      */
     @Bean
     public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory factory) {
@@ -46,10 +48,12 @@ public class RedisConfig {
     }
 
     /**
-     * ObjectMapper configured for PermissionBitmap serialization
+     * Primary ObjectMapper configured for PermissionBitmap serialization
+     * Used by PermissionCacheServiceImpl for manual Redis operations
      */
     @Bean
-    public ObjectMapper permissionBitmapObjectMapper() {
+    @Primary
+    public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new SimpleModule()
             .addSerializer(PermissionBitmap.class, new PermissionBitmapSerializer())
