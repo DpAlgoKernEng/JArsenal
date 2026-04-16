@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { usePermissionStore } from '../stores/permission'
-import { initDynamicRoutes, removeDynamicRoutes, cleanupDynamicRoutes } from './dynamicRoutes'
+import Layout from '../components/Layout.vue'
 
 const routes = [
   {
@@ -31,30 +31,58 @@ const routes = [
       title: '无权限'
     }
   },
+  // Layout 路由（包含所有业务页面）
   {
     path: '/',
-    redirect: '/users',
-    meta: {
-      title: '首页'
-    }
-  },
-  {
-    path: '/users',
-    name: 'UserList',
-    component: () => import('../views/UserList.vue'),
-    meta: {
-      title: '用户管理',
-      resource: 'USER'
-    }
-  },
-  {
-    path: '/users/:id',
-    name: 'UserEdit',
-    component: () => import('../views/UserEdit.vue'),
-    meta: {
-      title: '编辑用户',
-      resource: 'USER'
-    }
+    component: Layout,
+    redirect: '/system/users',
+    children: [
+      {
+        path: 'system/users',
+        name: 'UserList',
+        component: () => import('../views/UserList.vue'),
+        meta: {
+          title: '用户管理',
+          resource: 'USER_MANAGE'
+        }
+      },
+      {
+        path: 'system/users/:id',
+        name: 'UserEdit',
+        component: () => import('../views/UserEdit.vue'),
+        meta: {
+          title: '编辑用户',
+          resource: 'USER_MANAGE'
+        }
+      },
+      {
+        path: 'system/roles',
+        name: 'RoleList',
+        component: () => import('../views/RoleList.vue'),
+        meta: {
+          title: '角色管理',
+          resource: 'ROLE_MANAGE'
+        }
+      },
+      {
+        path: 'system/resources',
+        name: 'ResourceList',
+        component: () => import('../views/Placeholder.vue'),
+        meta: {
+          title: '资源管理',
+          resource: 'RESOURCE_MANAGE'
+        }
+      },
+      {
+        path: 'system/permissions',
+        name: 'PermissionList',
+        component: () => import('../views/Placeholder.vue'),
+        meta: {
+          title: '权限管理',
+          resource: 'PERMISSION'
+        }
+      }
+    ]
   },
   {
     path: '/:pathMatch(.*)*',
@@ -71,9 +99,6 @@ const router = createRouter({
   history: createWebHistory(),
   routes
 })
-
-// 标记是否已初始化动态路由
-let dynamicRoutesInitialized = false
 
 // 认证守卫
 router.beforeEach(async (to, from, next) => {
@@ -95,16 +120,10 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
-  // 首次登录后加载权限并初始化动态路由
-  if (!dynamicRoutesInitialized) {
+  // 加载权限（如果未加载）
+  if (!permissionStore.loaded) {
     try {
       await permissionStore.loadPermissions()
-      await initDynamicRoutes(router)
-      dynamicRoutesInitialized = true
-
-      // 重新导航到目标路由（确保动态路由已添加）
-      next({ ...to, replace: true })
-      return
     } catch (error) {
       console.error('加载权限失败:', error)
       next('/login')
@@ -127,9 +146,6 @@ router.beforeEach(async (to, from, next) => {
 export const cleanupPermissionOnLogout = () => {
   const permissionStore = usePermissionStore()
   permissionStore.clearPermissions()
-  removeDynamicRoutes(router)
-  cleanupDynamicRoutes()
-  dynamicRoutesInitialized = false
 }
 
 export default router
