@@ -1,29 +1,46 @@
 package com.example.demo.domain.permission.entity;
 
-import com.example.demo.domain.permission.valueobject.SensitiveLevel;
 import com.example.demo.domain.shared.common.BaseEntity;
 
 /**
  * 字段权限实体
  * 用于定义角色对特定字段的访问权限
+ * 对应数据库表 field_permission (role_id, field_id, can_view, can_edit)
  */
 public class FieldPermission extends BaseEntity<Long> {
 
     private Long roleId;
-    private Long resourceId;
-    private String fieldCode;
-    private SensitiveLevel viewLevel;
+    private Long fieldId;  // 关联 resource_field.id
+    private boolean canView;
     private boolean canEdit;
 
     public FieldPermission() {
     }
 
-    public FieldPermission(Long roleId, Long resourceId, String fieldCode, SensitiveLevel viewLevel) {
-        this.roleId = roleId;
-        this.resourceId = resourceId;
-        this.fieldCode = fieldCode;
-        this.viewLevel = viewLevel;
-        this.canEdit = false;
+    /**
+     * 工厂方法：创建字段权限
+     */
+    public static FieldPermission create(Long roleId, Long fieldId, boolean canView, boolean canEdit) {
+        FieldPermission perm = new FieldPermission();
+        perm.roleId = roleId;
+        perm.fieldId = fieldId;
+        perm.canView = canView;
+        perm.canEdit = canEdit;
+        return perm;
+    }
+
+    /**
+     * 是否可查看字段
+     */
+    public boolean canView() {
+        return canView;
+    }
+
+    /**
+     * 是否可编辑字段
+     */
+    public boolean canEdit() {
+        return canEdit;
     }
 
     @Override
@@ -43,28 +60,20 @@ public class FieldPermission extends BaseEntity<Long> {
         this.roleId = roleId;
     }
 
-    public Long getResourceId() {
-        return resourceId;
+    public Long getFieldId() {
+        return fieldId;
     }
 
-    public void setResourceId(Long resourceId) {
-        this.resourceId = resourceId;
+    public void setFieldId(Long fieldId) {
+        this.fieldId = fieldId;
     }
 
-    public String getFieldCode() {
-        return fieldCode;
+    public boolean isCanView() {
+        return canView;
     }
 
-    public void setFieldCode(String fieldCode) {
-        this.fieldCode = fieldCode;
-    }
-
-    public SensitiveLevel getViewLevel() {
-        return viewLevel;
-    }
-
-    public void setViewLevel(SensitiveLevel viewLevel) {
-        this.viewLevel = viewLevel;
+    public void setCanView(boolean canView) {
+        this.canView = canView;
     }
 
     public boolean isCanEdit() {
