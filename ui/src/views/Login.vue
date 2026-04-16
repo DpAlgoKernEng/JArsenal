@@ -52,6 +52,7 @@ import { User, Lock } from '@element-plus/icons-vue'
 import { authApi } from '../api'
 import { useUserStore } from '../stores/user'
 import { usePermissionStore } from '../stores/permission'
+import { hashPassword } from '../utils/passwordEncrypt'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -73,7 +74,9 @@ const handleLogin = async () => {
   try {
     await formRef.value.validate()
     loading.value = true
-    const data = await authApi.login(form.username, form.password)
+    // 密码哈希后再传输
+    const hashedPassword = hashPassword(form.password)
+    const data = await authApi.login(form.username, hashedPassword)
     userStore.setUser(data)
 
     // 加载用户权限
@@ -84,7 +87,7 @@ const handleLogin = async () => {
     }
 
     ElMessage.success('登录成功')
-    router.push('/users')
+    router.push('/system/users')
   } catch (error) {
     // error handled by interceptor
   } finally {

@@ -58,6 +58,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock, Message } from '@element-plus/icons-vue'
 import { authApi } from '../api'
+import { hashPassword } from '../utils/passwordEncrypt'
 
 const router = useRouter()
 const formRef = ref()
@@ -88,7 +89,9 @@ const handleRegister = async () => {
   try {
     await formRef.value.validate()
     loading.value = true
-    await authApi.register(form.username, form.password, form.email)
+    // 密码哈希后再传输
+    const hashedPassword = hashPassword(form.password)
+    await authApi.register(form.username, hashedPassword, form.email)
     ElMessage.success('注册成功，请登录')
     router.push('/login')
   } catch (error) {

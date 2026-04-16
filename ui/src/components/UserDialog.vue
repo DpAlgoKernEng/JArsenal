@@ -43,6 +43,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { userApi } from '../api'
+import { hashPassword } from '../utils/passwordEncrypt'
 
 const props = defineProps({
   modelValue: {
@@ -127,9 +128,11 @@ const handleSubmit = async () => {
       })
       ElMessage.success('更新成功')
     } else {
+      // 密码哈希后再传输
+      const hashedPassword = hashPassword(form.password)
       await userApi.create({
         username: form.username,
-        password: form.password,
+        password: hashedPassword,
         email: form.email,
         status: form.status
       })
