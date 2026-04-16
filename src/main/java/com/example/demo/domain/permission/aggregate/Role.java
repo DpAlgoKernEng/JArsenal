@@ -177,6 +177,10 @@ public class Role extends BaseEntity<Long> {
     }
 
     public void setParentId(Long parentId) {
+        // 防止自引用循环继承：角色不能以自己为父角色
+        if (parentId != null && this.getId() != null && parentId.equals(this.getId())) {
+            throw new DomainException("角色不能以自己为父角色，这会形成循环继承");
+        }
         this.parentId = parentId;
     }
 
