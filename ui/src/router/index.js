@@ -67,7 +67,7 @@ const routes = [
       {
         path: 'system/resources',
         name: 'ResourceList',
-        component: () => import('../views/Placeholder.vue'),
+        component: () => import('../views/ResourceList.vue'),
         meta: {
           title: '资源管理',
           resource: 'RESOURCE_MANAGE'
