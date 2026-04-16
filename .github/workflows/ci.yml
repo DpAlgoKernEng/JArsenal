@@ -41,10 +41,12 @@ jobs:
         ports:
           - 6379:6379
         options: >-
-          --health-cmd="redis-cli ping"
+          --health-cmd="redis-cli -a root ping | grep -q PONG"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+        # Configure Redis with password matching test environment
+        command: redis-server --requirepass root
 
       zookeeper:
         image: confluentinc/cp-zookeeper:7.6.0
@@ -93,6 +95,7 @@ jobs:
           DB_PASSWORD: root
           REDIS_HOST: 127.0.0.1
           REDIS_PORT: 6379
+          REDIS_PASSWORD: root
           KAFKA_BOOTSTRAP_SERVERS: 127.0.0.1:9092
           JWT_SECRET: test-secret-key-at-least-256-bits-long-for-ci-testing
 
