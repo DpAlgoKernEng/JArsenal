@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: jarsenal
-  namespace: jarsenal
+  name: jguard
+  namespace: jguard
   labels:
-    app: jarsenal
+    app: jguard
     version: IMAGE_TAG
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: jarsenal
+      app: jguard
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -19,11 +19,11 @@ spec:
   template:
     metadata:
       labels:
-        app: jarsenal
+        app: jguard
         version: IMAGE_TAG
     spec:
       containers:
-        - name: jarsenal
+        - name: jguard
           image: IMAGE_REGISTRY:IMAGE_TAG
           imagePullPolicy: Always
           ports:
@@ -32,9 +32,9 @@ spec:
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: jarsenal-config
+                name: jguard-config
             - secretRef:
-                name: jarsenal-secret
+                name: jguard-secret
           resources:
             requests:
               memory: "512Mi"
@@ -60,7 +60,7 @@ spec:
             failureThreshold: 3
           volumeMounts:
             - name: logs
-              mountPath: /var/log/demo
+              mountPath: /var/log/jguard
       volumes:
         - name: logs
           emptyDir: {}
@@ -74,5 +74,5 @@ spec:
                     - key: app
                       operator: In
                       values:
-                        - jarsenal
+                        - jguard
                 topologyKey: kubernetes.io/hostname

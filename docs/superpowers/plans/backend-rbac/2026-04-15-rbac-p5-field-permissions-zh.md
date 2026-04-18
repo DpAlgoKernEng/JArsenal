@@ -15,7 +15,7 @@
 ## 文件结构
 
 ```
-src/main/java/com/example/demo/
+src/main/java/com/jguard/
 ├── domain/permission/
 │   └ service/
 │       ├── FieldPermissionService.java   # 字段脱敏服务
@@ -38,7 +38,7 @@ src/main/java/com/example/demo/
 ├── aspect/
 │   ├── FieldPermissionAspect.java        # 响应处理 AOP
 
-src/test/java/com/example/demo/
+src/test/java/com/jguard/
 ├── service/
 │   ├── FieldPermissionServiceTest.java
 │   ├── FieldMaskingTest.java
@@ -50,12 +50,12 @@ src/test/java/com/example/demo/
 ## 任务 1：创建 FieldAccessor 缓存
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/entity/FieldAccessor.java`
+- 创建：`src/main/java/com/jguard/domain/permission/entity/FieldAccessor.java`
 
 - [ ] **步骤 1：编写 FieldAccessor（缓存优化反射）**
 
 ```java
-package com.example.demo.domain.permission.entity;
+package com.jguard.domain.permission.entity;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -128,7 +128,7 @@ public class FieldAccessor {
 - [ ] **步骤 2：提交字段访问器**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/entity/FieldAccessor.java
+git add src/main/java/com/jguard/domain/permission/entity/FieldAccessor.java
 git commit -m "feat(rbac): add cached FieldAccessor for reflection optimization"
 ```
 
@@ -137,20 +137,20 @@ git commit -m "feat(rbac): add cached FieldAccessor for reflection optimization"
 ## 任务 2：创建 FieldPermissionService
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/service/FieldPermissionService.java`
+- 创建：`src/main/java/com/jguard/domain/permission/service/FieldPermissionService.java`
 
 - [ ] **步骤 1：编写 FieldPermissionService**
 
 ```java
-package com.example.demo.domain.permission.service;
+package com.jguard.domain.permission.service;
 
-import com.example.demo.domain.permission.aggregate.Resource;
-import com.example.demo.domain.permission.aggregate.ResourceField;
-import com.example.demo.domain.permission.entity.FieldAccessor;
-import com.example.demo.domain.permission.valueobject.SensitiveLevel;
-import com.example.demo.domain.permission.repository.ResourceRepository;
-import com.example.demo.domain.permission.repository.FieldPermissionRepository;
-import com.example.demo.security.UserContext;
+import com.jguard.domain.permission.aggregate.Resource;
+import com.jguard.domain.permission.aggregate.ResourceField;
+import com.jguard.domain.permission.entity.FieldAccessor;
+import com.jguard.domain.permission.valueobject.SensitiveLevel;
+import com.jguard.domain.permission.repository.ResourceRepository;
+import com.jguard.domain.permission.repository.FieldPermissionRepository;
+import com.jguard.security.UserContext;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
@@ -329,7 +329,7 @@ public class FieldPermissionService {
 - [ ] **步骤 2：提交服务**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/service/FieldPermissionService.java
+git add src/main/java/com/jguard/domain/permission/service/FieldPermissionService.java
 git commit -m "feat(rbac): add FieldPermissionService for field masking"
 ```
 
@@ -338,15 +338,15 @@ git commit -m "feat(rbac): add FieldPermissionService for field masking"
 ## 任务 3：创建仓储接口
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/repository/ResourceFieldRepository.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/repository/FieldPermissionRepository.java`
+- 创建：`src/main/java/com/jguard/domain/permission/repository/ResourceFieldRepository.java`
+- 创建：`src/main/java/com/jguard/domain/permission/repository/FieldPermissionRepository.java`
 
 - [ ] **步骤 1：编写 ResourceFieldRepository 接口**
 
 ```java
-package com.example.demo.domain.permission.repository;
+package com.jguard.domain.permission.repository;
 
-import com.example.demo.domain.permission.aggregate.ResourceField;
+import com.jguard.domain.permission.aggregate.ResourceField;
 import java.util.List;
 import java.util.Optional;
 
@@ -367,9 +367,9 @@ public interface ResourceFieldRepository {
 - [ ] **步骤 2：编写 FieldPermissionRepository 接口**
 
 ```java
-package com.example.demo.domain.permission.repository;
+package com.jguard.domain.permission.repository;
 
-import com.example.demo.domain.permission.entity.FieldPermission;
+import com.jguard.domain.permission.entity.FieldPermission;
 import java.util.List;
 
 public interface FieldPermissionRepository {
@@ -389,8 +389,8 @@ public interface FieldPermissionRepository {
 - [ ] **步骤 3：提交仓储接口**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/repository/ResourceFieldRepository.java \
-        src/main/java/com/example/demo/domain/permission/repository/FieldPermissionRepository.java
+git add src/main/java/com/jguard/domain/permission/repository/ResourceFieldRepository.java \
+        src/main/java/com/jguard/domain/permission/repository/FieldPermissionRepository.java
 git commit -m "feat(rbac): add field permission repository interfaces"
 ```
 
@@ -399,15 +399,15 @@ git commit -m "feat(rbac): add field permission repository interfaces"
 ## 任务 4：创建字段权限 Mapper
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/ResourceFieldMapper.java`
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/FieldPermissionMapper.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/mapper/ResourceFieldMapper.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/mapper/FieldPermissionMapper.java`
 
 - [ ] **步骤 1：编写 ResourceFieldMapper**
 
 ```java
-package com.example.demo.infrastructure.persistence.mapper;
+package com.jguard.infrastructure.persistence.mapper;
 
-import com.example.demo.domain.permission.aggregate.ResourceField;
+import com.jguard.domain.permission.aggregate.ResourceField;
 import org.apache.ibatis.annotations.*;
 import java.util.List;
 
@@ -436,9 +436,9 @@ public interface ResourceFieldMapper {
 - [ ] **步骤 2：编写 FieldPermissionMapper**
 
 ```java
-package com.example.demo.infrastructure.persistence.mapper;
+package com.jguard.infrastructure.persistence.mapper;
 
-import com.example.demo.domain.permission.entity.FieldPermission;
+import com.jguard.domain.permission.entity.FieldPermission;
 import org.apache.ibatis.annotations.*;
 import java.util.List;
 
@@ -469,8 +469,8 @@ public interface FieldPermissionMapper {
 - [ ] **步骤 3：提交 mapper**
 
 ```bash
-git add src/main/java/com/example/demo/infrastructure/persistence/mapper/ResourceFieldMapper.java \
-        src/main/java/com/example/demo/infrastructure/persistence/mapper/FieldPermissionMapper.java
+git add src/main/java/com/jguard/infrastructure/persistence/mapper/ResourceFieldMapper.java \
+        src/main/java/com/jguard/infrastructure/persistence/mapper/FieldPermissionMapper.java
 git commit -m "feat(rbac): add field permission mappers"
 ```
 
@@ -479,13 +479,13 @@ git commit -m "feat(rbac): add field permission mappers"
 ## 任务 4：创建 FieldPermissionAspect
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/annotation/FieldPermissionCheck.java`
-- 创建：`src/main/java/com/example/demo/aspect/FieldPermissionAspect.java`
+- 创建：`src/main/java/com/jguard/annotation/FieldPermissionCheck.java`
+- 创建：`src/main/java/com/jguard/aspect/FieldPermissionAspect.java`
 
 - [ ] **步骤 1：编写 @FieldPermissionCheck 注解**
 
 ```java
-package com.example.demo.annotation;
+package com.jguard.annotation;
 
 import java.lang.annotation.*;
 
@@ -501,10 +501,10 @@ public @interface FieldPermissionCheck {
 - [ ] **步骤 2：编写 FieldPermissionAspect**
 
 ```java
-package com.example.demo.aspect;
+package com.jguard.aspect;
 
-import com.example.demo.annotation.FieldPermissionCheck;
-import com.example.demo.domain.permission.service.FieldPermissionService;
+import com.jguard.annotation.FieldPermissionCheck;
+import com.jguard.domain.permission.service.FieldPermissionService;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -532,8 +532,8 @@ public class FieldPermissionAspect {
 - [ ] **步骤 3：提交切面**
 
 ```bash
-git add src/main/java/com/example/demo/annotation/FieldPermissionCheck.java \
-        src/main/java/com/example/demo/aspect/FieldPermissionAspect.java
+git add src/main/java/com/jguard/annotation/FieldPermissionCheck.java \
+        src/main/java/com/jguard/aspect/FieldPermissionAspect.java
 git commit -m "feat(rbac): add FieldPermissionAspect for response processing"
 ```
 
@@ -542,7 +542,7 @@ git commit -m "feat(rbac): add FieldPermissionAspect for response processing"
 ## 任务 5：UserService 使用示例
 
 **文件：**
-- 修改：`src/main/java/com/example/demo/service/UserService.java`（展示示例）
+- 修改：`src/main/java/com/jguard/service/UserService.java`（展示示例）
 
 - [ ] **步骤 1：应用字段权限检查**
 
@@ -572,7 +572,7 @@ public void updateUser(UserUpdateRequest request) {
 - [ ] **步骤 2：提交示例**
 
 ```bash
-git add src/main/java/com/example/demo/service/UserService.java
+git add src/main/java/com/jguard/service/UserService.java
 git commit -m "feat(rbac): apply field permission to UserService"
 ```
 
@@ -598,18 +598,18 @@ INSERT INTO resource_field (resource_id, field_code, field_name, sensitive_level
 ## 任务 7：为测试创建临时敏感字段数据
 
 **文件：**
-- 创建：`src/test/java/com/example/demo/service/FieldPermissionTestData.java`
+- 创建：`src/test/java/com/jguard/service/FieldPermissionTestData.java`
 
 - [ ] **步骤 1：创建测试数据初始化类**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.aggregate.Resource;
-import com.example.demo.domain.permission.aggregate.ResourceField;
-import com.example.demo.domain.permission.valueobject.SensitiveLevel;
-import com.example.demo.domain.permission.repository.ResourceRepository;
-import com.example.demo.domain.permission.repository.ResourceFieldRepository;
+import com.jguard.domain.permission.aggregate.Resource;
+import com.jguard.domain.permission.aggregate.ResourceField;
+import com.jguard.domain.permission.valueobject.SensitiveLevel;
+import com.jguard.domain.permission.repository.ResourceRepository;
+import com.jguard.domain.permission.repository.ResourceFieldRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -673,7 +673,7 @@ public abstract class FieldPermissionTestData {
 - [ ] **步骤 2：提交测试数据基类**
 
 ```bash
-git add src/test/java/com/example/demo/service/FieldPermissionTestData.java
+git add src/test/java/com/jguard/service/FieldPermissionTestData.java
 git commit -m "feat(rbac): add field permission test data setup"
 ```
 
@@ -682,19 +682,19 @@ git commit -m "feat(rbac): add field permission test data setup"
 ## 任务 8：创建字段权限继承测试（新增）
 
 **文件：**
-- 创建：`src/test/java/com/example/demo/service/FieldPermissionInheritanceTest.java`
+- 创建：`src/test/java/com/jguard/service/FieldPermissionInheritanceTest.java`
 
 - [ ] **步骤 1：编写字段权限继承测试**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.aggregate.Role;
-import com.example.demo.domain.permission.entity.FieldPermission;
-import com.example.demo.domain.permission.valueobject.RoleCode;
-import com.example.demo.domain.permission.valueobject.InheritMode;
-import com.example.demo.domain.permission.valueobject.RoleStatus;
-import com.example.demo.domain.permission.service.FieldPermissionService;
+import com.jguard.domain.permission.aggregate.Role;
+import com.jguard.domain.permission.entity.FieldPermission;
+import com.jguard.domain.permission.valueobject.RoleCode;
+import com.jguard.domain.permission.valueobject.InheritMode;
+import com.jguard.domain.permission.valueobject.RoleStatus;
+import com.jguard.domain.permission.service.FieldPermissionService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mock;
@@ -808,7 +808,7 @@ class FieldPermissionInheritanceTest {
 - [ ] **步骤 2：提交测试**
 
 ```bash
-git add src/test/java/com/example/demo/service/FieldPermissionInheritanceTest.java
+git add src/test/java/com/jguard/service/FieldPermissionInheritanceTest.java
 git commit -m "feat(rbac): add field permission inheritance and multi-role merge tests"
 ```
 
@@ -834,16 +834,16 @@ git commit -m "feat(rbac): add field permission inheritance and multi-role merge
 ## 任务 9：字段权限实时校验 API（新增 - 改进点）
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/controller/FieldPermissionController.java`
-- 创建：`src/main/java/com/example/demo/service/dto/FieldPermissionCheckRequest.java`
-- 创建：`src/main/java/com/example/demo/service/dto/FieldPermissionCheckResponse.java`
+- 创建：`src/main/java/com/jguard/controller/FieldPermissionController.java`
+- 创建：`src/main/java/com/jguard/service/dto/FieldPermissionCheckRequest.java`
+- 创建：`src/main/java/com/jguard/service/dto/FieldPermissionCheckResponse.java`
 
 > **改进点：** 字段权限编辑时需要实时校验API，用于前端动态提示用户是否可编辑特定字段。
 
 - [ ] **步骤 1：编写字段权限校验 DTO**
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
@@ -857,7 +857,7 @@ public record FieldPermissionCheckRequest(
 ```
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 public record FieldPermissionCheckResponse(
     String fieldCode,
@@ -871,18 +871,18 @@ public record FieldPermissionCheckResponse(
 - [ ] **步骤 2：编写 FieldPermissionController**
 
 ```java
-package com.example.demo.controller;
+package com.jguard.controller;
 
-import com.example.demo.common.Result;
-import com.example.demo.domain.permission.aggregate.Resource;
-import com.example.demo.domain.permission.aggregate.ResourceField;
-import com.example.demo.domain.permission.entity.FieldPermission;
-import com.example.demo.domain.permission.repository.ResourceRepository;
-import com.example.demo.domain.permission.repository.ResourceFieldRepository;
-import com.example.demo.domain.permission.service.FieldPermissionService;
-import com.example.demo.security.UserContext;
-import com.example.demo.service.dto.FieldPermissionCheckRequest;
-import com.example.demo.service.dto.FieldPermissionCheckResponse;
+import com.jguard.common.Result;
+import com.jguard.domain.permission.aggregate.Resource;
+import com.jguard.domain.permission.aggregate.ResourceField;
+import com.jguard.domain.permission.entity.FieldPermission;
+import com.jguard.domain.permission.repository.ResourceRepository;
+import com.jguard.domain.permission.repository.ResourceFieldRepository;
+import com.jguard.domain.permission.service.FieldPermissionService;
+import com.jguard.security.UserContext;
+import com.jguard.service.dto.FieldPermissionCheckRequest;
+import com.jguard.service.dto.FieldPermissionCheckResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
@@ -932,7 +932,7 @@ public class FieldPermissionController {
         FieldPermission perm = perms.get(field.getId());
         
         boolean canView = perm != null ? perm.canView() : 
-            field.getSensitiveLevel() != com.example.demo.domain.permission.valueobject.SensitiveLevel.HIDDEN;
+            field.getSensitiveLevel() != com.jguard.domain.permission.valueobject.SensitiveLevel.HIDDEN;
         boolean canEdit = perm != null ? perm.canEdit() : false;
         
         return Result.success(new FieldPermissionCheckResponse(
@@ -971,7 +971,7 @@ public class FieldPermissionController {
             FieldPermission perm = perms.get(field.getId());
             
             boolean canView = perm != null ? perm.canView() : 
-                field.getSensitiveLevel() != com.example.demo.domain.permission.valueobject.SensitiveLevel.HIDDEN;
+                field.getSensitiveLevel() != com.jguard.domain.permission.valueobject.SensitiveLevel.HIDDEN;
             boolean canEdit = perm != null ? perm.canEdit() : false;
             
             responses.add(new FieldPermissionCheckResponse(
@@ -991,9 +991,9 @@ public class FieldPermissionController {
 - [ ] **步骤 3：提交字段权限校验 API**
 
 ```bash
-git add src/main/java/com/example/demo/controller/FieldPermissionController.java \
-        src/main/java/com/example/demo/service/dto/FieldPermissionCheckRequest.java \
-        src/main/java/com/example/demo/service/dto/FieldPermissionCheckResponse.java
+git add src/main/java/com/jguard/controller/FieldPermissionController.java \
+        src/main/java/com/jguard/service/dto/FieldPermissionCheckRequest.java \
+        src/main/java/com/jguard/service/dto/FieldPermissionCheckResponse.java
 git commit -m "feat(rbac): add field permission real-time check API for frontend validation"
 ```
 

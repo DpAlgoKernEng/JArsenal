@@ -15,7 +15,7 @@
 ## 文件结构
 
 ```
-src/main/java/com/example/demo/
+src/main/java/com/jguard/
 ├── controller/
 │   └ ResourceController.java           # 资源 CRUD API
 ├── service/
@@ -37,13 +37,13 @@ ui/src/views/
 ## 任务 1：创建资源 DTO
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/service/dto/ResourceCreateRequest.java`
-- 创建：`src/main/java/com/example/demo/service/dto/ResourceResponse.java`
+- 创建：`src/main/java/com/jguard/service/dto/ResourceCreateRequest.java`
+- 创建：`src/main/java/com/jguard/service/dto/ResourceResponse.java`
 
 - [ ] **步骤 1：编写资源 DTO**
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import jakarta.validation.constraints.*;
 
@@ -75,7 +75,7 @@ public record ResourceCreateRequest(
 ```
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import java.util.List;
 
@@ -99,8 +99,8 @@ public record ResourceResponse(
 - [ ] **步骤 2：提交 DTO**
 
 ```bash
-git add src/main/java/com/example/demo/service/dto/ResourceCreateRequest.java \
-        src/main/java/com/example/demo/service/dto/ResourceResponse.java
+git add src/main/java/com/jguard/service/dto/ResourceCreateRequest.java \
+        src/main/java/com/jguard/service/dto/ResourceResponse.java
 git commit -m "feat(rbac): add resource DTOs with validation"
 ```
 
@@ -109,20 +109,20 @@ git commit -m "feat(rbac): add resource DTOs with validation"
 ## 任务 2：创建 ResourceService
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/service/ResourceService.java`
+- 创建：`src/main/java/com/jguard/service/ResourceService.java`
 
 - [ ] **步骤 1：编写 ResourceService**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.aggregate.Resource;
-import com.example.demo.domain.permission.aggregate.ResourceField;
-import com.example.demo.domain.permission.valueobject.*;
-import com.example.demo.domain.permission.repository.ResourceRepository;
-import com.example.demo.domain.permission.repository.ResourceFieldRepository;
-import com.example.demo.service.dto.*;
-import com.example.demo.exception.BusinessException;
+import com.jguard.domain.permission.aggregate.Resource;
+import com.jguard.domain.permission.aggregate.ResourceField;
+import com.jguard.domain.permission.valueobject.*;
+import com.jguard.domain.permission.repository.ResourceRepository;
+import com.jguard.domain.permission.repository.ResourceFieldRepository;
+import com.jguard.service.dto.*;
+import com.jguard.exception.BusinessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
@@ -280,7 +280,7 @@ public class ResourceService {
 - [ ] **步骤 2：提交 ResourceService**
 
 ```bash
-git add src/main/java/com/example/demo/service/ResourceService.java
+git add src/main/java/com/jguard/service/ResourceService.java
 git commit -m "feat(rbac): add ResourceService for resource management"
 ```
 
@@ -289,13 +289,13 @@ git commit -m "feat(rbac): add ResourceService for resource management"
 ## 任务 2.5：创建资源相关DTO
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/service/dto/SensitiveFieldResponse.java`
-- 创建：`src/main/java/com/example/demo/service/dto/ResourceTreeResponse.java`
+- 创建：`src/main/java/com/jguard/service/dto/SensitiveFieldResponse.java`
+- 创建：`src/main/java/com/jguard/service/dto/ResourceTreeResponse.java`
 
 - [ ] **步骤 1：编写 SensitiveFieldResponse DTO**
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 public record SensitiveFieldResponse(
     Long id,
@@ -309,7 +309,7 @@ public record SensitiveFieldResponse(
 - [ ] **步骤 2：编写 ResourceTreeResponse DTO**
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import java.util.List;
 
@@ -326,8 +326,8 @@ public record ResourceTreeResponse(
 - [ ] **步骤 3：提交 DTO**
 
 ```bash
-git add src/main/java/com/example/demo/service/dto/SensitiveFieldResponse.java \
-        src/main/java/com/example/demo/service/dto/ResourceTreeResponse.java
+git add src/main/java/com/jguard/service/dto/SensitiveFieldResponse.java \
+        src/main/java/com/jguard/service/dto/ResourceTreeResponse.java
 git commit -m "feat(rbac): add resource-related DTOs"
 ```
 
@@ -336,16 +336,16 @@ git commit -m "feat(rbac): add resource-related DTOs"
 ## 任务 3：创建 ResourceController
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/controller/ResourceController.java`
+- 创建：`src/main/java/com/jguard/controller/ResourceController.java`
 
 - [ ] **步骤 1：编写 ResourceController**
 
 ```java
-package com.example.demo.controller;
+package com.jguard.controller;
 
-import com.example.demo.common.Result;
-import com.example.demo.service.ResourceService;
-import com.example.demo.service.dto.*;
+import com.jguard.common.Result;
+import com.jguard.service.ResourceService;
+import com.jguard.service.dto.*;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -409,7 +409,7 @@ public class ResourceController {
 - [ ] **步骤 2：提交 ResourceController**
 
 ```bash
-git add src/main/java/com/example/demo/controller/ResourceController.java
+git add src/main/java/com/jguard/controller/ResourceController.java
 git commit -m "feat(rbac): add ResourceController REST API"
 ```
 
@@ -917,16 +917,16 @@ npm install -D vitest @vue/test-utils
 ## 任务 6：资源批量导入 API（新增 - 改进点）
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/service/dto/ResourceBatchImportRequest.java`
-- 修改：`src/main/java/com/example/demo/service/ResourceService.java`
-- 修改：`src/main/java/com/example/demo/controller/ResourceController.java`
+- 创建：`src/main/java/com/jguard/service/dto/ResourceBatchImportRequest.java`
+- 修改：`src/main/java/com/jguard/service/ResourceService.java`
+- 修改：`src/main/java/com/jguard/controller/ResourceController.java`
 
 > **改进点：** 支持资源批量导入，用于初始化大量菜单/API资源，减少多次HTTP请求开销。
 
 - [ ] **步骤 1：编写 ResourceBatchImportRequest DTO**
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -1064,9 +1064,9 @@ public Result<Map<String, Object>> importFromJson(@RequestBody String jsonConten
 - [ ] **步骤 4：提交批量导入 API**
 
 ```bash
-git add src/main/java/com/example/demo/service/dto/ResourceBatchImportRequest.java \
-        src/main/java/com/example/demo/service/ResourceService.java \
-        src/main/java/com/example/demo/controller/ResourceController.java
+git add src/main/java/com/jguard/service/dto/ResourceBatchImportRequest.java \
+        src/main/java/com/jguard/service/ResourceService.java \
+        src/main/java/com/jguard/controller/ResourceController.java
 git commit -m "feat(rbac): add resource batch import API for efficient initialization"
 ```
 

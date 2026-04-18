@@ -15,15 +15,15 @@
 ## 文件结构
 
 ```
-src/main/java/com/example/demo/domain/permission/service/
+src/main/java/com/jguard/domain/permission/service/
 ├── PermissionCacheService.java           # 增强现有（修改）
 ├── PermissionCacheConfig.java            # 缓存配置
 ├── CacheMetricsService.java              # 缓存指标/监控
 
-src/main/java/com/example/demo/config/
+src/main/java/com/jguard/config/
 ├── CacheConfig.java                      # Spring 缓存配置
 
-src/test/java/com/example/demo/service/
+src/test/java/com/jguard/service/
 ├── PermissionCacheServiceTest.java       # 全面缓存测试
 ├── CacheKeySecurityTest.java             # 安全测试
 ├── CachePenetrationTest.java             # 穿透测试
@@ -34,7 +34,7 @@ src/test/java/com/example/demo/service/
 ## 任务 1：增强 PermissionCacheService
 
 **文件：**
-- 修改：`src/main/java/com/example/demo/domain/permission/service/PermissionCacheService.java`
+- 修改：`src/main/java/com/jguard/domain/permission/service/PermissionCacheService.java`
 
 - [ ] **步骤 1：添加缓存穿透防护**
 
@@ -100,7 +100,7 @@ public PermissionBitmap getPermissionBitmap(Long userId) {
 - [ ] **步骤 2：提交缓存增强**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/service/PermissionCacheService.java
+git add src/main/java/com/jguard/domain/permission/service/PermissionCacheService.java
 git commit -m "feat(rbac): add cache penetration protection to PermissionCacheService"
 ```
 
@@ -109,12 +109,12 @@ git commit -m "feat(rbac): add cache penetration protection to PermissionCacheSe
 ## 任务 2：创建 CacheMetricsService
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/service/CacheMetricsService.java`
+- 创建：`src/main/java/com/jguard/domain/permission/service/CacheMetricsService.java`
 
 - [ ] **步骤 1：编写缓存指标服务**
 
 ```java
-package com.example.demo.domain.permission.service;
+package com.jguard.domain.permission.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -186,7 +186,7 @@ record CacheMetrics(
 - [ ] **步骤 2：提交指标服务**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/service/CacheMetricsService.java
+git add src/main/java/com/jguard/domain/permission/service/CacheMetricsService.java
 git commit -m "feat(rbac): add CacheMetricsService for cache monitoring"
 ```
 
@@ -195,13 +195,13 @@ git commit -m "feat(rbac): add CacheMetricsService for cache monitoring"
 ## 任务 3：创建安全测试
 
 **文件：**
-- 创建：`src/test/java/com/example/demo/service/CacheKeySecurityTest.java`
-- 创建：`src/test/java/com/example/demo/service/CachePenetrationTest.java`
+- 创建：`src/test/java/com/jguard/service/CacheKeySecurityTest.java`
+- 创建：`src/test/java/com/jguard/service/CachePenetrationTest.java`
 
 - [ ] **步骤 1：编写 CacheKeySecurityTest**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
 import org.junit.jupiter.api.Test;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -257,13 +257,13 @@ class CacheKeySecurityTest {
 - [ ] **步骤 2：编写 CachePenetrationTest（更新版 - 完整依赖注入）**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.service.PermissionCacheService;
-import com.example.demo.domain.permission.service.PermissionDomainService;
-import com.example.demo.domain.permission.valueobject.PermissionBitmap;
-import com.example.demo.domain.permission.repository.RoleRepository;
-import com.example.demo.domain.permission.repository.UserRoleRepository;
+import com.jguard.domain.permission.service.PermissionCacheService;
+import com.jguard.domain.permission.service.PermissionDomainService;
+import com.jguard.domain.permission.valueobject.PermissionBitmap;
+import com.jguard.domain.permission.repository.RoleRepository;
+import com.jguard.domain.permission.repository.UserRoleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -378,8 +378,8 @@ class CachePenetrationTest {
 - [ ] **步骤 3：提交安全测试**
 
 ```bash
-git add src/test/java/com/example/demo/service/CacheKeySecurityTest.java \
-        src/test/java/com/example/demo/service/CachePenetrationTest.java
+git add src/test/java/com/jguard/service/CacheKeySecurityTest.java \
+        src/test/java/com/jguard/service/CachePenetrationTest.java
 git commit -m "feat(rbac): add cache security and penetration tests"
 ```
 
@@ -388,16 +388,16 @@ git commit -m "feat(rbac): add cache security and penetration tests"
 ## 任务 4：配置 Redis 序列化
 
 **文件：**
-- 修改：`src/main/java/com/example/demo/config/RedisConfig.java`
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/serializer/PermissionBitmapSerializer.java`
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/serializer/PermissionBitmapDeserializer.java`
+- 修改：`src/main/java/com/jguard/config/RedisConfig.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/serializer/PermissionBitmapSerializer.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/serializer/PermissionBitmapDeserializer.java`
 
 - [ ] **步骤 1：编写 PermissionBitmapSerializer**
 
 ```java
-package com.example.demo.infrastructure.persistence.serializer;
+package com.jguard.infrastructure.persistence.serializer;
 
-import com.example.demo.domain.permission.valueobject.PermissionBitmap;
+import com.jguard.domain.permission.valueobject.PermissionBitmap;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
@@ -440,9 +440,9 @@ public class PermissionBitmapSerializer extends JsonSerializer<PermissionBitmap>
 - [ ] **步骤 2：编写 PermissionBitmapDeserializer**
 
 ```java
-package com.example.demo.infrastructure.persistence.serializer;
+package com.jguard.infrastructure.persistence.serializer;
 
-import com.example.demo.domain.permission.valueobject.PermissionBitmap;
+import com.jguard.domain.permission.valueobject.PermissionBitmap;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
@@ -516,9 +516,9 @@ public RedisTemplate<String, PermissionBitmap> permissionBitmapRedisTemplate(Red
 - [ ] **步骤 4：提交 Redis 配置**
 
 ```bash
-git add src/main/java/com/example/demo/config/RedisConfig.java \
-        src/main/java/com/example/demo/infrastructure/persistence/serializer/PermissionBitmapSerializer.java \
-        src/main/java/com/example/demo/infrastructure/persistence/serializer/PermissionBitmapDeserializer.java
+git add src/main/java/com/jguard/config/RedisConfig.java \
+        src/main/java/com/jguard/infrastructure/persistence/serializer/PermissionBitmapSerializer.java \
+        src/main/java/com/jguard/infrastructure/persistence/serializer/PermissionBitmapDeserializer.java
 git commit -m "feat(rbac): add complete PermissionBitmap Redis serializers"
 ```
 
@@ -527,14 +527,14 @@ git commit -m "feat(rbac): add complete PermissionBitmap Redis serializers"
 ## 任务 5：添加启动时缓存预热
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/service/CacheWarmupService.java`
+- 创建：`src/main/java/com/jguard/domain/permission/service/CacheWarmupService.java`
 
 - [ ] **步骤 1：编写缓存预热服务**
 
 ```java
-package com.example.demo.domain.permission.service;
+package com.jguard.domain.permission.service;
 
-import com.example.demo.domain.permission.repository.UserRoleRepository;
+import com.jguard.domain.permission.repository.UserRoleRepository;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -567,7 +567,7 @@ public class CacheWarmupService {
 - [ ] **步骤 2：提交预热服务**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/service/CacheWarmupService.java
+git add src/main/java/com/jguard/domain/permission/service/CacheWarmupService.java
 git commit -m "feat(rbac): add cache warmup on application startup"
 ```
 
@@ -576,17 +576,17 @@ git commit -m "feat(rbac): add cache warmup on application startup"
 ## 任务 6：创建 PermissionBitmap 序列化测试（新增）
 
 **文件：**
-- 创建：`src/test/java/com/example/demo/service/PermissionBitmapSerializationTest.java`
+- 创建：`src/test/java/com/jguard/service/PermissionBitmapSerializationTest.java`
 
 - [ ] **步骤 1：编写序列化/反序列化测试**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.valueobject.PermissionBitmap;
-import com.example.demo.domain.permission.valueobject.ActionType;
-import com.example.demo.infrastructure.persistence.serializer.PermissionBitmapSerializer;
-import com.example.demo.infrastructure.persistence.serializer.PermissionBitmapDeserializer;
+import com.jguard.domain.permission.valueobject.PermissionBitmap;
+import com.jguard.domain.permission.valueobject.ActionType;
+import com.jguard.infrastructure.persistence.serializer.PermissionBitmapSerializer;
+import com.jguard.infrastructure.persistence.serializer.PermissionBitmapDeserializer;
 import org.junit.jupiter.api.Test;
 import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
@@ -700,7 +700,7 @@ class PermissionBitmapSerializationTest {
 - [ ] **步骤 2：提交测试**
 
 ```bash
-git add src/test/java/com/example/demo/service/PermissionBitmapSerializationTest.java
+git add src/test/java/com/jguard/service/PermissionBitmapSerializationTest.java
 git commit -m "feat(rbac): add PermissionBitmap serialization/deserialization tests"
 ```
 
@@ -725,18 +725,18 @@ git commit -m "feat(rbac): add PermissionBitmap serialization/deserialization te
 ## 任务 7：缓存命中率监控端点（新增 - 改进点）
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/controller/CacheMetricsController.java`
+- 创建：`src/main/java/com/jguard/controller/CacheMetricsController.java`
 
 > **改进点：** 添加缓存命中率监控端点，用于运维监控和性能调优。
 
 - [ ] **步骤 1：编写 CacheMetricsController**
 
 ```java
-package com.example.demo.controller;
+package com.jguard.controller;
 
-import com.example.demo.common.Result;
-import com.example.demo.domain.permission.service.CacheMetricsService;
-import com.example.demo.domain.permission.service.CacheMetricsService.CacheMetrics;
+import com.jguard.common.Result;
+import com.jguard.domain.permission.service.CacheMetricsService;
+import com.jguard.domain.permission.service.CacheMetricsService.CacheMetrics;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.HashMap;
@@ -822,8 +822,8 @@ public void reset() {
 - [ ] **步骤 3：提交监控端点**
 
 ```bash
-git add src/main/java/com/example/demo/controller/CacheMetricsController.java \
-        src/main/java/com/example/demo/domain/permission/service/CacheMetricsService.java
+git add src/main/java/com/jguard/controller/CacheMetricsController.java \
+        src/main/java/com/jguard/domain/permission/service/CacheMetricsService.java
 git commit -m "feat(rbac): add cache metrics monitoring endpoint for hit rate tracking"
 ```
 

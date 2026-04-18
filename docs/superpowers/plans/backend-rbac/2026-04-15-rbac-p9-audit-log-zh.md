@@ -15,7 +15,7 @@
 ## 文件结构
 
 ```
-src/main/java/com/example/demo/
+src/main/java/com/jguard/
 ├── domain/permission/
 │   ├── service/
 │   │   ├── PermissionAuditService.java     # 审计记录服务
@@ -44,14 +44,14 @@ src/main/java/com/example/demo/
 ## 任务 0.5：创建 PermissionAuditLogRepository 接口（新增）
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/repository/PermissionAuditLogRepository.java`
+- 创建：`src/main/java/com/jguard/domain/permission/repository/PermissionAuditLogRepository.java`
 
 - [ ] **步骤 1：编写审计日志仓储接口**
 
 ```java
-package com.example.demo.domain.permission.repository;
+package com.jguard.domain.permission.repository;
 
-import com.example.demo.domain.permission.entity.PermissionAuditLog;
+import com.jguard.domain.permission.entity.PermissionAuditLog;
 import java.util.List;
 
 public interface PermissionAuditLogRepository {
@@ -69,7 +69,7 @@ public interface PermissionAuditLogRepository {
 - [ ] **步骤 2：提交仓储接口**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/repository/PermissionAuditLogRepository.java
+git add src/main/java/com/jguard/domain/permission/repository/PermissionAuditLogRepository.java
 git commit -m "feat(rbac): add PermissionAuditLogRepository interface"
 ```
 
@@ -78,12 +78,12 @@ git commit -m "feat(rbac): add PermissionAuditLogRepository interface"
 ## 任务 1：创建 PermissionAuditLog 实体
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/entity/PermissionAuditLog.java`
+- 创建：`src/main/java/com/jguard/domain/permission/entity/PermissionAuditLog.java`
 
 - [ ] **步骤 1：编写审计日志实体**
 
 ```java
-package com.example.demo.domain.permission.entity;
+package com.jguard.domain.permission.entity;
 
 import java.time.LocalDateTime;
 
@@ -124,7 +124,7 @@ public class PermissionAuditLog {
 - [ ] **步骤 2：提交实体**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/entity/PermissionAuditLog.java
+git add src/main/java/com/jguard/domain/permission/entity/PermissionAuditLog.java
 git commit -m "feat(rbac): add PermissionAuditLog entity"
 ```
 
@@ -133,16 +133,16 @@ git commit -m "feat(rbac): add PermissionAuditLog entity"
 ## 任务 2：创建 PermissionAuditService
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/service/PermissionAuditService.java`
+- 创建：`src/main/java/com/jguard/domain/permission/service/PermissionAuditService.java`
 
 - [ ] **步骤 1：编写审计服务**
 
 ```java
-package com.example.demo.domain.permission.service;
+package com.jguard.domain.permission.service;
 
-import com.example.demo.domain.permission.entity.PermissionAuditLog;
-import com.example.demo.domain.permission.repository.PermissionAuditLogRepository;
-import com.example.demo.security.UserContext;
+import com.jguard.domain.permission.entity.PermissionAuditLog;
+import com.jguard.domain.permission.repository.PermissionAuditLogRepository;
+import com.jguard.security.UserContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.MDC;
 import org.springframework.scheduling.annotation.Async;
@@ -212,7 +212,7 @@ public class PermissionAuditService {
 - [ ] **步骤 2：提交审计服务**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/service/PermissionAuditService.java
+git add src/main/java/com/jguard/domain/permission/service/PermissionAuditService.java
 git commit -m "feat(rbac): add PermissionAuditService for async audit logging"
 ```
 
@@ -221,14 +221,14 @@ git commit -m "feat(rbac): add PermissionAuditService for async audit logging"
 ## 任务 3：创建审计事件监听器
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/event/PermissionAuditEventListener.java`
+- 创建：`src/main/java/com/jguard/domain/permission/event/PermissionAuditEventListener.java`
 
 - [ ] **步骤 1：编写事件监听器**
 
 ```java
-package com.example.demo.domain.permission.event;
+package com.jguard.domain.permission.event;
 
-import com.example.demo.domain.permission.service.PermissionAuditService;
+import com.jguard.domain.permission.service.PermissionAuditService;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -276,7 +276,7 @@ public class PermissionAuditEventListener {
 - [ ] **步骤 2：提交事件监听器**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/event/PermissionAuditEventListener.java
+git add src/main/java/com/jguard/domain/permission/event/PermissionAuditEventListener.java
 git commit -m "feat(rbac): add audit event listener for domain events"
 ```
 
@@ -285,14 +285,14 @@ git commit -m "feat(rbac): add audit event listener for domain events"
 ## 任务 4：创建审计日志 Mapper
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/PermissionAuditLogMapper.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/mapper/PermissionAuditLogMapper.java`
 
 - [ ] **步骤 1：编写审计 Mapper**
 
 ```java
-package com.example.demo.infrastructure.persistence.mapper;
+package com.jguard.infrastructure.persistence.mapper;
 
-import com.example.demo.domain.permission.entity.PermissionAuditLog;
+import com.jguard.domain.permission.entity.PermissionAuditLog;
 import org.apache.ibatis.annotations.*;
 import java.util.List;
 
@@ -327,7 +327,7 @@ public interface PermissionAuditLogMapper {
 - [ ] **步骤 2：提交 Mapper**
 
 ```bash
-git add src/main/java/com/example/demo/infrastructure/persistence/mapper/PermissionAuditLogMapper.java
+git add src/main/java/com/jguard/infrastructure/persistence/mapper/PermissionAuditLogMapper.java
 git commit -m "feat(rbac): add PermissionAuditLogMapper"
 ```
 
@@ -336,13 +336,13 @@ git commit -m "feat(rbac): add PermissionAuditLogMapper"
 ## 任务 5.5：创建 PermissionAuditQueryService（新增）
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/service/PermissionAuditQueryService.java`
-- 创建：`src/main/java/com/example/demo/service/dto/AuditLogResponse.java`
+- 创建：`src/main/java/com/jguard/service/PermissionAuditQueryService.java`
+- 创建：`src/main/java/com/jguard/service/dto/AuditLogResponse.java`
 
 - [ ] **步骤 1：编写 AuditLogResponse DTO**
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import java.time.LocalDateTime;
 
@@ -364,11 +364,11 @@ public record AuditLogResponse(
 - [ ] **步骤 2：编写 PermissionAuditQueryService**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.entity.PermissionAuditLog;
-import com.example.demo.domain.permission.repository.PermissionAuditLogRepository;
-import com.example.demo.service.dto.AuditLogResponse;
+import com.jguard.domain.permission.entity.PermissionAuditLog;
+import com.jguard.domain.permission.repository.PermissionAuditLogRepository;
+import com.jguard.service.dto.AuditLogResponse;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -417,8 +417,8 @@ public class PermissionAuditQueryService {
 - [ ] **步骤 3：提交查询服务**
 
 ```bash
-git add src/main/java/com/example/demo/service/PermissionAuditQueryService.java \
-        src/main/java/com/example/demo/service/dto/AuditLogResponse.java
+git add src/main/java/com/jguard/service/PermissionAuditQueryService.java \
+        src/main/java/com/jguard/service/dto/AuditLogResponse.java
 git commit -m "feat(rbac): add PermissionAuditQueryService for audit log query"
 ```
 
@@ -427,16 +427,16 @@ git commit -m "feat(rbac): add PermissionAuditQueryService for audit log query"
 ## 任务 5：创建审计查询 API
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/controller/PermissionAuditController.java`
+- 创建：`src/main/java/com/jguard/controller/PermissionAuditController.java`
 
 - [ ] **步骤 1：编写审计控制器**
 
 ```java
-package com.example.demo.controller;
+package com.jguard.controller;
 
-import com.example.demo.common.Result;
-import com.example.demo.service.PermissionAuditQueryService;
-import com.example.demo.service.dto.AuditLogResponse;
+import com.jguard.common.Result;
+import com.jguard.service.PermissionAuditQueryService;
+import com.jguard.service.dto.AuditLogResponse;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -474,7 +474,7 @@ public class PermissionAuditController {
 - [ ] **步骤 2：提交控制器**
 
 ```bash
-git add src/main/java/com/example/demo/controller/PermissionAuditController.java
+git add src/main/java/com/jguard/controller/PermissionAuditController.java
 git commit -m "feat(rbac): add PermissionAuditController for audit query"
 ```
 
@@ -483,7 +483,7 @@ git commit -m "feat(rbac): add PermissionAuditController for audit query"
 ## 任务 6：启用异步处理
 
 **文件：**
-- 修改：`src/main/java/com/example/demo/DemoApplication.java`
+- 修改：`src/main/java/com/jguard/DemoApplication.java`
 
 - [ ] **步骤 1：启用异步**
 
@@ -501,7 +501,7 @@ public class DemoApplication {
 - [ ] **步骤 2：提交异步配置**
 
 ```bash
-git add src/main/java/com/example/demo/DemoApplication.java
+git add src/main/java/com/jguard/DemoApplication.java
 git commit -m "feat(rbac): enable async for audit logging"
 ```
 
@@ -526,17 +526,17 @@ git commit -m "feat(rbac): enable async for audit logging"
 ## 任务 7：建议补充 - 事件监听器集成测试（可选）
 
 **文件：**
-- 创建：`src/test/java/com/example/demo/service/PermissionAuditEventListenerIT.java`
+- 创建：`src/test/java/com/jguard/service/PermissionAuditEventListenerIT.java`
 
 - [ ] **步骤 1：编写集成测试示例**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.event.RoleCreatedEvent;
-import com.example.demo.domain.permission.event.RolePermissionChangedEvent;
-import com.example.demo.domain.permission.event.UserRoleAssignedEvent;
-import com.example.demo.domain.permission.repository.PermissionAuditLogRepository;
+import com.jguard.domain.permission.event.RoleCreatedEvent;
+import com.jguard.domain.permission.event.RolePermissionChangedEvent;
+import com.jguard.domain.permission.event.UserRoleAssignedEvent;
+import com.jguard.domain.permission.repository.PermissionAuditLogRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -630,7 +630,7 @@ class PermissionAuditEventListenerIT {
 # application-test.yml
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/demo_test
+    url: jdbc:mysql://localhost:3306/jguard_test
     username: root
     password: root
   flyway:
@@ -643,16 +643,16 @@ spring:
 ## 任务 8：审计日志导出功能（新增 - 改进点）
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/service/AuditLogExportService.java`
-- 修改：`src/main/java/com/example/demo/controller/PermissionAuditController.java`
-- 创建：`src/main/java/com/example/demo/service/dto/AuditLogExportRequest.java`
+- 创建：`src/main/java/com/jguard/service/AuditLogExportService.java`
+- 修改：`src/main/java/com/jguard/controller/PermissionAuditController.java`
+- 创建：`src/main/java/com/jguard/service/dto/AuditLogExportRequest.java`
 
 > **改进点：** 支持审计日志导出功能，用于合规审计和离线分析。
 
 - [ ] **步骤 1：编写 AuditLogExportRequest DTO**
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import java.time.LocalDateTime;
 
@@ -670,11 +670,11 @@ public record AuditLogExportRequest(
 - [ ] **步骤 2：编写 AuditLogExportService**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.entity.PermissionAuditLog;
-import com.example.demo.domain.permission.repository.PermissionAuditLogRepository;
-import com.example.demo.service.dto.AuditLogExportRequest;
+import com.jguard.domain.permission.entity.PermissionAuditLog;
+import com.jguard.domain.permission.repository.PermissionAuditLogRepository;
+import com.jguard.service.dto.AuditLogExportRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
@@ -850,9 +850,9 @@ public void exportAuditLogs(
 - [ ] **步骤 4：提交导出功能**
 
 ```bash
-git add src/main/java/com/example/demo/service/AuditLogExportService.java \
-        src/main/java/com/example/demo/service/dto/AuditLogExportRequest.java \
-        src/main/java/com/example/demo/controller/PermissionAuditController.java
+git add src/main/java/com/jguard/service/AuditLogExportService.java \
+        src/main/java/com/jguard/service/dto/AuditLogExportRequest.java \
+        src/main/java/com/jguard/controller/PermissionAuditController.java
 git commit -m "feat(rbac): add audit log export functionality for compliance reporting"
 ```
 

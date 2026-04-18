@@ -5,7 +5,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mysql
-  namespace: jarsenal
+  namespace: jguard
   labels:
     app: mysql
 spec:
@@ -32,7 +32,7 @@ spec:
                   name: mysql-secret
                   key: root-password
             - name: MYSQL_DATABASE
-              value: demo
+              value: jguard
             - name: MYSQL_USER
               valueFrom:
                 secretKeyRef:
@@ -98,7 +98,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mysql
-  namespace: jarsenal
+  namespace: jguard
 spec:
   type: ClusterIP
   selector:
@@ -112,11 +112,11 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: mysql-secret
-  namespace: jarsenal
+  namespace: jguard
 type: Opaque
 stringData:
   root-password: "change-me-root-password"
-  username: "demo"
+  username: "jguard"
   password: "change-me-db-password"
 
 ---
@@ -124,11 +124,11 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mysql-init-script
-  namespace: jarsenal
+  namespace: jguard
 data:
   schema.sql: |
-    CREATE DATABASE IF NOT EXISTS demo DEFAULT CHARACTER SET utf8mb4;
-    USE demo;
+    CREATE DATABASE IF NOT EXISTS jguard DEFAULT CHARACTER SET utf8mb4;
+    USE jguard;
     CREATE TABLE IF NOT EXISTS user (
         id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
         username VARCHAR(50) NOT NULL COMMENT '用户名',

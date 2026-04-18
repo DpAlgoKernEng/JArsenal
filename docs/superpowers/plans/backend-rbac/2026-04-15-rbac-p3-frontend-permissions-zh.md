@@ -31,7 +31,7 @@ ui/src/
 ├── composables/
 │   └ usePermission.js            # 权限检查组合式函数
 
-src/main/java/com/example/demo/
+src/main/java/com/jguard/
 ├── controller/
 │   └ PermissionController.java   # 权限查询 API
 ├── service/
@@ -153,13 +153,13 @@ git commit -m "feat(rbac): add Layout component for dynamic route container"
 ## 任务 1：创建后端权限 API
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/controller/PermissionController.java`
-- 创建：`src/main/java/com/example/demo/service/dto/UserPermissionsDTO.java`
+- 创建：`src/main/java/com/jguard/controller/PermissionController.java`
+- 创建：`src/main/java/com/jguard/service/dto/UserPermissionsDTO.java`
 
 - [ ] **步骤 1：编写 UserPermissionsDTO**
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import java.util.List;
 import java.util.Map;
@@ -173,7 +173,7 @@ public record UserPermissionsDTO(
 ```
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 public record MenuDTO(
     Long id,
@@ -188,7 +188,7 @@ public record MenuDTO(
 ```
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 public record ActionPermissionDTO(
     String resourceCode,
@@ -197,7 +197,7 @@ public record ActionPermissionDTO(
 ```
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 public record FieldPermissionDTO(
     String fieldCode,
@@ -209,12 +209,12 @@ public record FieldPermissionDTO(
 - [ ] **步骤 2：编写 PermissionController**
 
 ```java
-package com.example.demo.controller;
+package com.jguard.controller;
 
-import com.example.demo.common.Result;
-import com.example.demo.service.PermissionQueryService;
-import com.example.demo.service.dto.UserPermissionsDTO;
-import com.example.demo.security.UserContext;
+import com.jguard.common.Result;
+import com.jguard.service.PermissionQueryService;
+import com.jguard.service.dto.UserPermissionsDTO;
+import com.jguard.security.UserContext;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -264,20 +264,20 @@ public class PermissionController {
 - [ ] **步骤 3：编写 PermissionQueryService**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.aggregate.Resource;
-import com.example.demo.domain.permission.aggregate.ResourceField;
-import com.example.demo.domain.permission.entity.FieldPermission;
-import com.example.demo.domain.permission.service.PermissionCacheService;
-import com.example.demo.domain.permission.valueobject.PermissionBitmap;
-import com.example.demo.domain.permission.valueobject.ActionType;
-import com.example.demo.domain.permission.valueobject.ResourceType;
-import com.example.demo.domain.permission.valueobject.SensitiveLevel;
-import com.example.demo.domain.permission.repository.ResourceRepository;
-import com.example.demo.domain.permission.repository.ResourceFieldRepository;
-import com.example.demo.domain.permission.repository.FieldPermissionRepository;
-import com.example.demo.service.dto.*;
+import com.jguard.domain.permission.aggregate.Resource;
+import com.jguard.domain.permission.aggregate.ResourceField;
+import com.jguard.domain.permission.entity.FieldPermission;
+import com.jguard.domain.permission.service.PermissionCacheService;
+import com.jguard.domain.permission.valueobject.PermissionBitmap;
+import com.jguard.domain.permission.valueobject.ActionType;
+import com.jguard.domain.permission.valueobject.ResourceType;
+import com.jguard.domain.permission.valueobject.SensitiveLevel;
+import com.jguard.domain.permission.repository.ResourceRepository;
+import com.jguard.domain.permission.repository.ResourceFieldRepository;
+import com.jguard.domain.permission.repository.FieldPermissionRepository;
+import com.jguard.service.dto.*;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
@@ -418,12 +418,12 @@ public class PermissionQueryService {
 - [ ] **步骤 4：提交后端权限 API**
 
 ```bash
-git add src/main/java/com/example/demo/controller/PermissionController.java \
-        src/main/java/com/example/demo/service/PermissionQueryService.java \
-        src/main/java/com/example/demo/service/dto/UserPermissionsDTO.java \
-        src/main/java/com/example/demo/service/dto/MenuDTO.java \
-        src/main/java/com/example/demo/service/dto/ActionPermissionDTO.java \
-        src/main/java/com/example/demo/service/dto/FieldPermissionDTO.java
+git add src/main/java/com/jguard/controller/PermissionController.java \
+        src/main/java/com/jguard/service/PermissionQueryService.java \
+        src/main/java/com/jguard/service/dto/UserPermissionsDTO.java \
+        src/main/java/com/jguard/service/dto/MenuDTO.java \
+        src/main/java/com/jguard/service/dto/ActionPermissionDTO.java \
+        src/main/java/com/jguard/service/dto/FieldPermissionDTO.java
 git commit -m "feat(rbac): add PermissionController for frontend permission query"
 ```
 
@@ -584,7 +584,7 @@ git commit -m "feat(rbac): add Pinia permission store with version check and aut
 ## 任务 2.5：添加后端权限版本检查API
 
 **文件：**
-- 修改：`src/main/java/com/example/demo/controller/PermissionController.java`
+- 修改：`src/main/java/com/jguard/controller/PermissionController.java`
 
 - [ ] **步骤 1：添加版本检查端点**
 
@@ -611,7 +611,7 @@ public Result<Long> getPermissionVersion() {
 - [ ] **步骤 2：提交版本检查API**
 
 ```bash
-git add src/main/java/com/example/demo/controller/PermissionController.java
+git add src/main/java/com/jguard/controller/PermissionController.java
 git commit -m "feat(rbac): add permission version check API for frontend polling"
 ```
 

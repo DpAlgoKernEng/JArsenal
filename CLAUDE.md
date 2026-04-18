@@ -26,7 +26,7 @@ mvn test -Dtest=UserControllerTest
 mvn test -Dtest=UserControllerTest#testListUsers
 
 # Initialize database
-mysql -u root -proot demo < src/main/resources/schema.sql
+mysql -u root -proot jguard < src/main/resources/schema.sql
 ```
 
 ### Frontend (Vue 3)
@@ -65,7 +65,7 @@ Full-stack application: Spring Boot 3.2.0 + Java 17 REST API with Vue 3 + Elemen
 
 ### Backend Package Structure
 ```
-com.example.demo/
+com.jguard/
 ├── annotation/     # Custom annotations (@RateLimit)
 ├── aspect/         # AOP aspects (performance, rate limiting)
 ├── common/         # Result wrapper
@@ -118,7 +118,7 @@ JWT expiration: 24 hours (`jwt.expiration: 86400000`)
 **Request Logging**: `RequestLogInterceptor` logs all requests with traceId (MDC) and duration. Slow requests (>3s) warn.
 
 ### Database
-- MySQL database `demo`
+- MySQL database `jguard`
 - Schema: `src/main/resources/schema.sql` (includes BCrypt hashed test passwords)
 - MyBatis mappers: `src/main/resources/mapper/*.xml`
 - All queries use `#{}` precompiled parameters (SQL injection safe)

@@ -1,6 +1,6 @@
-# JArsenal - 企业级 DDD 权限管理系统
+# JGuard - 企业级 DDD 权限管理系统
 
-Java Core Arsenal Collections - 基于 DDD 四层架构的企业级 RBAC 权限管理系统
+Java Guard - 基于 DDD 四层架构的企业级 RBAC 权限管理系统
 
 ## 项目简介
 
@@ -60,7 +60,7 @@ Java Core Arsenal Collections - 基于 DDD 四层架构的企业级 RBAC 权限�
 ## 项目结构 (DDD 四层架构)
 
 ```
-src/main/java/com/example/demo/
+src/main/java/com/jguard/
 ├── domain/                           # 领域层 (核心业务逻辑)
 │   ├── shared/                       # 共享内核
 │   │   ├── event/                    # 领域事件基类
@@ -142,17 +142,17 @@ src/main/java/com/example/demo/
 
 ```bash
 # 创建数据库
-mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS demo DEFAULT CHARSET utf8mb4"
+mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS jguard DEFAULT CHARSET utf8mb4"
 
 # Flyway 自动迁移 (启动应用时自动执行)
 # 或手动执行迁移脚本:
-mysql -u root -proot demo < src/main/resources/db/migration/V0__Init_Core_Tables.sql
-mysql -u root -proot demo < src/main/resources/db/migration/V1__Init_RBAC_Tables.sql
-mysql -u root -proot demo < src/main/resources/db/migration/V2__RBAC_Triggers.sql
-mysql -u root -proot demo < src/main/resources/db/migration/V3__RBAC_Preset_Data.sql
-mysql -u root -proot demo < src/main/resources/db/migration/V4__RBAC_Preset_Permissions.sql
-mysql -u root -proot demo < src/main/resources/db/migration/V5__Resource_Data_Dimension.sql
-mysql -u root -proot demo < src/main/resources/db/migration/V6__Core_Test_Data.sql
+mysql -u root -proot jguard < src/main/resources/db/migration/V0__Init_Core_Tables.sql
+mysql -u root -proot jguard < src/main/resources/db/migration/V1__Init_RBAC_Tables.sql
+mysql -u root -proot jguard < src/main/resources/db/migration/V2__RBAC_Triggers.sql
+mysql -u root -proot jguard < src/main/resources/db/migration/V3__RBAC_Preset_Data.sql
+mysql -u root -proot jguard < src/main/resources/db/migration/V4__RBAC_Preset_Permissions.sql
+mysql -u root -proot jguard < src/main/resources/db/migration/V5__Resource_Data_Dimension.sql
+mysql -u root -proot jguard < src/main/resources/db/migration/V6__Core_Test_Data.sql
 ```
 
 ### 3. 启动基础设施
@@ -334,22 +334,22 @@ docker-compose down
 ```bash
 # 设置镜像
 export REGISTRY=ghcr.io
-export IMAGE_NAME=your-org/jarsenal
+export IMAGE_NAME=your-org/jguard
 export IMAGE_TAG=v1.0.0
 
 # 部署
 ./deploy/k8s-deploy.sh
 
 # 检查状态
-kubectl get pods -n jarsenal
-kubectl get services -n jarsenal
+kubectl get pods -n jguard
+kubectl get services -n jguard
 ```
 
 ### 环境变量
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `DB_URL` | MySQL 连接 | `jdbc:mysql://localhost:3306/demo` |
+| `DB_URL` | MySQL 连接 | `jdbc:mysql://localhost:3306/jguard` |
 | `DB_USERNAME` | 数据库用户 | `root` |
 | `DB_PASSWORD` | 数据库密码 | `root` |
 | `REDIS_HOST` | Redis 地址 | `localhost` |

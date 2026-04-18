@@ -517,7 +517,7 @@ public class AuditLogEventHandler {
 ### 6.1 重构前 (MVC)
 
 ```
-com.example.demo/
+com.jguard/
 ├── controller/       # UserController
 ├── service/          # UserService, UserServiceImpl
 ├── mapper/           # UserMapper
@@ -534,7 +534,7 @@ com.example.demo/
 ### 6.2 重构后 (DDD)
 
 ```
-com.example.demo/
+com.jguard/
 ├── domain/                        # 领域层
 │   ├── user/
 │   │   ├── aggregate/User.java    # 聚合根 (富血模型)

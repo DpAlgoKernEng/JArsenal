@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-card">
       <div class="login-header">
-        <h1 class="login-title">JArsenal</h1>
+        <h1 class="login-title">JGuard</h1>
         <p class="login-subtitle">用户登录</p>
       </div>
       <el-form ref="formRef" :model="form" :rules="rules" class="login-form">

@@ -15,7 +15,7 @@
 ## 文件结构
 
 ```
-src/main/java/com/example/demo/
+src/main/java/com/jguard/
 ├── domain/permission/
 │   ├── entity/
 │   │   ├── DataScope.java              # 数据范围值对象
@@ -44,7 +44,7 @@ src/main/java/com/example/demo/
 ├── service/
 │   ├── DataScopeService.java            # 应用服务
 
-src/test/java/com/example/demo/
+src/test/java/com/jguard/
 ├── infrastructure/interceptor/
 │   ├── DataScopeInterceptorTest.java
 │   ├── SqlInjectionTest.java            # 安全测试
@@ -55,16 +55,16 @@ src/test/java/com/example/demo/
 ## 任务 1：创建 DataScope 值对象
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/entity/DataScope.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/entity/UserDataScope.java`
+- 创建：`src/main/java/com/jguard/domain/permission/entity/DataScope.java`
+- 创建：`src/main/java/com/jguard/domain/permission/entity/UserDataScope.java`
 
 - [ ] **步骤 1：编写 DataScope 值对象**
 
 ```java
-package com.example.demo.domain.permission.entity;
+package com.jguard.domain.permission.entity;
 
-import com.example.demo.domain.permission.valueobject.ScopeType;
-import com.example.demo.domain.permission.valueobject.DimensionType;
+import com.jguard.domain.permission.valueobject.ScopeType;
+import com.jguard.domain.permission.valueobject.DimensionType;
 import java.util.Set;
 import java.util.Collections;
 import java.util.HashSet;
@@ -109,7 +109,7 @@ public class DataScope {
 - [ ] **步骤 2：编写 UserDataScope**
 
 ```java
-package com.example.demo.domain.permission.entity;
+package com.jguard.domain.permission.entity;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -140,8 +140,8 @@ public class UserDataScope {
 - [ ] **步骤 3：提交数据范围实体**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/entity/DataScope.java \
-        src/main/java/com/example/demo/domain/permission/entity/UserDataScope.java
+git add src/main/java/com/jguard/domain/permission/entity/DataScope.java \
+        src/main/java/com/jguard/domain/permission/entity/UserDataScope.java
 git commit -m "feat(rbac): add DataScope and UserDataScope value objects"
 ```
 
@@ -150,19 +150,19 @@ git commit -m "feat(rbac): add DataScope and UserDataScope value objects"
 ## 任务 2：创建 DataScopeDomainService
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/service/DataScopeDomainService.java`
+- 创建：`src/main/java/com/jguard/domain/permission/service/DataScopeDomainService.java`
 
 - [ ] **步骤 1：编写 DataScopeDomainService**
 
 ```java
-package com.example.demo.domain.permission.service;
+package com.jguard.domain.permission.service;
 
-import com.example.demo.domain.permission.aggregate.Role;
-import com.example.demo.domain.permission.entity.DataScope;
-import com.example.demo.domain.permission.entity.UserDataScope;
-import com.example.demo.domain.permission.repository.RoleRepository;
-import com.example.demo.domain.permission.repository.UserDimensionRepository;
-import com.example.demo.domain.permission.repository.RoleDataScopeRepository;
+import com.jguard.domain.permission.aggregate.Role;
+import com.jguard.domain.permission.entity.DataScope;
+import com.jguard.domain.permission.entity.UserDataScope;
+import com.jguard.domain.permission.repository.RoleRepository;
+import com.jguard.domain.permission.repository.UserDimensionRepository;
+import com.jguard.domain.permission.repository.RoleDataScopeRepository;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
@@ -257,7 +257,7 @@ public class DataScopeDomainService {
 - [ ] **步骤 2：提交领域服务**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/service/DataScopeDomainService.java
+git add src/main/java/com/jguard/domain/permission/service/DataScopeDomainService.java
 git commit -m "feat(rbac): add DataScopeDomainService for data scope computation"
 ```
 
@@ -266,12 +266,12 @@ git commit -m "feat(rbac): add DataScopeDomainService for data scope computation
 ## 任务 3：创建 DataScope 注解
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/annotation/DataScope.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/annotation/DataScope.java`
 
 - [ ] **步骤 1：编写 @DataScope 注解**
 
 ```java
-package com.example.demo.infrastructure.persistence.annotation;
+package com.jguard.infrastructure.persistence.annotation;
 
 import java.lang.annotation.*;
 
@@ -302,7 +302,7 @@ public @interface DataScope {
 - [ ] **步骤 2：提交注解**
 
 ```bash
-git add src/main/java/com/example/demo/infrastructure/persistence/annotation/DataScope.java
+git add src/main/java/com/jguard/infrastructure/persistence/annotation/DataScope.java
 git commit -m "feat(rbac): add @DataScope annotation for mapper methods"
 ```
 
@@ -311,14 +311,14 @@ git commit -m "feat(rbac): add @DataScope annotation for mapper methods"
 ## 任务 4：创建 DataScopeInterceptor（核心）
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/interceptor/DataScopeInterceptor.java`
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/interceptor/DataScopeConfig.java`
-- 创建：`src/test/java/com/example/demo/infrastructure/interceptor/DataScopeInterceptorTest.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/interceptor/DataScopeInterceptor.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/interceptor/DataScopeConfig.java`
+- 创建：`src/test/java/com/jguard/infrastructure/interceptor/DataScopeInterceptorTest.java`
 
 - [ ] **步骤 1：编写 DataScopeConfig**
 
 ```java
-package com.example.demo.infrastructure.persistence.interceptor;
+package com.jguard.infrastructure.persistence.interceptor;
 
 public class DataScopeConfig {
     private final String dimension;
@@ -340,15 +340,15 @@ public class DataScopeConfig {
 - [ ] **步骤 2：编写 DataScopeInterceptor（安全改进版）**
 
 ```java
-package com.example.demo.infrastructure.persistence.interceptor;
+package com.jguard.infrastructure.persistence.interceptor;
 
-import com.example.demo.domain.permission.entity.DataScope;
-import com.example.demo.domain.permission.entity.UserDataScope;
-import com.example.demo.domain.permission.service.DataScopeDomainService;
-import com.example.demo.domain.permission.repository.DataDimensionRepository;
-import com.example.demo.domain.permission.aggregate.DataDimension;
-import com.example.demo.infrastructure.persistence.annotation.DataScope;
-import com.example.demo.security.UserContext;
+import com.jguard.domain.permission.entity.DataScope;
+import com.jguard.domain.permission.entity.UserDataScope;
+import com.jguard.domain.permission.service.DataScopeDomainService;
+import com.jguard.domain.permission.repository.DataDimensionRepository;
+import com.jguard.domain.permission.aggregate.DataDimension;
+import com.jguard.infrastructure.persistence.annotation.DataScope;
+import com.jguard.security.UserContext;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.BoundSql;
@@ -541,17 +541,17 @@ public class DataScopeInterceptor implements Interceptor {
 - [ ] **步骤 3：编写 SqlInjectionTest（安全测试 - 更新版）**
 
 ```java
-package com.example.demo.infrastructure.interceptor;
+package com.jguard.infrastructure.interceptor;
 
-import com.example.demo.domain.permission.entity.DataScope;
-import com.example.demo.domain.permission.aggregate.DataDimension;
-import com.example.demo.infrastructure.persistence.interceptor.DataScopeInterceptor;
-import com.example.demo.infrastructure.persistence.interceptor.DataScopeConfig;
-import com.example.demo.domain.permission.valueobject.ScopeType;
-import com.example.demo.domain.permission.repository.DataDimensionRepository;
-import com.example.demo.domain.permission.repository.UserDimensionRepository;
-import com.example.demo.domain.permission.repository.DepartmentRepository;
-import com.example.demo.domain.permission.service.DataScopeDomainService;
+import com.jguard.domain.permission.entity.DataScope;
+import com.jguard.domain.permission.aggregate.DataDimension;
+import com.jguard.infrastructure.persistence.interceptor.DataScopeInterceptor;
+import com.jguard.infrastructure.persistence.interceptor.DataScopeConfig;
+import com.jguard.domain.permission.valueobject.ScopeType;
+import com.jguard.domain.permission.repository.DataDimensionRepository;
+import com.jguard.domain.permission.repository.UserDimensionRepository;
+import com.jguard.domain.permission.repository.DepartmentRepository;
+import com.jguard.domain.permission.service.DataScopeDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -658,9 +658,9 @@ class SqlInjectionTest {
 - [ ] **步骤 4：提交拦截器**
 
 ```bash
-git add src/main/java/com/example/demo/infrastructure/persistence/interceptor/DataScopeInterceptor.java \
-        src/test/java/com/example/demo/infrastructure/interceptor/DataScopeInterceptorTest.java \
-        src/test/java/com/example/demo/infrastructure/interceptor/SqlInjectionTest.java
+git add src/main/java/com/jguard/infrastructure/persistence/interceptor/DataScopeInterceptor.java \
+        src/test/java/com/jguard/infrastructure/interceptor/DataScopeInterceptorTest.java \
+        src/test/java/com/jguard/infrastructure/interceptor/SqlInjectionTest.java
 git commit -m "feat(rbac): add DataScopeInterceptor with parameterized query"
 ```
 
@@ -669,7 +669,7 @@ git commit -m "feat(rbac): add DataScopeInterceptor with parameterized query"
 ## 任务 5：配置 MyBatis 拦截器
 
 **文件：**
-- 修改：`src/main/java/com/example/demo/config/MyBatisConfig.java`
+- 修改：`src/main/java/com/jguard/config/MyBatisConfig.java`
 
 - [ ] **步骤 1：注册拦截器并兼容 PageHelper**
 
@@ -701,7 +701,7 @@ public class MyBatisConfig {
 - [ ] **步骤 2：提交配置**
 
 ```bash
-git add src/main/java/com/example/demo/config/MyBatisConfig.java
+git add src/main/java/com/jguard/config/MyBatisConfig.java
 git commit -m "feat(rbac): configure MyBatis interceptor order with PageHelper"
 ```
 
@@ -710,18 +710,18 @@ git commit -m "feat(rbac): configure MyBatis interceptor order with PageHelper"
 ## 任务 6：创建安全测试
 
 **文件：**
-- 创建：`src/test/java/com/example/demo/infrastructure/interceptor/DataScopeInterceptorTest.java`
-- 创建：`src/test/java/com/example/demo/infrastructure/interceptor/SqlInjectionTest.java`
+- 创建：`src/test/java/com/jguard/infrastructure/interceptor/DataScopeInterceptorTest.java`
+- 创建：`src/test/java/com/jguard/infrastructure/interceptor/SqlInjectionTest.java`
 
 - [ ] **步骤 1：编写 DataScopeInterceptorTest**
 
 ```java
-package com.example.demo.infrastructure.interceptor;
+package com.jguard.infrastructure.interceptor;
 
-import com.example.demo.domain.permission.entity.DataScope;
-import com.example.demo.infrastructure.persistence.interceptor.DataScopeInterceptor;
-import com.example.demo.infrastructure.persistence.interceptor.DataScopeConfig;
-import com.example.demo.domain.permission.valueobject.ScopeType;
+import com.jguard.domain.permission.entity.DataScope;
+import com.jguard.infrastructure.persistence.interceptor.DataScopeInterceptor;
+import com.jguard.infrastructure.persistence.interceptor.DataScopeConfig;
+import com.jguard.domain.permission.valueobject.ScopeType;
 import org.junit.jupiter.api.Test;
 import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
@@ -772,8 +772,8 @@ class DataScopeInterceptorTest {
 - [ ] **步骤 2：提交测试**
 
 ```bash
-git add src/test/java/com/example/demo/infrastructure/interceptor/DataScopeInterceptorTest.java \
-        src/test/java/com/example/demo/infrastructure/interceptor/SqlInjectionTest.java
+git add src/test/java/com/jguard/infrastructure/interceptor/DataScopeInterceptorTest.java \
+        src/test/java/com/jguard/infrastructure/interceptor/SqlInjectionTest.java
 git commit -m "feat(rbac): add security tests for DataScopeInterceptor"
 ```
 
@@ -782,14 +782,14 @@ git commit -m "feat(rbac): add security tests for DataScopeInterceptor"
 ## 任务 7：创建数据维度 Mapper
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/DataDimensionMapper.java`
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/RoleDataScopeMapper.java`
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/UserDimensionMapper.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/mapper/DataDimensionMapper.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/mapper/RoleDataScopeMapper.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/mapper/UserDimensionMapper.java`
 
 - [ ] **步骤 1：编写 mapper**
 
 ```java
-package com.example.demo.infrastructure.persistence.mapper;
+package com.jguard.infrastructure.persistence.mapper;
 
 import org.apache.ibatis.annotations.*;
 import java.util.List;
@@ -835,9 +835,9 @@ public interface UserDimensionMapper {
 - [ ] **步骤 2：提交 mapper**
 
 ```bash
-git add src/main/java/com/example/demo/infrastructure/persistence/mapper/DataDimensionMapper.java \
-        src/main/java/com/example/demo/infrastructure/persistence/mapper/RoleDataScopeMapper.java \
-        src/main/java/com/example/demo/infrastructure/persistence/mapper/UserDimensionMapper.java
+git add src/main/java/com/jguard/infrastructure/persistence/mapper/DataDimensionMapper.java \
+        src/main/java/com/jguard/infrastructure/persistence/mapper/RoleDataScopeMapper.java \
+        src/main/java/com/jguard/infrastructure/persistence/mapper/UserDimensionMapper.java
 git commit -m "feat(rbac): add data dimension mappers"
 ```
 
@@ -846,7 +846,7 @@ git commit -m "feat(rbac): add data dimension mappers"
 ## 任务 8：Mapper 使用 @DataScope 示例
 
 **文件：**
-- 修改：`src/main/java/com/example/demo/mapper/UserMapper.java`（展示示例）
+- 修改：`src/main/java/com/jguard/mapper/UserMapper.java`（展示示例）
 
 - [ ] **步骤 1：在 mapper 方法上添加 @DataScope**
 
@@ -864,7 +864,7 @@ User findByIdWithDeptScope(@Param("id") Long id);
 - [ ] **步骤 2：提交示例**
 
 ```bash
-git add src/main/java/com/example/demo/mapper/UserMapper.java
+git add src/main/java/com/jguard/mapper/UserMapper.java
 git commit -m "feat(rbac): apply @DataScope to UserMapper as example"
 ```
 
@@ -873,17 +873,17 @@ git commit -m "feat(rbac): apply @DataScope to UserMapper as example"
 ## 任务 9：创建仓储接口
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/repository/DataDimensionRepository.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/repository/RoleDataScopeRepository.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/repository/UserDimensionRepository.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/repository/DepartmentRepository.java`
+- 创建：`src/main/java/com/jguard/domain/permission/repository/DataDimensionRepository.java`
+- 创建：`src/main/java/com/jguard/domain/permission/repository/RoleDataScopeRepository.java`
+- 创建：`src/main/java/com/jguard/domain/permission/repository/UserDimensionRepository.java`
+- 创建：`src/main/java/com/jguard/domain/permission/repository/DepartmentRepository.java`
 
 - [ ] **步骤 1：编写 DataDimensionRepository 接口**
 
 ```java
-package com.example.demo.domain.permission.repository;
+package com.jguard.domain.permission.repository;
 
-import com.example.demo.domain.permission.aggregate.DataDimension;
+import com.jguard.domain.permission.aggregate.DataDimension;
 import java.util.List;
 
 public interface DataDimensionRepository {
@@ -899,9 +899,9 @@ public interface DataDimensionRepository {
 - [ ] **步骤 2：编写 RoleDataScopeRepository 接口**
 
 ```java
-package com.example.demo.domain.permission.repository;
+package com.jguard.domain.permission.repository;
 
-import com.example.demo.domain.permission.entity.RoleDataScope;
+import com.jguard.domain.permission.entity.RoleDataScope;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -923,7 +923,7 @@ public interface RoleDataScopeRepository {
 - [ ] **步骤 3：编写 UserDimensionRepository 接口**
 
 ```java
-package com.example.demo.domain.permission.repository;
+package com.jguard.domain.permission.repository;
 
 import java.util.List;
 import java.util.Set;
@@ -943,7 +943,7 @@ public interface UserDimensionRepository {
 - [ ] **步骤 4：编写 DepartmentRepository 接口**
 
 ```java
-package com.example.demo.domain.permission.repository;
+package com.jguard.domain.permission.repository;
 
 import java.util.Set;
 
@@ -964,10 +964,10 @@ public interface DepartmentRepository {
 - [ ] **步骤 5：提交仓储接口**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/repository/DataDimensionRepository.java \
-        src/main/java/com/example/demo/domain/permission/repository/RoleDataScopeRepository.java \
-        src/main/java/com/example/demo/domain/permission/repository/UserDimensionRepository.java \
-        src/main/java/com/example/demo/domain/permission/repository/DepartmentRepository.java
+git add src/main/java/com/jguard/domain/permission/repository/DataDimensionRepository.java \
+        src/main/java/com/jguard/domain/permission/repository/RoleDataScopeRepository.java \
+        src/main/java/com/jguard/domain/permission/repository/UserDimensionRepository.java \
+        src/main/java/com/jguard/domain/permission/repository/DepartmentRepository.java
 git commit -m "feat(rbac): add data scope repository interfaces"
 ```
 
@@ -976,22 +976,22 @@ git commit -m "feat(rbac): add data scope repository interfaces"
 ## 任务 10：创建 DataDimension 实体
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/aggregate/DataDimension.java`
+- 创建：`src/main/java/com/jguard/domain/permission/aggregate/DataDimension.java`
 
 ---
 
 ## 任务 10.5：实现 DepartmentRepository 子部门递归查询（新增 - 改进点）
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/repository/DepartmentRepositoryImpl.java`
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/DepartmentMapper.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/repository/DepartmentRepositoryImpl.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/mapper/DepartmentMapper.java`
 
 > **改进点：** DEPT_TREE类型的子部门ID递归查询需要完整实现，供DataScopeInterceptor.getSubDeptIds()使用。
 
 - [ ] **步骤 1：编写 DepartmentMapper**
 
 ```java
-package com.example.demo.infrastructure.persistence.mapper;
+package com.jguard.infrastructure.persistence.mapper;
 
 import org.apache.ibatis.annotations.*;
 import java.util.List;
@@ -1049,10 +1049,10 @@ public interface DepartmentMapper {
 - [ ] **步骤 2：编写 DepartmentRepositoryImpl**
 
 ```java
-package com.example.demo.infrastructure.persistence.repository;
+package com.jguard.infrastructure.persistence.repository;
 
-import com.example.demo.domain.permission.repository.DepartmentRepository;
-import com.example.demo.infrastructure.persistence.mapper.DepartmentMapper;
+import com.jguard.domain.permission.repository.DepartmentRepository;
+import com.jguard.infrastructure.persistence.mapper.DepartmentMapper;
 import org.springframework.stereotype.Repository;
 import java.util.Set;
 import java.util.Collections;
@@ -1108,8 +1108,8 @@ private Set<Long> getSubDeptIds(Long userId) {
 - [ ] **步骤 4：提交递归查询实现**
 
 ```bash
-git add src/main/java/com/example/demo/infrastructure/persistence/mapper/DepartmentMapper.java \
-        src/main/java/com/example/demo/infrastructure/persistence/repository/DepartmentRepositoryImpl.java
+git add src/main/java/com/jguard/infrastructure/persistence/mapper/DepartmentMapper.java \
+        src/main/java/com/jguard/infrastructure/persistence/repository/DepartmentRepositoryImpl.java
 git commit -m "feat(rbac): implement recursive sub-department query for DEPT_TREE data scope"
 ```
 
@@ -1118,9 +1118,9 @@ git commit -m "feat(rbac): implement recursive sub-department query for DEPT_TRE
 **（原步骤1）步骤 1：编写 DataDimension 实体**
 
 ```java
-package com.example.demo.domain.permission.aggregate;
+package com.jguard.domain.permission.aggregate;
 
-import com.example.demo.entity.BaseEntity;
+import com.jguard.entity.BaseEntity;
 
 public class DataDimension extends BaseEntity {
     private Long id;
@@ -1159,7 +1159,7 @@ public class DataDimension extends BaseEntity {
 - [ ] **步骤 2：提交实体**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/aggregate/DataDimension.java
+git add src/main/java/com/jguard/domain/permission/aggregate/DataDimension.java
 git commit -m "feat(rbac): add DataDimension aggregate"
 ```
 
@@ -1168,14 +1168,14 @@ git commit -m "feat(rbac): add DataDimension aggregate"
 ## 任务 11：创建 DataScopeTest 单元测试（新增）
 
 **文件：**
-- 创建：`src/test/java/com/example/demo/domain/permission/entity/DataScopeTest.java`
+- 创建：`src/test/java/com/jguard/domain/permission/entity/DataScopeTest.java`
 
 - [ ] **步骤 1：编写 DataScope 值对象测试**
 
 ```java
-package com.example.demo.domain.permission.entity;
+package com.jguard.domain.permission.entity;
 
-import com.example.demo.domain.permission.valueobject.ScopeType;
+import com.jguard.domain.permission.valueobject.ScopeType;
 import org.junit.jupiter.api.Test;
 import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
@@ -1241,7 +1241,7 @@ class DataScopeTest {
 - [ ] **步骤 2：提交测试**
 
 ```bash
-git add src/test/java/com/example/demo/domain/permission/entity/DataScopeTest.java
+git add src/test/java/com/jguard/domain/permission/entity/DataScopeTest.java
 git commit -m "feat(rbac): add DataScope value object unit tests"
 ```
 
@@ -1250,15 +1250,15 @@ git commit -m "feat(rbac): add DataScope value object unit tests"
 ## 任务 12：创建软删除验证测试（新增）
 
 **文件：**
-- 创建：`src/test/java/com/example/demo/service/SoftDeleteValidationTest.java`
+- 创建：`src/test/java/com/jguard/service/SoftDeleteValidationTest.java`
 
 - [ ] **步骤 1：编写软删除验证测试**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.aggregate.Role;
-import com.example.demo.domain.permission.repository.RoleRepository;
+import com.jguard.domain.permission.aggregate.Role;
+import com.jguard.domain.permission.repository.RoleRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -1320,7 +1320,7 @@ class SoftDeleteValidationTest {
 - [ ] **步骤 2：提交测试**
 
 ```bash
-git add src/test/java/com/example/demo/service/SoftDeleteValidationTest.java
+git add src/test/java/com/jguard/service/SoftDeleteValidationTest.java
 git commit -m "feat(rbac): add soft delete validation tests for roles and resources"
 ```
 

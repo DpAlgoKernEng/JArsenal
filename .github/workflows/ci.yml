@@ -27,7 +27,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: demo
+          MYSQL_DATABASE: jguard
         ports:
           - 3306:3306
         options: >-
@@ -90,7 +90,7 @@ jobs:
       - name: Run backend tests
         run: mvn test -B
         env:
-          DB_URL: jdbc:mysql://127.0.0.1:3306/demo?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+          DB_URL: jdbc:mysql://127.0.0.1:3306/jguard?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
           DB_USERNAME: root
           DB_PASSWORD: root
           REDIS_HOST: 127.0.0.1
@@ -227,9 +227,9 @@ jobs:
           kubectl apply -f k8s/kafka.yaml
 
           # 等待基础设施就绪
-          kubectl wait --for=condition=ready pod -l app=mysql -n jarsenal --timeout=120s || true
-          kubectl wait --for=condition=ready pod -l app=redis -n jarsenal --timeout=60s || true
-          kubectl wait --for=condition=ready pod -l app=kafka -n jarsenal --timeout=120s || true
+          kubectl wait --for=condition=ready pod -l app=mysql -n jguard --timeout=120s || true
+          kubectl wait --for=condition=ready pod -l app=redis -n jguard --timeout=60s || true
+          kubectl wait --for=condition=ready pod -l app=kafka -n jguard --timeout=120s || true
 
           # 部署应用
           envsubst < k8s/deployment.yaml | kubectl apply -f -
@@ -237,13 +237,13 @@ jobs:
           kubectl apply -f k8s/ingress.yaml
 
           # 等待部署完成
-          kubectl rollout status deployment/jarsenal -n jarsenal --timeout=300s
+          kubectl rollout status deployment/jguard -n jguard --timeout=300s
 
       - name: Verify deployment
         if: steps.check-config.outputs.skip != 'true'
         run: |
-          kubectl get pods -n jarsenal
-          kubectl get services -n jarsenal
+          kubectl get pods -n jguard
+          kubectl get services -n jguard
 
       - name: Deployment summary
         run: |

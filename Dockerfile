@@ -51,7 +51,7 @@ COPY deploy/start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
 # 创建日志目录
-RUN mkdir -p /var/log/demo
+RUN mkdir -p /var/log/jguard
 
 # 暴露端口
 EXPOSE 8080 80

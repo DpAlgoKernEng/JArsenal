@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.example.demo.infrastructure.persistence.mapper.RoleMapper">
+<mapper namespace="com.jguard.infrastructure.persistence.mapper.RoleMapper">
 
     <!-- Basic Role ResultMap -->
-    <resultMap id="RoleResultMap" type="com.example.demo.domain.permission.aggregate.Role">
+    <resultMap id="RoleResultMap" type="com.jguard.domain.permission.aggregate.Role">
         <id property="id" column="id"/>
-        <result property="code" column="code" typeHandler="com.example.demo.infrastructure.persistence.converter.RoleCodeTypeHandler"/>
+        <result property="code" column="code" typeHandler="com.jguard.infrastructure.persistence.converter.RoleCodeTypeHandler"/>
         <result property="name" column="name"/>
         <result property="parentId" column="parent_id"/>
-        <result property="status" column="status" typeHandler="com.example.demo.infrastructure.persistence.converter.RoleStatusTypeHandler"/>
-        <result property="inheritMode" column="inherit_mode" typeHandler="com.example.demo.infrastructure.persistence.converter.InheritModeTypeHandler"/>
+        <result property="status" column="status" typeHandler="com.jguard.infrastructure.persistence.converter.RoleStatusTypeHandler"/>
+        <result property="inheritMode" column="inherit_mode" typeHandler="com.jguard.infrastructure.persistence.converter.InheritModeTypeHandler"/>
         <result property="isBuiltin" column="is_builtin"/>
         <result property="isDeleted" column="is_deleted"/>
         <result property="version" column="version"/>
@@ -22,12 +22,12 @@
     </select>
 
     <!-- ResultMap for Role with Permissions (for permission bitmap calculation) -->
-    <resultMap id="RoleWithPermissionsResultMap" type="com.example.demo.domain.permission.aggregate.Role" extends="RoleResultMap">
-        <collection property="permissions" ofType="com.example.demo.domain.permission.valueobject.RolePermission">
+    <resultMap id="RoleWithPermissionsResultMap" type="com.jguard.domain.permission.aggregate.Role" extends="RoleResultMap">
+        <collection property="permissions" ofType="com.jguard.domain.permission.valueobject.RolePermission">
             <constructor>
                 <idArg column="rp_resource_id" javaType="Long"/>
-                <arg column="rp_actions" typeHandler="com.example.demo.infrastructure.persistence.converter.ActionSetTypeHandler" javaType="java.util.Set"/>
-                <arg column="rp_effect" typeHandler="com.example.demo.infrastructure.persistence.converter.PermissionEffectTypeHandler" javaType="com.example.demo.domain.permission.valueobject.PermissionEffect"/>
+                <arg column="rp_actions" typeHandler="com.jguard.infrastructure.persistence.converter.ActionSetTypeHandler" javaType="java.util.Set"/>
+                <arg column="rp_effect" typeHandler="com.jguard.infrastructure.persistence.converter.PermissionEffectTypeHandler" javaType="com.jguard.domain.permission.valueobject.PermissionEffect"/>
             </constructor>
         </collection>
     </resultMap>

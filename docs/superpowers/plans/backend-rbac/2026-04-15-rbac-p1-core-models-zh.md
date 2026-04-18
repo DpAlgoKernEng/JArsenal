@@ -13,7 +13,7 @@
 ## 文件结构
 
 ```
-src/main/java/com/example/demo/
+src/main/java/com/jguard/
 ├── domain/
 │   └── permission/
 │       ├── aggregate/
@@ -91,7 +91,7 @@ src/main/resources/
 ├── mapper/
 │   └── (与 infrastructure 相同的 mapper)
 
-src/test/java/com/example/demo/
+src/test/java/com/jguard/
 ├── domain/permission/
 │   ├── RoleTest.java                   # 角色聚合测试
 │   ├── RolePermissionTest.java        # 值对象不可变性测试
@@ -438,12 +438,12 @@ git commit -m "feat(rbac): add circular inheritance prevention triggers"
 ## 任务 4：创建领域异常
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/exception/DomainException.java`
+- 创建：`src/main/java/com/jguard/domain/permission/exception/DomainException.java`
 
 - [ ] **步骤 1：编写领域异常类**
 
 ```java
-package com.example.demo.domain.permission.exception;
+package com.jguard.domain.permission.exception;
 
 public class DomainException extends RuntimeException {
     
@@ -460,7 +460,7 @@ public class DomainException extends RuntimeException {
 - [ ] **步骤 2：提交异常类**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/exception/DomainException.java
+git add src/main/java/com/jguard/domain/permission/exception/DomainException.java
 git commit -m "feat(rbac): add DomainException for domain validation errors"
 ```
 
@@ -469,19 +469,19 @@ git commit -m "feat(rbac): add DomainException for domain validation errors"
 ## 任务 5：创建值对象 - 枚举
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/valueobject/ResourceType.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/valueobject/ActionType.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/valueobject/DimensionType.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/valueobject/PermissionEffect.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/valueobject/InheritMode.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/valueobject/SensitiveLevel.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/valueobject/ScopeType.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/valueobject/RoleStatus.java`
+- 创建：`src/main/java/com/jguard/domain/permission/valueobject/ResourceType.java`
+- 创建：`src/main/java/com/jguard/domain/permission/valueobject/ActionType.java`
+- 创建：`src/main/java/com/jguard/domain/permission/valueobject/DimensionType.java`
+- 创建：`src/main/java/com/jguard/domain/permission/valueobject/PermissionEffect.java`
+- 创建：`src/main/java/com/jguard/domain/permission/valueobject/InheritMode.java`
+- 创建：`src/main/java/com/jguard/domain/permission/valueobject/SensitiveLevel.java`
+- 创建：`src/main/java/com/jguard/domain/permission/valueobject/ScopeType.java`
+- 创建：`src/main/java/com/jguard/domain/permission/valueobject/RoleStatus.java`
 
 - [ ] **步骤 1：编写 ResourceType 枚举**
 
 ```java
-package com.example.demo.domain.permission.valueobject;
+package com.jguard.domain.permission.valueobject;
 
 public enum ResourceType {
     MENU,
@@ -493,7 +493,7 @@ public enum ResourceType {
 - [ ] **步骤 2：编写 ActionType 枚举**
 
 ```java
-package com.example.demo.domain.permission.valueobject;
+package com.jguard.domain.permission.valueobject;
 
 public enum ActionType {
     VIEW,
@@ -507,7 +507,7 @@ public enum ActionType {
 - [ ] **步骤 3：编写 DimensionType 枚举**
 
 ```java
-package com.example.demo.domain.permission.valueobject;
+package com.jguard.domain.permission.valueobject;
 
 public enum DimensionType {
     DEPARTMENT,
@@ -520,7 +520,7 @@ public enum DimensionType {
 - [ ] **步骤 4：编写 PermissionEffect 枚举**
 
 ```java
-package com.example.demo.domain.permission.valueobject;
+package com.jguard.domain.permission.valueobject;
 
 public enum PermissionEffect {
     ALLOW,
@@ -531,7 +531,7 @@ public enum PermissionEffect {
 - [ ] **步骤 5：编写 InheritMode 枚举**
 
 ```java
-package com.example.demo.domain.permission.valueobject;
+package com.jguard.domain.permission.valueobject;
 
 public enum InheritMode {
     EXTEND,
@@ -542,7 +542,7 @@ public enum InheritMode {
 - [ ] **步骤 6：编写 SensitiveLevel 枚举**
 
 ```java
-package com.example.demo.domain.permission.valueobject;
+package com.jguard.domain.permission.valueobject;
 
 public enum SensitiveLevel {
     NORMAL,
@@ -554,7 +554,7 @@ public enum SensitiveLevel {
 - [ ] **步骤 7：编写 ScopeType 枚举**
 
 ```java
-package com.example.demo.domain.permission.valueobject;
+package com.jguard.domain.permission.valueobject;
 
 public enum ScopeType {
     ALL,
@@ -568,7 +568,7 @@ public enum ScopeType {
 - [ ] **步骤 8：编写 RoleStatus 枚举**
 
 ```java
-package com.example.demo.domain.permission.valueobject;
+package com.jguard.domain.permission.valueobject;
 
 public enum RoleStatus {
     ENABLED,
@@ -579,7 +579,7 @@ public enum RoleStatus {
 - [ ] **步骤 9：提交枚举值对象**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/valueobject/*.java
+git add src/main/java/com/jguard/domain/permission/valueobject/*.java
 git commit -m "feat(rbac): add enum value objects for domain model"
 ```
 
@@ -588,15 +588,15 @@ git commit -m "feat(rbac): add enum value objects for domain model"
 ## 任务 6：创建值对象 - 标识符
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/valueobject/RoleId.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/valueobject/RoleCode.java`
+- 创建：`src/main/java/com/jguard/domain/permission/valueobject/RoleId.java`
+- 创建：`src/main/java/com/jguard/domain/permission/valueobject/RoleCode.java`
 
 - [ ] **步骤 1：编写 RoleId 值对象**
 
 ```java
-package com.example.demo.domain.permission.valueobject;
+package com.jguard.domain.permission.valueobject;
 
-import com.example.demo.domain.permission.exception.DomainException;
+import com.jguard.domain.permission.exception.DomainException;
 
 public record RoleId(Long value) {
     
@@ -611,9 +611,9 @@ public record RoleId(Long value) {
 - [ ] **步骤 2：编写 RoleCode 值对象**
 
 ```java
-package com.example.demo.domain.permission.valueobject;
+package com.jguard.domain.permission.valueobject;
 
-import com.example.demo.domain.permission.exception.DomainException;
+import com.jguard.domain.permission.exception.DomainException;
 import java.util.regex.Pattern;
 
 public record RoleCode(String value) {
@@ -634,10 +634,10 @@ public record RoleCode(String value) {
 - [ ] **步骤 3：编写 RoleCodeTest 校验测试**
 
 ```java
-package com.example.demo.domain.permission;
+package com.jguard.domain.permission;
 
-import com.example.demo.domain.permission.valueobject.RoleCode;
-import com.example.demo.domain.permission.exception.DomainException;
+import com.jguard.domain.permission.valueobject.RoleCode;
+import com.jguard.domain.permission.exception.DomainException;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -679,9 +679,9 @@ mvn test -Dtest=RoleCodeTest -v
 - [ ] **步骤 5：提交标识符值对象**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/valueobject/RoleId.java \
-        src/main/java/com/example/demo/domain/permission/valueobject/RoleCode.java \
-        src/test/java/com/example/demo/domain/permission/RoleCodeTest.java
+git add src/main/java/com/jguard/domain/permission/valueobject/RoleId.java \
+        src/main/java/com/jguard/domain/permission/valueobject/RoleCode.java \
+        src/test/java/com/jguard/domain/permission/RoleCodeTest.java
 git commit -m "feat(rbac): add RoleId and RoleCode value objects with validation"
 ```
 
@@ -690,15 +690,15 @@ git commit -m "feat(rbac): add RoleId and RoleCode value objects with validation
 ## 任务 7：创建 RolePermission 值对象
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/valueobject/RolePermission.java`
-- 创建：`src/test/java/com/example/demo/domain/permission/RolePermissionTest.java`
+- 创建：`src/main/java/com/jguard/domain/permission/valueobject/RolePermission.java`
+- 创建：`src/test/java/com/jguard/domain/permission/RolePermissionTest.java`
 
 - [ ] **步骤 1：编写 RolePermission 值对象（不可变）**
 
 ```java
-package com.example.demo.domain.permission.valueobject;
+package com.jguard.domain.permission.valueobject;
 
-import com.example.demo.domain.permission.exception.DomainException;
+import com.jguard.domain.permission.exception.DomainException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -745,12 +745,12 @@ public final class RolePermission {
 - [ ] **步骤 2：编写 RolePermissionTest 不可变性测试**
 
 ```java
-package com.example.demo.domain.permission;
+package com.jguard.domain.permission;
 
-import com.example.demo.domain.permission.valueobject.RolePermission;
-import com.example.demo.domain.permission.valueobject.ActionType;
-import com.example.demo.domain.permission.valueobject.PermissionEffect;
-import com.example.demo.domain.permission.exception.DomainException;
+import com.jguard.domain.permission.valueobject.RolePermission;
+import com.jguard.domain.permission.valueobject.ActionType;
+import com.jguard.domain.permission.valueobject.PermissionEffect;
+import com.jguard.domain.permission.exception.DomainException;
 import org.junit.jupiter.api.Test;
 import java.util.Set;
 import java.util.HashSet;
@@ -816,8 +816,8 @@ mvn test -Dtest=RolePermissionTest -v
 - [ ] **步骤 4：提交 RolePermission 值对象**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/valueobject/RolePermission.java \
-        src/test/java/com/example/demo/domain/permission/RolePermissionTest.java
+git add src/main/java/com/jguard/domain/permission/valueobject/RolePermission.java \
+        src/test/java/com/jguard/domain/permission/RolePermissionTest.java
 git commit -m "feat(rbac): add immutable RolePermission value object with tests"
 ```
 
@@ -826,13 +826,13 @@ git commit -m "feat(rbac): add immutable RolePermission value object with tests"
 ## 任务 8：创建 PermissionBitmap 值对象
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/valueobject/PermissionBitmap.java`
-- 创建：`src/test/java/com/example/demo/domain/permission/PermissionBitmapTest.java`
+- 创建：`src/main/java/com/jguard/domain/permission/valueobject/PermissionBitmap.java`
+- 创建：`src/test/java/com/jguard/domain/permission/PermissionBitmapTest.java`
 
 - [ ] **步骤 1：编写 PermissionBitmap 值对象**
 
 ```java
-package com.example.demo.domain.permission.valueobject;
+package com.jguard.domain.permission.valueobject;
 
 import java.util.BitSet;
 import java.util.HashMap;
@@ -922,10 +922,10 @@ public final class PermissionBitmap {
 - [ ] **步骤 2：编写 PermissionBitmapTest**
 
 ```java
-package com.example.demo.domain.permission;
+package com.jguard.domain.permission;
 
-import com.example.demo.domain.permission.valueobject.PermissionBitmap;
-import com.example.demo.domain.permission.valueobject.ActionType;
+import com.jguard.domain.permission.valueobject.PermissionBitmap;
+import com.jguard.domain.permission.valueobject.ActionType;
 import org.junit.jupiter.api.Test;
 import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
@@ -1001,8 +1001,8 @@ mvn test -Dtest=PermissionBitmapTest -v
 - [ ] **步骤 4：提交 PermissionBitmap 值对象**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/valueobject/PermissionBitmap.java \
-        src/test/java/com/example/demo/domain/permission/PermissionBitmapTest.java
+git add src/main/java/com/jguard/domain/permission/valueobject/PermissionBitmap.java \
+        src/test/java/com/jguard/domain/permission/PermissionBitmapTest.java
 git commit -m "feat(rbac): add PermissionBitmap value object with merge/deny logic"
 ```
 
@@ -1011,17 +1011,17 @@ git commit -m "feat(rbac): add PermissionBitmap value object with merge/deny log
 ## 任务 9：创建 Role 聚合根
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/aggregate/Role.java`
-- 创建：`src/test/java/com/example/demo/domain/permission/RoleTest.java`
+- 创建：`src/main/java/com/jguard/domain/permission/aggregate/Role.java`
+- 创建：`src/test/java/com/jguard/domain/permission/RoleTest.java`
 
 - [ ] **步骤 1：编写 Role 聚合根**
 
 ```java
-package com.example.demo.domain.permission.aggregate;
+package com.jguard.domain.permission.aggregate;
 
-import com.example.demo.domain.permission.valueobject.*;
-import com.example.demo.domain.permission.exception.DomainException;
-import com.example.demo.entity.BaseEntity;
+import com.jguard.domain.permission.valueobject.*;
+import com.jguard.domain.permission.exception.DomainException;
+import com.jguard.entity.BaseEntity;
 import java.util.*;
 
 public class Role extends BaseEntity {
@@ -1168,11 +1168,11 @@ public class Role extends BaseEntity {
 - [ ] **步骤 2：编写 RoleTest 聚合行为测试**
 
 ```java
-package com.example.demo.domain.permission;
+package com.jguard.domain.permission;
 
-import com.example.demo.domain.permission.aggregate.Role;
-import com.example.demo.domain.permission.valueobject.*;
-import com.example.demo.domain.permission.exception.DomainException;
+import com.jguard.domain.permission.aggregate.Role;
+import com.jguard.domain.permission.valueobject.*;
+import com.jguard.domain.permission.exception.DomainException;
 import org.junit.jupiter.api.Test;
 import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
@@ -1280,8 +1280,8 @@ mvn test -Dtest=RoleTest -v
 - [ ] **步骤 4：提交 Role 聚合根**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/aggregate/Role.java \
-        src/test/java/com/example/demo/domain/permission/RoleTest.java
+git add src/main/java/com/jguard/domain/permission/aggregate/Role.java \
+        src/test/java/com/jguard/domain/permission/RoleTest.java
 git commit -m "feat(rbac): add Role aggregate root with business behaviors and tests"
 ```
 
@@ -1290,9 +1290,9 @@ git commit -m "feat(rbac): add Role aggregate root with business behaviors and t
 ## 任务 9.5：创建 RoleDataScope 和 FieldPermission 实体
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/entity/RoleDataScope.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/entity/FieldPermission.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/entity/Permission.java`（新增）
+- 创建：`src/main/java/com/jguard/domain/permission/entity/RoleDataScope.java`
+- 创建：`src/main/java/com/jguard/domain/permission/entity/FieldPermission.java`
+- 创建：`src/main/java/com/jguard/domain/permission/entity/Permission.java`（新增）
 
 > **说明：** 根据设计规范2.1节，RoleDataScope是独立实体（有scopeId），FieldPermission也是实体。Role聚合根通过Set<RoleDataScope>关联。
 > **修复：** 补充Permission实体类，供P2/P4/P7引用。
@@ -1300,10 +1300,10 @@ git commit -m "feat(rbac): add Role aggregate root with business behaviors and t
 - [ ] **步骤 1：编写 RoleDataScope 实体**
 
 ```java
-package com.example.demo.domain.permission.entity;
+package com.jguard.domain.permission.entity;
 
-import com.example.demo.domain.permission.valueobject.ScopeType;
-import com.example.demo.entity.BaseEntity;
+import com.jguard.domain.permission.valueobject.ScopeType;
+import com.jguard.entity.BaseEntity;
 
 public class RoleDataScope extends BaseEntity {
     private Long id;                    // scopeId
@@ -1338,9 +1338,9 @@ public class RoleDataScope extends BaseEntity {
 - [ ] **步骤 2：编写 FieldPermission 实体**
 
 ```java
-package com.example.demo.domain.permission.entity;
+package com.jguard.domain.permission.entity;
 
-import com.example.demo.entity.BaseEntity;
+import com.jguard.entity.BaseEntity;
 
 public class FieldPermission extends BaseEntity {
     private Long id;
@@ -1375,10 +1375,10 @@ public class FieldPermission extends BaseEntity {
 - [ ] **步骤 3：编写 Permission 实体（新增 - 修复P2/P4/P7依赖）**
 
 ```java
-package com.example.demo.domain.permission.entity;
+package com.jguard.domain.permission.entity;
 
-import com.example.demo.domain.permission.valueobject.PermissionEffect;
-import com.example.demo.entity.BaseEntity;
+import com.jguard.domain.permission.valueobject.PermissionEffect;
+import com.jguard.entity.BaseEntity;
 
 /**
  * 权限实体 - 角色与资源的关联
@@ -1413,9 +1413,9 @@ public class Permission extends BaseEntity {
 - [ ] **步骤 4：提交实体**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/entity/RoleDataScope.java \
-        src/main/java/com/example/demo/domain/permission/entity/FieldPermission.java \
-        src/main/java/com/example/demo/domain/permission/entity/Permission.java
+git add src/main/java/com/jguard/domain/permission/entity/RoleDataScope.java \
+        src/main/java/com/jguard/domain/permission/entity/FieldPermission.java \
+        src/main/java/com/jguard/domain/permission/entity/Permission.java
 git commit -m "feat(rbac): add RoleDataScope, FieldPermission and Permission entities for Role aggregate"
 ```
 
@@ -1424,16 +1424,16 @@ git commit -m "feat(rbac): add RoleDataScope, FieldPermission and Permission ent
 ## 任务 10：创建 Resource 聚合根
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/aggregate/Resource.java`
+- 创建：`src/main/java/com/jguard/domain/permission/aggregate/Resource.java`
 
 - [ ] **步骤 1：编写 Resource 聚合根**
 
 ```java
-package com.example.demo.domain.permission.aggregate;
+package com.jguard.domain.permission.aggregate;
 
-import com.example.demo.domain.permission.valueobject.ResourceType;
-import com.example.demo.domain.permission.valueobject.SensitiveLevel;
-import com.example.demo.entity.BaseEntity;
+import com.jguard.domain.permission.valueobject.ResourceType;
+import com.jguard.domain.permission.valueobject.SensitiveLevel;
+import com.jguard.entity.BaseEntity;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -1534,10 +1534,10 @@ public class Resource extends BaseEntity {
 - [ ] **步骤 2：创建 ResourceField 实体**
 
 ```java
-package com.example.demo.domain.permission.aggregate;
+package com.jguard.domain.permission.aggregate;
 
-import com.example.demo.domain.permission.valueobject.SensitiveLevel;
-import com.example.demo.entity.BaseEntity;
+import com.jguard.domain.permission.valueobject.SensitiveLevel;
+import com.jguard.entity.BaseEntity;
 
 public class ResourceField extends BaseEntity {
     private Long id;
@@ -1603,8 +1603,8 @@ public class ResourceField extends BaseEntity {
 - [ ] **步骤 3：提交 Resource 聚合**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/aggregate/Resource.java \
-        src/main/java/com/example/demo/domain/permission/aggregate/ResourceField.java
+git add src/main/java/com/jguard/domain/permission/aggregate/Resource.java \
+        src/main/java/com/jguard/domain/permission/aggregate/ResourceField.java
 git commit -m "feat(rbac): add Resource aggregate with sensitive field support"
 ```
 
@@ -1613,17 +1613,17 @@ git commit -m "feat(rbac): add Resource aggregate with sensitive field support"
 ## 任务 11：创建仓储接口
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/repository/RoleRepository.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/repository/ResourceRepository.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/repository/UserRoleRepository.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/repository/PermissionRepository.java`
+- 创建：`src/main/java/com/jguard/domain/permission/repository/RoleRepository.java`
+- 创建：`src/main/java/com/jguard/domain/permission/repository/ResourceRepository.java`
+- 创建：`src/main/java/com/jguard/domain/permission/repository/UserRoleRepository.java`
+- 创建：`src/main/java/com/jguard/domain/permission/repository/PermissionRepository.java`
 
 - [ ] **步骤 1：编写 RoleRepository 接口**
 
 ```java
-package com.example.demo.domain.permission.repository;
+package com.jguard.domain.permission.repository;
 
-import com.example.demo.domain.permission.aggregate.Role;
+import com.jguard.domain.permission.aggregate.Role;
 import java.util.List;
 import java.util.Optional;
 
@@ -1652,10 +1652,10 @@ public interface RoleRepository {
 - [ ] **步骤 2：编写 ResourceRepository 接口**
 
 ```java
-package com.example.demo.domain.permission.repository;
+package com.jguard.domain.permission.repository;
 
-import com.example.demo.domain.permission.aggregate.Resource;
-import com.example.demo.domain.permission.valueobject.ResourceType;
+import com.jguard.domain.permission.aggregate.Resource;
+import com.jguard.domain.permission.valueobject.ResourceType;
 import java.util.List;
 import java.util.Optional;
 
@@ -1682,7 +1682,7 @@ public interface ResourceRepository {
 - [ ] **步骤 3：编写 UserRoleRepository 接口**
 
 ```java
-package com.example.demo.domain.permission.repository;
+package com.jguard.domain.permission.repository;
 
 import java.util.List;
 import java.util.Set;
@@ -1704,9 +1704,9 @@ public interface UserRoleRepository {
 - [ ] **步骤 4：编写 PermissionRepository 接口**
 
 ```java
-package com.example.demo.domain.permission.repository;
+package com.jguard.domain.permission.repository;
 
-import com.example.demo.domain.permission.entity.Permission;
+import com.jguard.domain.permission.entity.Permission;
 import java.util.List;
 
 public interface PermissionRepository {
@@ -1726,7 +1726,7 @@ public interface PermissionRepository {
 - [ ] **步骤 5：提交仓储接口**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/repository/*.java
+git add src/main/java/com/jguard/domain/permission/repository/*.java
 git commit -m "feat(rbac): add domain repository interfaces"
 ```
 
@@ -1735,17 +1735,17 @@ git commit -m "feat(rbac): add domain repository interfaces"
 ## 任务 12：创建 TypeHandler（值对象转换）
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/converter/RoleCodeTypeHandler.java`
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/converter/RoleStatusTypeHandler.java`
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/converter/InheritModeTypeHandler.java`
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/converter/ResourceTypeTypeHandler.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/converter/RoleCodeTypeHandler.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/converter/RoleStatusTypeHandler.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/converter/InheritModeTypeHandler.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/converter/ResourceTypeTypeHandler.java`
 
 - [ ] **步骤 1：编写 RoleCodeTypeHandler**
 
 ```java
-package com.example.demo.infrastructure.persistence.converter;
+package com.jguard.infrastructure.persistence.converter;
 
-import com.example.demo.domain.permission.valueobject.RoleCode;
+import com.jguard.domain.permission.valueobject.RoleCode;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import java.sql.CallableStatement;
@@ -1783,9 +1783,9 @@ public class RoleCodeTypeHandler extends BaseTypeHandler<RoleCode> {
 - [ ] **步骤 2：编写 RoleStatusTypeHandler**
 
 ```java
-package com.example.demo.infrastructure.persistence.converter;
+package com.jguard.infrastructure.persistence.converter;
 
-import com.example.demo.domain.permission.valueobject.RoleStatus;
+import com.jguard.domain.permission.valueobject.RoleStatus;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import java.sql.CallableStatement;
@@ -1823,9 +1823,9 @@ public class RoleStatusTypeHandler extends BaseTypeHandler<RoleStatus> {
 - [ ] **步骤 3：编写 InheritModeTypeHandler**
 
 ```java
-package com.example.demo.infrastructure.persistence.converter;
+package com.jguard.infrastructure.persistence.converter;
 
-import com.example.demo.domain.permission.valueobject.InheritMode;
+import com.jguard.domain.permission.valueobject.InheritMode;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import java.sql.CallableStatement;
@@ -1863,9 +1863,9 @@ public class InheritModeTypeHandler extends BaseTypeHandler<InheritMode> {
 - [ ] **步骤 4：编写 ResourceTypeTypeHandler**
 
 ```java
-package com.example.demo.infrastructure.persistence.converter;
+package com.jguard.infrastructure.persistence.converter;
 
-import com.example.demo.domain.permission.valueobject.ResourceType;
+import com.jguard.domain.permission.valueobject.ResourceType;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import java.sql.CallableStatement;
@@ -1903,7 +1903,7 @@ public class ResourceTypeTypeHandler extends BaseTypeHandler<ResourceType> {
 - [ ] **步骤 5：提交 TypeHandler**
 
 ```bash
-git add src/main/java/com/example/demo/infrastructure/persistence/converter/*.java
+git add src/main/java/com/jguard/infrastructure/persistence/converter/*.java
 git commit -m "feat(rbac): add TypeHandlers for value object persistence conversion"
 ```
 
@@ -1912,15 +1912,15 @@ git commit -m "feat(rbac): add TypeHandlers for value object persistence convers
 ## 任务 13：创建 MyBatis Mapper - Role
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/RoleMapper.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/mapper/RoleMapper.java`
 - 创建：`src/main/resources/mapper/RoleMapper.xml`
 
 - [ ] **步骤 1：编写 RoleMapper 接口**
 
 ```java
-package com.example.demo.infrastructure.persistence.mapper;
+package com.jguard.infrastructure.persistence.mapper;
 
-import com.example.demo.domain.permission.aggregate.Role;
+import com.jguard.domain.permission.aggregate.Role;
 import org.apache.ibatis.annotations.*;
 import java.util.List;
 
@@ -1965,15 +1965,15 @@ public interface RoleMapper {
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.example.demo.infrastructure.persistence.mapper.RoleMapper">
+<mapper namespace="com.jguard.infrastructure.persistence.mapper.RoleMapper">
     
-    <resultMap id="RoleResultMap" type="com.example.demo.domain.permission.aggregate.Role">
+    <resultMap id="RoleResultMap" type="com.jguard.domain.permission.aggregate.Role">
         <id property="id" column="id"/>
-        <result property="code" column="code" typeHandler="com.example.demo.infrastructure.persistence.converter.RoleCodeTypeHandler"/>
+        <result property="code" column="code" typeHandler="com.jguard.infrastructure.persistence.converter.RoleCodeTypeHandler"/>
         <result property="name" column="name"/>
         <result property="parentId" column="parent_id"/>
-        <result property="status" column="status" typeHandler="com.example.demo.infrastructure.persistence.converter.RoleStatusTypeHandler"/>
-        <result property="inheritMode" column="inherit_mode" typeHandler="com.example.demo.infrastructure.persistence.converter.InheritModeTypeHandler"/>
+        <result property="status" column="status" typeHandler="com.jguard.infrastructure.persistence.converter.RoleStatusTypeHandler"/>
+        <result property="inheritMode" column="inherit_mode" typeHandler="com.jguard.infrastructure.persistence.converter.InheritModeTypeHandler"/>
         <result property="isBuiltin" column="is_builtin"/>
         <result property="isDeleted" column="is_deleted"/>
         <result property="version" column="version"/>
@@ -1998,11 +1998,11 @@ public interface RoleMapper {
         GROUP BY r.id, p.id, p.resource_id, p.effect
     </select>
     
-    <resultMap id="RoleWithPermissionsResultMap" type="com.example.demo.domain.permission.aggregate.Role" extends="RoleResultMap">
-        <collection property="permissions" ofType="com.example.demo.domain.permission.valueobject.RolePermission">
+    <resultMap id="RoleWithPermissionsResultMap" type="com.jguard.domain.permission.aggregate.Role" extends="RoleResultMap">
+        <collection property="permissions" ofType="com.jguard.domain.permission.valueobject.RolePermission">
             <result property="resourceId" column="resource_id"/>
-            <result property="effect" column="effect" typeHandler="com.example.demo.infrastructure.persistence.converter.PermissionEffectTypeHandler"/>
-            <result property="actions" column="actions" typeHandler="com.example.demo.infrastructure.persistence.converter.ActionSetTypeHandler"/>
+            <result property="effect" column="effect" typeHandler="com.jguard.infrastructure.persistence.converter.PermissionEffectTypeHandler"/>
+            <result property="actions" column="actions" typeHandler="com.jguard.infrastructure.persistence.converter.ActionSetTypeHandler"/>
         </collection>
     </resultMap>
     
@@ -2024,7 +2024,7 @@ public interface RoleMapper {
 - [ ] **步骤 3：提交 Role mapper**
 
 ```bash
-git add src/main/java/com/example/demo/infrastructure/persistence/mapper/RoleMapper.java \
+git add src/main/java/com/jguard/infrastructure/persistence/mapper/RoleMapper.java \
         src/main/resources/mapper/RoleMapper.xml
 git commit -m "feat(rbac): add RoleMapper for role persistence"
 ```
@@ -2034,15 +2034,15 @@ git commit -m "feat(rbac): add RoleMapper for role persistence"
 ## 任务 14：创建领域事件
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/event/RoleCreatedEvent.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/event/RolePermissionChangedEvent.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/event/UserRoleAssignedEvent.java`
-- 创建：`src/main/java/com/example/demo/domain/permission/event/RoleDeletedEvent.java`
+- 创建：`src/main/java/com/jguard/domain/permission/event/RoleCreatedEvent.java`
+- 创建：`src/main/java/com/jguard/domain/permission/event/RolePermissionChangedEvent.java`
+- 创建：`src/main/java/com/jguard/domain/permission/event/UserRoleAssignedEvent.java`
+- 创建：`src/main/java/com/jguard/domain/permission/event/RoleDeletedEvent.java`
 
 - [ ] **步骤 1：编写领域事件**
 
 ```java
-package com.example.demo.domain.permission.event;
+package com.jguard.domain.permission.event;
 
 import java.time.LocalDateTime;
 
@@ -2060,7 +2060,7 @@ public record RoleCreatedEvent(
 ```
 
 ```java
-package com.example.demo.domain.permission.event;
+package com.jguard.domain.permission.event;
 
 import java.time.LocalDateTime;
 
@@ -2078,7 +2078,7 @@ public record RolePermissionChangedEvent(
 ```
 
 ```java
-package com.example.demo.domain.permission.event;
+package com.jguard.domain.permission.event;
 
 import java.time.LocalDateTime;
 
@@ -2095,7 +2095,7 @@ public record UserRoleAssignedEvent(
 ```
 
 ```java
-package com.example.demo.domain.permission.event;
+package com.jguard.domain.permission.event;
 
 import java.time.LocalDateTime;
 
@@ -2114,7 +2114,7 @@ public record RoleDeletedEvent(
 - [ ] **步骤 2：提交领域事件**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/event/*.java
+git add src/main/java/com/jguard/domain/permission/event/*.java
 git commit -m "feat(rbac): add domain events for permission system"
 ```
 
@@ -2135,14 +2135,14 @@ mvn flyway:migrate
 - [ ] **步骤 2：验证表已创建**
 
 ```bash
-mysql -u root -proot demo -e "SHOW TABLES LIKE 'role'; SHOW TABLES LIKE 'permission%'; SHOW TABLES LIKE 'resource%';"
+mysql -u root -proot jguard -e "SHOW TABLES LIKE 'role'; SHOW TABLES LIKE 'permission%'; SHOW TABLES LIKE 'resource%';"
 ```
 预期：role、permission、permission_action、resource、resource_field 表存在
 
 - [ ] **步骤 3：验证触发器已创建**
 
 ```bash
-mysql -u root -proot demo -e "SHOW TRIGGERS LIKE 'role';"
+mysql -u root -proot jguard -e "SHOW TRIGGERS LIKE 'role';"
 ```
 预期：trg_role_before_insert、trg_role_before_update 触发器存在
 
@@ -2151,17 +2151,17 @@ mysql -u root -proot demo -e "SHOW TRIGGERS LIKE 'role';"
 ## 任务 16：创建循环继承验证测试（新增）
 
 **文件：**
-- 创建：`src/test/java/com/example/demo/domain/permission/CircularInheritanceTest.java`
+- 创建：`src/test/java/com/jguard/domain/permission/CircularInheritanceTest.java`
 
 - [ ] **步骤 1：编写循环继承测试**
 
 ```java
-package com.example.demo.domain.permission;
+package com.jguard.domain.permission;
 
-import com.example.demo.domain.permission.aggregate.Role;
-import com.example.demo.domain.permission.valueobject.RoleCode;
-import com.example.demo.domain.permission.valueobject.InheritMode;
-import com.example.demo.domain.permission.exception.DomainException;
+import com.jguard.domain.permission.aggregate.Role;
+import com.jguard.domain.permission.valueobject.RoleCode;
+import com.jguard.domain.permission.valueobject.InheritMode;
+import com.jguard.domain.permission.exception.DomainException;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -2200,7 +2200,7 @@ class CircularInheritanceTest {
 - [ ] **步骤 2：提交测试**
 
 ```bash
-git add src/test/java/com/example/demo/domain/permission/CircularInheritanceTest.java
+git add src/test/java/com/jguard/domain/permission/CircularInheritanceTest.java
 git commit -m "feat(rbac): add circular inheritance validation test"
 ```
 
@@ -2209,7 +2209,7 @@ git commit -m "feat(rbac): add circular inheritance validation test"
 ## 任务 17：创建 PermissionEffectTypeHandler（新增）
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/converter/PermissionEffectTypeHandler.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/converter/PermissionEffectTypeHandler.java`
 
 - [ ] **步骤 1：编写 PermissionEffectTypeHandler**
 
@@ -2218,16 +2218,16 @@ git commit -m "feat(rbac): add circular inheritance validation test"
 ## 任务 17.5：创建 ActionSetTypeHandler（新增 - 改进点）
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/converter/ActionSetTypeHandler.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/converter/ActionSetTypeHandler.java`
 
 > **改进点：** RoleMapper.xml中findRoleWithPermissions查询需完整返回actions集合，ActionSetTypeHandler处理GROUP_CONCAT结果转换。
 
 - [ ] **步骤 1：编写 ActionSetTypeHandler**
 
 ```java
-package com.example.demo.infrastructure.persistence.converter;
+package com.jguard.infrastructure.persistence.converter;
 
-import com.example.demo.domain.permission.valueobject.ActionType;
+import com.jguard.domain.permission.valueobject.ActionType;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import java.sql.CallableStatement;
@@ -2293,16 +2293,16 @@ public class ActionSetTypeHandler extends BaseTypeHandler<Set<ActionType>> {
 - [ ] **步骤 2：提交 ActionSetTypeHandler**
 
 ```bash
-git add src/main/java/com/example/demo/infrastructure/persistence/converter/ActionSetTypeHandler.java
+git add src/main/java/com/jguard/infrastructure/persistence/converter/ActionSetTypeHandler.java
 git commit -m "feat(rbac): add ActionSetTypeHandler for GROUP_CONCAT action conversion"
 ```
 
 - [ ] **步骤 1（原步骤）：编写 PermissionEffectTypeHandler**
 
 ```java
-package com.example.demo.infrastructure.persistence.converter;
+package com.jguard.infrastructure.persistence.converter;
 
-import com.example.demo.domain.permission.valueobject.PermissionEffect;
+import com.jguard.domain.permission.valueobject.PermissionEffect;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import java.sql.CallableStatement;
@@ -2340,7 +2340,7 @@ public class PermissionEffectTypeHandler extends BaseTypeHandler<PermissionEffec
 - [ ] **步骤 2：提交 TypeHandler**
 
 ```bash
-git add src/main/java/com/example/demo/infrastructure/persistence/converter/PermissionEffectTypeHandler.java
+git add src/main/java/com/jguard/infrastructure/persistence/converter/PermissionEffectTypeHandler.java
 git commit -m "feat(rbac): add PermissionEffectTypeHandler for permission persistence"
 ```
 

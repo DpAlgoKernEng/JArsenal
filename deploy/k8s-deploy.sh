@@ -6,15 +6,15 @@
 
 set -e
 
-NAMESPACE="jarsenal"
+NAMESPACE="jguard"
 REGISTRY="${REGISTRY:-ghcr.io}"
-IMAGE_NAME="${IMAGE_NAME:-your-org/jarsenal}"
+IMAGE_NAME="${IMAGE_NAME:-your-org/jguard}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 KAFKA_BOOTSTRAP="${KAFKA_BOOTSTRAP:-kafka:9092}"
 
 FULL_IMAGE="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
 
-echo "=== 部署 JArsenal 到 Kubernetes ==="
+echo "=== 部署 JGuard 到 Kubernetes ==="
 echo "Namespace: $NAMESPACE"
 echo "Image: $FULL_IMAGE"
 
@@ -72,7 +72,7 @@ kubectl apply -f k8s/ingress.yaml
 
 # 等待部署完成
 echo ">>> 等待应用就绪..."
-kubectl rollout status deployment/jarsenal -n $NAMESPACE --timeout=180s
+kubectl rollout status deployment/jguard -n $NAMESPACE --timeout=180s
 
 # 显示部署状态
 echo ""
@@ -82,6 +82,6 @@ kubectl get services -n $NAMESPACE
 kubectl get ingress -n $NAMESPACE
 
 echo ""
-echo "访问地址: https://jarsenal.example.com"
+echo "访问地址: https://jguard.example.com"
 echo ""
-echo "提示: 请确保已配置 TLS 证书 secret 'jarsenal-tls'"
+echo "提示: 请确保已配置 TLS 证书 secret 'jguard-tls'"

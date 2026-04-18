@@ -14,7 +14,7 @@ if [ ! -f ".env" ]; then
     cat > .env << 'EOF'
 # 数据库配置
 DB_PASSWORD=rootpassword
-DB_USERNAME=demo
+DB_USERNAME=jguard
 # Redis 配置
 REDIS_PASSWORD=redispassword
 # JWT 密钥 (必须 >= 32 字符)

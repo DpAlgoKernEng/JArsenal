@@ -106,7 +106,7 @@ router.beforeEach(async (to, from, next) => {
   const permissionStore = usePermissionStore()
 
   // 设置页面标题
-  document.title = to.meta.title ? `${to.meta.title} - JArsenal` : 'JArsenal'
+  document.title = to.meta.title ? `${to.meta.title} - JGuard` : 'JGuard'
 
   // 公开页面直接访问
   if (to.meta.public) {

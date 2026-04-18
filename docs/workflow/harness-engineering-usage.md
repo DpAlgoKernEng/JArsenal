@@ -392,7 +392,7 @@ echo '{"decision": "approve"}'
 
 # 注入项目信息
 cat << EOF
-项目：JArsenal - Full-stack Spring Boot + Vue 3 应用
+项目：JGuard - Full-stack Spring Boot + Vue 3 应用
 当前分支：$(git branch --show-current)
 最近提交：$(git log -1 --oneline)
 技术栈：Spring Boot 3.2 + MyBatis + Vue 3 + Element Plus

@@ -2,7 +2,7 @@
   <el-header class="navbar">
     <div class="navbar-content">
       <div class="logo">
-        <span class="logo-text">JArsenal</span>
+        <span class="logo-text">JGuard</span>
       </div>
       <div class="navbar-actions">
         <el-button class="theme-toggle" circle @click="toggleTheme">

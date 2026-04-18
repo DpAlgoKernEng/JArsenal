@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: jarsenal
-  namespace: jarsenal
+  name: jguard
+  namespace: jguard
   labels:
-    app: jarsenal
+    app: jguard
 spec:
   type: ClusterIP
   selector:
-    app: jarsenal
+    app: jguard
   ports:
     - name: http
       port: 8080

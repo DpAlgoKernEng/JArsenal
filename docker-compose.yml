@@ -4,13 +4,13 @@ services:
   # MySQL 数据库
   mysql:
     image: mysql:8.0
-    container_name: jarsenal-mysql
+    container_name: jguard-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: demo
-      MYSQL_USER: ${DB_USERNAME:-demo}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-demopassword}
+      MYSQL_DATABASE: jguard
+      MYSQL_USER: ${DB_USERNAME:-jguard}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-jguardpassword}
     ports:
       - "3306:3306"
     volumes:
@@ -25,7 +25,7 @@ services:
   # Redis 缓存
   redis:
     image: redis:7-alpine
-    container_name: jarsenal-redis
+    container_name: jguard-redis
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD:-redispassword}
     ports:
@@ -41,7 +41,7 @@ services:
   # Zookeeper (Kafka 依赖)
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
-    container_name: jarsenal-zookeeper
+    container_name: jguard-zookeeper
     restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -55,7 +55,7 @@ services:
   # Kafka 消息队列
   kafka:
     image: confluentinc/cp-kafka:7.6.0
-    container_name: jarsenal-kafka
+    container_name: jguard-kafka
     restart: unless-stopped
     depends_on:
       - zookeeper
@@ -82,7 +82,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: jarsenal-app
+    container_name: jguard-app
     restart: unless-stopped
     depends_on:
       mysql:
@@ -93,9 +93,9 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:mysql://mysql:3306/demo?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-      DB_USERNAME: ${DB_USERNAME:-demo}
-      DB_PASSWORD: ${DB_PASSWORD:-demopassword}
+      DB_URL: jdbc:mysql://mysql:3306/jguard?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+      DB_USERNAME: ${DB_USERNAME:-jguard}
+      DB_PASSWORD: ${DB_PASSWORD:-jguardpassword}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redispassword}
@@ -122,4 +122,4 @@ volumes:
 
 networks:
   default:
-    name: jarsenal-network
+    name: jguard-network

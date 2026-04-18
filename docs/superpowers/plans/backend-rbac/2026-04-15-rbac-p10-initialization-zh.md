@@ -210,16 +210,16 @@ git commit -m "feat(rbac): add preset resources and permissions migration"
 ## 任务 3：创建初始化验证服务
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/service/ResourceInitializationService.java`
+- 创建：`src/main/java/com/jguard/service/ResourceInitializationService.java`
 
 - [ ] **步骤 1：编写验证服务**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.repository.RoleRepository;
-import com.example.demo.domain.permission.repository.ResourceRepository;
-import com.example.demo.domain.permission.repository.DataDimensionRepository;
+import com.jguard.domain.permission.repository.RoleRepository;
+import com.jguard.domain.permission.repository.ResourceRepository;
+import com.jguard.domain.permission.repository.DataDimensionRepository;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -284,7 +284,7 @@ public class ResourceInitializationService {
 - [ ] **步骤 2：提交验证服务**
 
 ```bash
-git add src/main/java/com/example/demo/service/ResourceInitializationService.java
+git add src/main/java/com/jguard/service/ResourceInitializationService.java
 git commit -m "feat(rbac): add initialization verification service"
 ```
 
@@ -305,14 +305,14 @@ mvn flyway:migrate
 - [ ] **步骤 2：验证数据已插入**
 
 ```bash
-mysql -u root -proot demo -e "SELECT * FROM role WHERE is_builtin = 1; SELECT * FROM data_dimension;"
+mysql -u root -proot jguard -e "SELECT * FROM role WHERE is_builtin = 1; SELECT * FROM data_dimension;"
 ```
 预期：SUPER_ADMIN、ADMIN、DEPT_MANAGER、USER 角色存在；DEPARTMENT、PROJECT、CUSTOMER 维度存在
 
 - [ ] **步骤 3：验证触发器**
 
 ```bash
-mysql -u root -proot demo -e "SHOW TRIGGERS LIKE 'role';"
+mysql -u root -proot jguard -e "SHOW TRIGGERS LIKE 'role';"
 ```
 预期：trg_role_before_insert、trg_role_before_update 触发器存在
 
@@ -326,7 +326,7 @@ mysql -u root -proot demo -e "SHOW TRIGGERS LIKE 'role';"
 - [ ] **步骤 1：测试触发器阻止循环继承**
 
 ```bash
-mysql -u root -proot demo -e "
+mysql -u root -proot jguard -e "
 -- 尝试让ADMIN角色以USER为父角色（会形成循环）
 UPDATE role SET parent_id = 4 WHERE code = 'ADMIN';
 "
@@ -336,7 +336,7 @@ UPDATE role SET parent_id = 4 WHERE code = 'ADMIN';
 - [ ] **步骤 2：验证触发器阻止自继承**
 
 ```bash
-mysql -u root -proot demo -e "
+mysql -u root -proot jguard -e "
 -- 尝试让角色以自己为父角色
 UPDATE role SET parent_id = id WHERE code = 'USER';
 "
@@ -348,16 +348,16 @@ UPDATE role SET parent_id = id WHERE code = 'USER';
 ## 任务 6：性能验收测试（补充）
 
 **文件：**
-- 创建：`src/test/java/com/example/demo/service/RbacPerformanceVerificationTest.java`
+- 创建：`src/test/java/com/jguard/service/RbacPerformanceVerificationTest.java`
 
 - [ ] **步骤 1：编写性能验收测试**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.service.PermissionQueryService;
-import com.example.demo.domain.permission.service.UserPermissionCache;
-import com.example.demo.security.UserContext;
+import com.jguard.domain.permission.service.PermissionQueryService;
+import com.jguard.domain.permission.service.UserPermissionCache;
+import com.jguard.security.UserContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -470,7 +470,7 @@ class RbacPerformanceVerificationTest {
 - [ ] **步骤 2：提交性能验收测试**
 
 ```bash
-git add src/test/java/com/example/demo/service/RbacPerformanceVerificationTest.java
+git add src/test/java/com/jguard/service/RbacPerformanceVerificationTest.java
 git commit -m "feat(rbac): add RBAC performance verification test covering all acceptance criteria"
 ```
 
@@ -596,7 +596,7 @@ SELECT '预设权限:' as category, COUNT(*) as count FROM permission WHERE role
 仅当RBAC初始化失败导致系统无法正常运行时执行。
 
 ### 执行步骤
-1. 连接到 MySQL 数据库：`mysql -u root -proot demo`
+1. 连接到 MySQL 数据库：`mysql -u root -proot jguard`
 2. 手动执行回滚SQL（从 V5__RBAC_Init_Rollback.sql 复制需要的部分）
 3. 验证回滚结果
 

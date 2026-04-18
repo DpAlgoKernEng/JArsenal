@@ -465,7 +465,7 @@ RESTful API + SPA 前端
 - Axios Instance with JWT Injection
 
 ## Code Structure
-com.example.demo/
+com.jguard/
 ├── controller/    # REST 接口
 ├── service/       # 业务逻辑
 ├── mapper/        # 数据访问
@@ -897,7 +897,7 @@ Ralph prd.json 结构：
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  {                                                          │
-│    "project": "JArsenal",                                   │
+│    "project": "JGuard",                                   │
 │    "branchName": "ralph/user-export",                       │
 │    "description": "用户导出功能 - Excel 导出用户数据",       │
 │    "userStories": [                                         │
@@ -1127,7 +1127,7 @@ AGENTS.md 目录结构：
 │   │   │ • 模式约定                                      │   │
 │   │   └─────────────────────────────────────────────────────┘   │
 │   │
-│   ├── main/java/com/example/demo/
+│   ├── main/java/com/jguard/
 │   │   ├── AGENTS.md        # Java 包级 AGENTS.md
 │   │   │   ┌─────────────────────────────────────────────────────┐   │
 │   │   │   │ 内容：                                      │   │
@@ -1188,7 +1188,7 @@ AGENTS.md 目录结构：
 
 **根级 AGENTS.md**：
 ```markdown
-# JArsenal Project
+# JGuard Project
 
 > Last updated: 2026-04-15 by Ralph iteration
 

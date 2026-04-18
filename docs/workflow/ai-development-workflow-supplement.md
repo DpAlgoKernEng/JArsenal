@@ -853,7 +853,7 @@ RESTful API + SPA 前端
 - AOP Pattern (日志、限流)
 
 ## Code Structure
-com.example.demo/
+com.jguard/
 ├── controller/    # REST 接口
 ├── service/       # 业务逻辑
 ├── mapper/        # 数据访问

@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: jarsenal-ingress
-  namespace: jarsenal
+  name: jguard-ingress
+  namespace: jguard
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
@@ -13,10 +13,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - jarsenal.example.com
-      secretName: jarsenal-tls
+        - jguard.example.com
+      secretName: jguard-tls
   rules:
-    - host: jarsenal.example.com
+    - host: jguard.example.com
       http:
         paths:
           # 所有请求统一路由到 8080 端口 (nginx + spring boot 同容器)
@@ -24,6 +24,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: jarsenal
+                name: jguard
                 port:
                   number: 8080

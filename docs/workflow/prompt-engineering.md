@@ -294,7 +294,7 @@ Prompt 迭代流程：
 你是一位资深 Java/Spring Boot 架构师，专注于 RESTful API 设计和安全最佳实践。
 
 # CONTEXT
-项目：JArsenal 用户管理系统
+项目：JGuard 用户管理系统
 技术栈：Spring Boot 3.2.0, Java 17, MyBatis, JWT
 现有代码：
 - AuthService.java 处理认证逻辑
@@ -669,9 +669,9 @@ tags: [java, spring-boot, review]
 ---
 
 # VARIABLES
-{project_name} = JArsenal
+{project_name} = JGuard
 {tech_stack} = Spring Boot 3.2.0, Java 17, MyBatis
-{scope} = src/main/java/com/example/demo/controller/
+{scope} = src/main/java/com/jguard/controller/
 ```
 
 ### 5.3 Continue.dev Prompt 文件

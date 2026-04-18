@@ -15,7 +15,7 @@
 ## 文件结构
 
 ```
-src/main/java/com/example/demo/
+src/main/java/com/jguard/
 ├── domain/permission/
 │   └── service/
 │       ├── PermissionDomainService.java  # 位图计算
@@ -41,7 +41,7 @@ src/main/java/com/example/demo/
 │       ├── PermissionCheckRequest.java
 │       └ PermissionCheckResponse.java
 
-src/test/java/com/example/demo/
+src/test/java/com/jguard/
 ├── domain/permission/service/
 │   ├── PermissionDomainServiceTest.java
 │   ├── RoleHierarchyServiceTest.java
@@ -56,19 +56,19 @@ src/test/java/com/example/demo/
 ## 任务 1：创建 PermissionDomainService
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/service/PermissionDomainService.java`
-- 创建：`src/test/java/com/example/demo/domain/permission/service/PermissionDomainServiceTest.java`
+- 创建：`src/main/java/com/jguard/domain/permission/service/PermissionDomainService.java`
+- 创建：`src/test/java/com/jguard/domain/permission/service/PermissionDomainServiceTest.java`
 
 - [ ] **步骤 1：编写 PermissionDomainService 用于位图计算**
 
 ```java
-package com.example.demo.domain.permission.service;
+package com.jguard.domain.permission.service;
 
-import com.example.demo.domain.permission.aggregate.Role;
-import com.example.demo.domain.permission.valueobject.*;
-import com.example.demo.domain.permission.repository.RoleRepository;
-import com.example.demo.domain.permission.repository.PermissionRepository;
-import com.example.demo.domain.permission.exception.DomainException;
+import com.jguard.domain.permission.aggregate.Role;
+import com.jguard.domain.permission.valueobject.*;
+import com.jguard.domain.permission.repository.RoleRepository;
+import com.jguard.domain.permission.repository.PermissionRepository;
+import com.jguard.domain.permission.exception.DomainException;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
@@ -185,11 +185,11 @@ public class PermissionDomainService {
 - [ ] **步骤 2：编写 PermissionDomainServiceTest**
 
 ```java
-package com.example.demo.domain.permission.service;
+package com.jguard.domain.permission.service;
 
-import com.example.demo.domain.permission.aggregate.Role;
-import com.example.demo.domain.permission.valueobject.*;
-import com.example.demo.domain.permission.repository.RoleRepository;
+import com.jguard.domain.permission.aggregate.Role;
+import com.jguard.domain.permission.valueobject.*;
+import com.jguard.domain.permission.repository.RoleRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mock;
@@ -301,8 +301,8 @@ mvn test -Dtest=PermissionDomainServiceTest -v
 - [ ] **步骤 4：提交 PermissionDomainService**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/service/PermissionDomainService.java \
-        src/test/java/com/example/demo/domain/permission/service/PermissionDomainServiceTest.java
+git add src/main/java/com/jguard/domain/permission/service/PermissionDomainService.java \
+        src/test/java/com/jguard/domain/permission/service/PermissionDomainServiceTest.java
 git commit -m "feat(rbac): add PermissionDomainService for bitmap computation"
 ```
 
@@ -311,7 +311,7 @@ git commit -m "feat(rbac): add PermissionDomainService for bitmap computation"
 ## 任务 2：创建 PermissionCacheService
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/service/PermissionCacheService.java`
+- 创建：`src/main/java/com/jguard/domain/permission/service/PermissionCacheService.java`
 
 - [ ] **步骤 1：添加 Caffeine 依赖**
 
@@ -326,11 +326,11 @@ git commit -m "feat(rbac): add PermissionDomainService for bitmap computation"
 - [ ] **步骤 2：编写 PermissionCacheService**
 
 ```java
-package com.example.demo.domain.permission.service;
+package com.jguard.domain.permission.service;
 
-import com.example.demo.domain.permission.valueobject.PermissionBitmap;
-import com.example.demo.domain.permission.repository.RoleRepository;
-import com.example.demo.domain.permission.repository.UserRoleRepository;
+import com.jguard.domain.permission.valueobject.PermissionBitmap;
+import com.jguard.domain.permission.repository.RoleRepository;
+import com.jguard.domain.permission.repository.UserRoleRepository;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -471,7 +471,7 @@ public class PermissionCacheService {
 - [ ] **步骤 3：提交缓存服务**
 
 ```bash
-git add pom.xml src/main/java/com/example/demo/domain/permission/service/PermissionCacheService.java
+git add pom.xml src/main/java/com/jguard/domain/permission/service/PermissionCacheService.java
 git commit -m "feat(rbac): add PermissionCacheService with L1/L2 cache and penetration protection"
 ```
 
@@ -480,15 +480,15 @@ git commit -m "feat(rbac): add PermissionCacheService with L1/L2 cache and penet
 ## 任务 3：创建权限注解
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/annotation/RequirePermission.java`
-- 创建：`src/main/java/com/example/demo/annotation/RequireBatchPermission.java`
+- 创建：`src/main/java/com/jguard/annotation/RequirePermission.java`
+- 创建：`src/main/java/com/jguard/annotation/RequireBatchPermission.java`
 
 - [ ] **步骤 1：编写 RequirePermission 注解**
 
 ```java
-package com.example.demo.annotation;
+package com.jguard.annotation;
 
-import com.example.demo.domain.permission.valueobject.ActionType;
+import com.jguard.domain.permission.valueobject.ActionType;
 import java.lang.annotation.*;
 
 @Target(ElementType.METHOD)
@@ -504,9 +504,9 @@ public @interface RequirePermission {
 - [ ] **步骤 2：编写 RequireBatchPermission 注解**
 
 ```java
-package com.example.demo.annotation;
+package com.jguard.annotation;
 
-import com.example.demo.domain.permission.valueobject.ActionType;
+import com.jguard.domain.permission.valueobject.ActionType;
 import java.lang.annotation.*;
 
 @Target(ElementType.METHOD)
@@ -523,8 +523,8 @@ public @interface RequireBatchPermission {
 - [ ] **步骤 3：提交注解**
 
 ```bash
-git add src/main/java/com/example/demo/annotation/RequirePermission.java \
-        src/main/java/com/example/demo/annotation/RequireBatchPermission.java
+git add src/main/java/com/jguard/annotation/RequirePermission.java \
+        src/main/java/com/jguard/annotation/RequireBatchPermission.java
 git commit -m "feat(rbac): add permission check annotations"
 ```
 
@@ -533,20 +533,20 @@ git commit -m "feat(rbac): add permission check annotations"
 ## 任务 4：创建 PermissionInterceptor
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/interceptor/PermissionInterceptor.java`
-- 创建：`src/test/java/com/example/demo/interceptor/PermissionInterceptorTest.java`
+- 创建：`src/main/java/com/jguard/interceptor/PermissionInterceptor.java`
+- 创建：`src/test/java/com/jguard/interceptor/PermissionInterceptorTest.java`
 
 - [ ] **步骤 1：编写 PermissionInterceptor**
 
 ```java
-package com.example.demo.interceptor;
+package com.jguard.interceptor;
 
-import com.example.demo.domain.permission.aggregate.Resource;
-import com.example.demo.domain.permission.service.PermissionCacheService;
-import com.example.demo.domain.permission.valueobject.ActionType;
-import com.example.demo.domain.permission.valueobject.PermissionBitmap;
-import com.example.demo.domain.permission.repository.ResourceRepository;
-import com.example.demo.security.UserContext;
+import com.jguard.domain.permission.aggregate.Resource;
+import com.jguard.domain.permission.service.PermissionCacheService;
+import com.jguard.domain.permission.valueobject.ActionType;
+import com.jguard.domain.permission.valueobject.PermissionBitmap;
+import com.jguard.domain.permission.repository.ResourceRepository;
+import com.jguard.security.UserContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -640,14 +640,14 @@ public class PermissionInterceptor implements HandlerInterceptor {
 - [ ] **步骤 2：编写 PermissionInterceptorTest**
 
 ```java
-package com.example.demo.interceptor;
+package com.jguard.interceptor;
 
-import com.example.demo.domain.permission.aggregate.Resource;
-import com.example.demo.domain.permission.service.PermissionCacheService;
-import com.example.demo.domain.permission.valueobject.ActionType;
-import com.example.demo.domain.permission.valueobject.PermissionBitmap;
-import com.example.demo.domain.permission.repository.ResourceRepository;
-import com.example.demo.security.UserContext;
+import com.jguard.domain.permission.aggregate.Resource;
+import com.jguard.domain.permission.service.PermissionCacheService;
+import com.jguard.domain.permission.valueobject.ActionType;
+import com.jguard.domain.permission.valueobject.PermissionBitmap;
+import com.jguard.domain.permission.repository.ResourceRepository;
+import com.jguard.security.UserContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -790,16 +790,16 @@ class PermissionInterceptorTest {
 - [ ] **步骤 3：编写 PermissionAspectTest**
 
 ```java
-package com.example.demo.aspect;
+package com.jguard.aspect;
 
-import com.example.demo.annotation.RequirePermission;
-import com.example.demo.domain.permission.aggregate.Resource;
-import com.example.demo.domain.permission.service.PermissionCacheService;
-import com.example.demo.domain.permission.valueobject.ActionType;
-import com.example.demo.domain.permission.valueobject.PermissionBitmap;
-import com.example.demo.domain.permission.repository.ResourceRepository;
-import com.example.demo.exception.BusinessException;
-import com.example.demo.security.UserContext;
+import com.jguard.annotation.RequirePermission;
+import com.jguard.domain.permission.aggregate.Resource;
+import com.jguard.domain.permission.service.PermissionCacheService;
+import com.jguard.domain.permission.valueobject.ActionType;
+import com.jguard.domain.permission.valueobject.PermissionBitmap;
+import com.jguard.domain.permission.repository.ResourceRepository;
+import com.jguard.exception.BusinessException;
+import com.jguard.security.UserContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -921,8 +921,8 @@ public void addInterceptors(InterceptorRegistry registry) {
 - [ ] **步骤 3：提交 PermissionInterceptor**
 
 ```bash
-git add src/main/java/com/example/demo/interceptor/PermissionInterceptor.java \
-        src/main/java/com/example/demo/config/WebMvcConfig.java
+git add src/main/java/com/jguard/interceptor/PermissionInterceptor.java \
+        src/main/java/com/jguard/config/WebMvcConfig.java
 git commit -m "feat(rbac): add PermissionInterceptor for API permission check"
 ```
 
@@ -931,21 +931,21 @@ git commit -m "feat(rbac): add PermissionInterceptor for API permission check"
 ## 任务 5：创建 PermissionAspect
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/aspect/PermissionAspect.java`
+- 创建：`src/main/java/com/jguard/aspect/PermissionAspect.java`
 
 - [ ] **步骤 1：编写 PermissionAspect 用于注解处理**
 
 ```java
-package com.example.demo.aspect;
+package com.jguard.aspect;
 
-import com.example.demo.annotation.RequirePermission;
-import com.example.demo.annotation.RequireBatchPermission;
-import com.example.demo.domain.permission.service.PermissionCacheService;
-import com.example.demo.domain.permission.valueobject.ActionType;
-import com.example.demo.domain.permission.valueobject.PermissionBitmap;
-import com.example.demo.domain.permission.repository.ResourceRepository;
-import com.example.demo.exception.BusinessException;
-import com.example.demo.security.UserContext;
+import com.jguard.annotation.RequirePermission;
+import com.jguard.annotation.RequireBatchPermission;
+import com.jguard.domain.permission.service.PermissionCacheService;
+import com.jguard.domain.permission.valueobject.ActionType;
+import com.jguard.domain.permission.valueobject.PermissionBitmap;
+import com.jguard.domain.permission.repository.ResourceRepository;
+import com.jguard.exception.BusinessException;
+import com.jguard.security.UserContext;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -1070,7 +1070,7 @@ public class PermissionAspect {
 - [ ] **步骤 2：提交 PermissionAspect**
 
 ```bash
-git add src/main/java/com/example/demo/aspect/PermissionAspect.java
+git add src/main/java/com/jguard/aspect/PermissionAspect.java
 git commit -m "feat(rbac): add PermissionAspect for @RequirePermission annotation"
 ```
 
@@ -1079,16 +1079,16 @@ git commit -m "feat(rbac): add PermissionAspect for @RequirePermission annotatio
 ## 任务 6：创建 PermissionService 应用层
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/service/PermissionService.java`
-- 创建：`src/main/java/com/example/demo/service/dto/PermissionCheckRequest.java`
-- 创建：`src/main/java/com/example/demo/service/dto/PermissionCheckResponse.java`
+- 创建：`src/main/java/com/jguard/service/PermissionService.java`
+- 创建：`src/main/java/com/jguard/service/dto/PermissionCheckRequest.java`
+- 创建：`src/main/java/com/jguard/service/dto/PermissionCheckResponse.java`
 
 - [ ] **步骤 1：编写 PermissionCheck DTO**
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
-import com.example.demo.domain.permission.valueobject.ActionType;
+import com.jguard.domain.permission.valueobject.ActionType;
 import java.util.Set;
 
 public record PermissionCheckRequest(
@@ -1098,7 +1098,7 @@ public record PermissionCheckRequest(
 ```
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import java.util.Map;
 
@@ -1111,16 +1111,16 @@ public record PermissionCheckResponse(
 - [ ] **步骤 2：编写 PermissionService**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.aggregate.Resource;
-import com.example.demo.domain.permission.service.PermissionCacheService;
-import com.example.demo.domain.permission.valueobject.ActionType;
-import com.example.demo.domain.permission.valueobject.PermissionBitmap;
-import com.example.demo.domain.permission.repository.ResourceRepository;
-import com.example.demo.security.UserContext;
-import com.example.demo.service.dto.PermissionCheckRequest;
-import com.example.demo.service.dto.PermissionCheckResponse;
+import com.jguard.domain.permission.aggregate.Resource;
+import com.jguard.domain.permission.service.PermissionCacheService;
+import com.jguard.domain.permission.valueobject.ActionType;
+import com.jguard.domain.permission.valueobject.PermissionBitmap;
+import com.jguard.domain.permission.repository.ResourceRepository;
+import com.jguard.security.UserContext;
+import com.jguard.service.dto.PermissionCheckRequest;
+import com.jguard.service.dto.PermissionCheckResponse;
 import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
@@ -1175,9 +1175,9 @@ public class PermissionService {
 - [ ] **步骤 3：提交应用服务**
 
 ```bash
-git add src/main/java/com/example/demo/service/PermissionService.java \
-        src/main/java/com/example/demo/service/dto/PermissionCheckRequest.java \
-        src/main/java/com/example/demo/service/dto/PermissionCheckResponse.java
+git add src/main/java/com/jguard/service/PermissionService.java \
+        src/main/java/com/jguard/service/dto/PermissionCheckRequest.java \
+        src/main/java/com/jguard/service/dto/PermissionCheckResponse.java
 git commit -m "feat(rbac): add PermissionService application layer"
 ```
 
@@ -1186,15 +1186,15 @@ git commit -m "feat(rbac): add PermissionService application layer"
 ## 任务 7：创建 Resource Mapper 用于 API 查询
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/ResourceMapper.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/mapper/ResourceMapper.java`
 
 - [ ] **步骤 1：编写 ResourceMapper**
 
 ```java
-package com.example.demo.infrastructure.persistence.mapper;
+package com.jguard.infrastructure.persistence.mapper;
 
-import com.example.demo.domain.permission.aggregate.Resource;
-import com.example.demo.domain.permission.valueobject.ResourceType;
+import com.jguard.domain.permission.aggregate.Resource;
+import com.jguard.domain.permission.valueobject.ResourceType;
 import org.apache.ibatis.annotations.*;
 import java.util.List;
 
@@ -1233,7 +1233,7 @@ public interface ResourceMapper {
 - [ ] **步骤 2：提交 ResourceMapper**
 
 ```bash
-git add src/main/java/com/example/demo/infrastructure/persistence/mapper/ResourceMapper.java
+git add src/main/java/com/jguard/infrastructure/persistence/mapper/ResourceMapper.java
 git commit -m "feat(rbac): add ResourceMapper for resource persistence"
 ```
 
@@ -1242,13 +1242,13 @@ git commit -m "feat(rbac): add ResourceMapper for resource persistence"
 ## 任务 8：创建 Permission Mapper
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/PermissionMapper.java`
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/PermissionActionMapper.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/mapper/PermissionMapper.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/mapper/PermissionActionMapper.java`
 
 - [ ] **步骤 1：编写 PermissionMapper**
 
 ```java
-package com.example.demo.infrastructure.persistence.mapper;
+package com.jguard.infrastructure.persistence.mapper;
 
 import org.apache.ibatis.annotations.*;
 import java.util.List;
@@ -1275,7 +1275,7 @@ public interface PermissionMapper {
 - [ ] **步骤 2：编写 PermissionActionMapper**
 
 ```java
-package com.example.demo.infrastructure.persistence.mapper;
+package com.jguard.infrastructure.persistence.mapper;
 
 import org.apache.ibatis.annotations.*;
 import java.util.List;
@@ -1303,8 +1303,8 @@ public interface PermissionActionMapper {
 - [ ] **步骤 3：提交 Permission mapper**
 
 ```bash
-git add src/main/java/com/example/demo/infrastructure/persistence/mapper/PermissionMapper.java \
-        src/main/java/com/example/demo/infrastructure/persistence/mapper/PermissionActionMapper.java
+git add src/main/java/com/jguard/infrastructure/persistence/mapper/PermissionMapper.java \
+        src/main/java/com/jguard/infrastructure/persistence/mapper/PermissionActionMapper.java
 git commit -m "feat(rbac): add Permission mappers for permission persistence"
 ```
 
@@ -1313,12 +1313,12 @@ git commit -m "feat(rbac): add Permission mappers for permission persistence"
 ## 任务 9：创建 UserRole Mapper
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/mapper/UserRoleMapper.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/mapper/UserRoleMapper.java`
 
 - [ ] **步骤 1：编写 UserRoleMapper**
 
 ```java
-package com.example.demo.infrastructure.persistence.mapper;
+package com.jguard.infrastructure.persistence.mapper;
 
 import org.apache.ibatis.annotations.*;
 import java.util.List;
@@ -1346,7 +1346,7 @@ public interface UserRoleMapper {
 - [ ] **步骤 2：提交 UserRoleMapper**
 
 ```bash
-git add src/main/java/com/example/demo/infrastructure/persistence/mapper/UserRoleMapper.java
+git add src/main/java/com/jguard/infrastructure/persistence/mapper/UserRoleMapper.java
 git commit -m "feat(rbac): add UserRoleMapper for user-role association"
 ```
 
@@ -1355,18 +1355,18 @@ git commit -m "feat(rbac): add UserRoleMapper for user-role association"
 ## 任务 10：实现仓储类
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/repository/RoleRepositoryImpl.java`
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/repository/ResourceRepositoryImpl.java`
-- 创建：`src/main/java/com/example/demo/infrastructure/persistence/repository/UserRoleRepositoryImpl.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/repository/RoleRepositoryImpl.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/repository/ResourceRepositoryImpl.java`
+- 创建：`src/main/java/com/jguard/infrastructure/persistence/repository/UserRoleRepositoryImpl.java`
 
 - [ ] **步骤 1：编写 RoleRepositoryImpl**
 
 ```java
-package com.example.demo.infrastructure.persistence.repository;
+package com.jguard.infrastructure.persistence.repository;
 
-import com.example.demo.domain.permission.aggregate.Role;
-import com.example.demo.domain.permission.repository.RoleRepository;
-import com.example.demo.infrastructure.persistence.mapper.RoleMapper;
+import com.jguard.domain.permission.aggregate.Role;
+import com.jguard.domain.permission.repository.RoleRepository;
+import com.jguard.infrastructure.persistence.mapper.RoleMapper;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
@@ -1435,12 +1435,12 @@ public class RoleRepositoryImpl implements RoleRepository {
 - [ ] **步骤 2：编写 ResourceRepositoryImpl**
 
 ```java
-package com.example.demo.infrastructure.persistence.repository;
+package com.jguard.infrastructure.persistence.repository;
 
-import com.example.demo.domain.permission.aggregate.Resource;
-import com.example.demo.domain.permission.repository.ResourceRepository;
-import com.example.demo.domain.permission.valueobject.ResourceType;
-import com.example.demo.infrastructure.persistence.mapper.ResourceMapper;
+import com.jguard.domain.permission.aggregate.Resource;
+import com.jguard.domain.permission.repository.ResourceRepository;
+import com.jguard.domain.permission.valueobject.ResourceType;
+import com.jguard.infrastructure.persistence.mapper.ResourceMapper;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
@@ -1504,10 +1504,10 @@ public class ResourceRepositoryImpl implements ResourceRepository {
 - [ ] **步骤 3：编写 UserRoleRepositoryImpl**
 
 ```java
-package com.example.demo.infrastructure.persistence.repository;
+package com.jguard.infrastructure.persistence.repository;
 
-import com.example.demo.domain.permission.repository.UserRoleRepository;
-import com.example.demo.infrastructure.persistence.mapper.UserRoleMapper;
+import com.jguard.domain.permission.repository.UserRoleRepository;
+import com.jguard.infrastructure.persistence.mapper.UserRoleMapper;
 import org.springframework.stereotype.Repository;
 import java.util.HashSet;
 import java.util.List;
@@ -1552,7 +1552,7 @@ public class UserRoleRepositoryImpl implements UserRoleRepository {
 - [ ] **步骤 4：提交仓储实现**
 
 ```bash
-git add src/main/java/com/example/demo/infrastructure/persistence/repository/*.java
+git add src/main/java/com/jguard/infrastructure/persistence/repository/*.java
 git commit -m "feat(rbac): implement repository classes for domain interfaces"
 ```
 
@@ -1561,15 +1561,15 @@ git commit -m "feat(rbac): implement repository classes for domain interfaces"
 ## 任务 11：创建权限风暴测试（新增）
 
 **文件：**
-- 创建：`src/test/java/com/example/demo/service/PermissionStormTest.java`
+- 创建：`src/test/java/com/jguard/service/PermissionStormTest.java`
 
 - [ ] **步骤 1：编写权限风暴测试**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.service.PermissionCacheService;
-import com.example.demo.domain.permission.valueobject.PermissionBitmap;
+import com.jguard.domain.permission.service.PermissionCacheService;
+import com.jguard.domain.permission.valueobject.PermissionBitmap;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.parallel.Execution;
@@ -1631,7 +1631,7 @@ class PermissionStormTest {
 - [ ] **步骤 2：提交测试**
 
 ```bash
-git add src/test/java/com/example/demo/service/PermissionStormTest.java
+git add src/test/java/com/jguard/service/PermissionStormTest.java
 git commit -m "feat(rbac): add permission storm test for concurrent queries"
 ```
 
@@ -1640,7 +1640,7 @@ git commit -m "feat(rbac): add permission storm test for concurrent queries"
 ## 任务 12：配置权限查询限流（新增）
 
 **文件：**
-- 修改：`src/main/java/com/example/demo/config/RateLimitConfig.java`
+- 修改：`src/main/java/com/jguard/config/RateLimitConfig.java`
 
 - [ ] **步骤 1：添加权限查询限流配置**
 
@@ -1683,8 +1683,8 @@ public Result<Long> getPermissionVersion() {
 - [ ] **步骤 3：提交限流配置**
 
 ```bash
-git add src/main/java/com/example/demo/config/RateLimitConfig.java \
-        src/main/java/com/example/demo/controller/PermissionController.java
+git add src/main/java/com/jguard/config/RateLimitConfig.java \
+        src/main/java/com/jguard/controller/PermissionController.java
 git commit -m "feat(rbac): add rate limiting for permission queries to prevent storm attacks"
 ```
 
@@ -1693,15 +1693,15 @@ git commit -m "feat(rbac): add rate limiting for permission queries to prevent s
 ## 任务 13：创建性能测试（新增）
 
 **文件：**
-- 创建：`src/test/java/com/example/demo/service/PermissionPerformanceTest.java`
+- 创建：`src/test/java/com/jguard/service/PermissionPerformanceTest.java`
 
 - [ ] **步骤 1：编写性能测试**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.service.PermissionCacheService;
-import com.example.demo.domain.permission.valueobject.PermissionBitmap;
+import com.jguard.domain.permission.service.PermissionCacheService;
+import com.jguard.domain.permission.valueobject.PermissionBitmap;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mock;
@@ -1773,7 +1773,7 @@ class PermissionPerformanceTest {
 - [ ] **步骤 2：提交性能测试**
 
 ```bash
-git add src/test/java/com/example/demo/service/PermissionPerformanceTest.java
+git add src/test/java/com/jguard/service/PermissionPerformanceTest.java
 git commit -m "feat(rbac): add performance tests for permission loading and checking"
 ```
 

@@ -25,7 +25,7 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${DB_URL:jdbc:mysql://localhost:3306/demo?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/jguard?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:root}
     hikari:
@@ -34,7 +34,7 @@ spring:
       idle-timeout: 300000
       max-lifetime: 1200000
       connection-timeout: 30000
-      pool-name: DemoHikariPool
+      pool-name: JGuardHikariPool
 
   data:
     redis:
@@ -51,7 +51,7 @@ spring:
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: com.example.demo.entity
+  type-aliases-package: com.jguard.entity
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
@@ -118,10 +118,10 @@ springdoc:
 logging:
   level:
     root: INFO
-    com.example.demo: DEBUG
+    com.jguard: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}] %-5level %logger{36} - %msg%n"
   file:
-    name: logs/demo.log
+    name: logs/jguard.log
     max-size: 10MB
     max-history: 30

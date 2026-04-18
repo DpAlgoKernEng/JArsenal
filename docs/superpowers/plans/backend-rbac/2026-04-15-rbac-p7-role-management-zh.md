@@ -15,7 +15,7 @@
 ## 文件结构
 
 ```
-src/main/java/com/example/demo/
+src/main/java/com/jguard/
 ├── controller/
 │   └ RoleController.java              # 角色 CRUD API
 ├── service/
@@ -41,14 +41,14 @@ ui/src/views/
 ## 任务 1：创建角色 DTO
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/service/dto/RoleCreateRequest.java`
-- 创建：`src/main/java/com/example/demo/service/dto/RoleUpdateRequest.java`
-- 创建：`src/main/java/com/example/demo/service/dto/RoleResponse.java`
+- 创建：`src/main/java/com/jguard/service/dto/RoleCreateRequest.java`
+- 创建：`src/main/java/com/jguard/service/dto/RoleUpdateRequest.java`
+- 创建：`src/main/java/com/jguard/service/dto/RoleResponse.java`
 
 - [ ] **步骤 1：编写角色 DTO**
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import jakarta.validation.constraints.*;
 
@@ -69,7 +69,7 @@ public record RoleCreateRequest(
 ```
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import jakarta.validation.constraints.*;
 
@@ -89,7 +89,7 @@ public record RoleUpdateRequest(
 ```
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import java.util.List;
 
@@ -112,9 +112,9 @@ public record RoleResponse(
 - [ ] **步骤 2：提交 DTO**
 
 ```bash
-git add src/main/java/com/example/demo/service/dto/RoleCreateRequest.java \
-        src/main/java/com/example/demo/service/dto/RoleUpdateRequest.java \
-        src/main/java/com/example/demo/service/dto/RoleResponse.java
+git add src/main/java/com/jguard/service/dto/RoleCreateRequest.java \
+        src/main/java/com/jguard/service/dto/RoleUpdateRequest.java \
+        src/main/java/com/jguard/service/dto/RoleResponse.java
 git commit -m "feat(rbac): add role DTOs with validation"
 ```
 
@@ -123,15 +123,15 @@ git commit -m "feat(rbac): add role DTOs with validation"
 ## 任务 2：创建 RoleService
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/service/RoleService.java`
-- 创建：`src/main/java/com/example/demo/service/dto/PermissionResponse.java`（新增）
-- 创建：`src/main/java/com/example/demo/service/dto/DataScopeResponse.java`（新增）
-- 创建：`src/main/java/com/example/demo/service/dto/RoleTreeResponse.java`（新增）
+- 创建：`src/main/java/com/jguard/service/RoleService.java`
+- 创建：`src/main/java/com/jguard/service/dto/PermissionResponse.java`（新增）
+- 创建：`src/main/java/com/jguard/service/dto/DataScopeResponse.java`（新增）
+- 创建：`src/main/java/com/jguard/service/dto/RoleTreeResponse.java`（新增）
 
 - [ ] **步骤 0.5：编写 PermissionResponse 和 DataScopeResponse DTO**
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import java.util.List;
 import java.util.Set;
@@ -147,7 +147,7 @@ public record PermissionResponse(
 ```
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import java.util.Set;
 
@@ -162,7 +162,7 @@ public record DataScopeResponse(
 ```
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import java.util.List;
 
@@ -183,16 +183,16 @@ public record RoleTreeResponse(
 - [ ] **步骤 1：编写 RoleService（完整版）**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.aggregate.Role;
-import com.example.demo.domain.permission.valueobject.*;
-import com.example.demo.domain.permission.repository.RoleRepository;
-import com.example.demo.domain.permission.service.PermissionCacheService;
-import com.example.demo.domain.permission.event.*;
-import com.example.demo.service.dto.*;
-import com.example.demo.exception.BusinessException;
-import com.example.demo.security.UserContext;
+import com.jguard.domain.permission.aggregate.Role;
+import com.jguard.domain.permission.valueobject.*;
+import com.jguard.domain.permission.repository.RoleRepository;
+import com.jguard.domain.permission.service.PermissionCacheService;
+import com.jguard.domain.permission.event.*;
+import com.jguard.service.dto.*;
+import com.jguard.exception.BusinessException;
+import com.jguard.security.UserContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -381,14 +381,14 @@ public class RoleService {
     
     public List<PermissionResponse> getRolePermissions(Long roleId) {
         // 使用 P1 定义 Permission 实体，类型一致性确认
-        List<com.example.demo.domain.permission.entity.Permission> perms = permissionRepository.findByRoleId(roleId);
+        List<com.jguard.domain.permission.entity.Permission> perms = permissionRepository.findByRoleId(roleId);
         return perms.stream().map(this::toPermissionResponse).toList();
     }
     
     /**
      * 转换 Permission 实体为 DTO（类型一致性处理）
      */
-    private PermissionResponse toPermissionResponse(com.example.demo.domain.permission.entity.Permission perm) {
+    private PermissionResponse toPermissionResponse(com.jguard.domain.permission.entity.Permission perm) {
         // Permission 实体定义于 P1，包含 resourceId 和 effect
         // actions 需从 permission_action 表查询（P2 PermissionActionMapper）
         // 这里简化处理，返回基本信息
@@ -442,7 +442,7 @@ public class RoleService {
 - [ ] **步骤 2：提交 RoleService**
 
 ```bash
-git add src/main/java/com/example/demo/service/RoleService.java
+git add src/main/java/com/jguard/service/RoleService.java
 git commit -m "feat(rbac): add RoleService for role management"
 ```
 
@@ -451,16 +451,16 @@ git commit -m "feat(rbac): add RoleService for role management"
 ## 任务 3：创建 RoleController
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/controller/RoleController.java`
+- 创建：`src/main/java/com/jguard/controller/RoleController.java`
 
 - [ ] **步骤 1：编写 RoleController**
 
 ```java
-package com.example.demo.controller;
+package com.jguard.controller;
 
-import com.example.demo.common.Result;
-import com.example.demo.service.RoleService;
-import com.example.demo.service.dto.*;
+import com.jguard.common.Result;
+import com.jguard.service.RoleService;
+import com.jguard.service.dto.*;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -537,7 +537,7 @@ public class RoleController {
 - [ ] **步骤 2：提交 RoleController**
 
 ```bash
-git add src/main/java/com/example/demo/controller/RoleController.java
+git add src/main/java/com/jguard/controller/RoleController.java
 git commit -m "feat(rbac): add RoleController REST API"
 ```
 
@@ -546,16 +546,16 @@ git commit -m "feat(rbac): add RoleController REST API"
 ## 任务 4：创建 RoleHierarchyService
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/domain/permission/service/RoleHierarchyService.java`
+- 创建：`src/main/java/com/jguard/domain/permission/service/RoleHierarchyService.java`
 
 - [ ] **步骤 1：编写 RoleHierarchyService**
 
 ```java
-package com.example.demo.domain.permission.service;
+package com.jguard.domain.permission.service;
 
-import com.example.demo.domain.permission.aggregate.Role;
-import com.example.demo.domain.permission.repository.RoleRepository;
-import com.example.demo.service.dto.RoleTreeResponse;
+import com.jguard.domain.permission.aggregate.Role;
+import com.jguard.domain.permission.repository.RoleRepository;
+import com.jguard.service.dto.RoleTreeResponse;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
@@ -637,7 +637,7 @@ public class RoleHierarchyService {
 - [ ] **步骤 2：提交继承服务**
 
 ```bash
-git add src/main/java/com/example/demo/domain/permission/service/RoleHierarchyService.java
+git add src/main/java/com/jguard/domain/permission/service/RoleHierarchyService.java
 git commit -m "feat(rbac): add RoleHierarchyService for inheritance tree"
 ```
 
@@ -1021,19 +1021,19 @@ git commit -m "feat(rbac): add role management frontend pages"
 ## 任务 6：创建循环继承集成测试（新增）
 
 **文件：**
-- 创建：`src/test/java/com/example/demo/service/RoleInheritanceIT.java`
+- 创建：`src/test/java/com/jguard/service/RoleInheritanceIT.java`
 
 - [ ] **步骤 1：编写循环继承集成测试**
 
 ```java
-package com.example.demo.service;
+package com.jguard.service;
 
-import com.example.demo.domain.permission.aggregate.Role;
-import com.example.demo.domain.permission.repository.RoleRepository;
-import com.example.demo.domain.permission.service.RoleHierarchyService;
-import com.example.demo.domain.permission.valueobject.RoleCode;
-import com.example.demo.domain.permission.valueobject.InheritMode;
-import com.example.demo.exception.BusinessException;
+import com.jguard.domain.permission.aggregate.Role;
+import com.jguard.domain.permission.repository.RoleRepository;
+import com.jguard.domain.permission.service.RoleHierarchyService;
+import com.jguard.domain.permission.valueobject.RoleCode;
+import com.jguard.domain.permission.valueobject.InheritMode;
+import com.jguard.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -1145,7 +1145,7 @@ class RoleInheritanceIT {
 - [ ] **步骤 2：提交集成测试**
 
 ```bash
-git add src/test/java/com/example/demo/service/RoleInheritanceIT.java
+git add src/test/java/com/jguard/service/RoleInheritanceIT.java
 git commit -m "feat(rbac): add role inheritance integration tests with circular detection"
 ```
 
@@ -1173,16 +1173,16 @@ git commit -m "feat(rbac): add role inheritance integration tests with circular 
 ## 任务 7：角色权限批量分配 API（新增 - 改进点）
 
 **文件：**
-- 创建：`src/main/java/com/example/demo/service/dto/BatchPermissionAssignRequest.java`
-- 修改：`src/main/java/com/example/demo/service/RoleService.java`
-- 修改：`src/main/java/com/example/demo/controller/RoleController.java`
+- 创建：`src/main/java/com/jguard/service/dto/BatchPermissionAssignRequest.java`
+- 修改：`src/main/java/com/jguard/service/RoleService.java`
+- 修改：`src/main/java/com/jguard/controller/RoleController.java`
 
 > **改进点：** 支持角色权限批量分配，减少多次HTTP请求开销，提升权限配置效率。
 
 - [ ] **步骤 1：编写 BatchPermissionAssignRequest DTO**
 
 ```java
-package com.example.demo.service.dto;
+package com.jguard.service.dto;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -1291,9 +1291,9 @@ public Result<Void> batchRemovePermissions(
 - [ ] **步骤 4：提交批量分配 API**
 
 ```bash
-git add src/main/java/com/example/demo/service/dto/BatchPermissionAssignRequest.java \
-        src/main/java/com/example/demo/service/RoleService.java \
-        src/main/java/com/example/demo/controller/RoleController.java
+git add src/main/java/com/jguard/service/dto/BatchPermissionAssignRequest.java \
+        src/main/java/com/jguard/service/RoleService.java \
+        src/main/java/com/jguard/controller/RoleController.java
 git commit -m "feat(rbac): add batch permission assignment API for role configuration efficiency"
 ```
 

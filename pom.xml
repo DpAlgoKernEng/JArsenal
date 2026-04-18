@@ -11,8 +11,8 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.example</groupId>
-    <artifactId>pagehelper-demo</artifactId>
+    <groupId>com.jguard</groupId>
+    <artifactId>jguard</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
@@ -184,7 +184,7 @@
                 <artifactId>flyway-maven-plugin</artifactId>
                 <version>9.22.3</version>
                 <configuration>
-                    <url>jdbc:mysql://localhost:3306/demo?useUnicode=true&amp;characterEncoding=utf-8&amp;serverTimezone=Asia/Shanghai</url>
+                    <url>jdbc:mysql://localhost:3306/jguard?useUnicode=true&amp;characterEncoding=utf-8&amp;serverTimezone=Asia/Shanghai</url>
                     <user>root</user>
                     <password>root</password>
                     <locations>

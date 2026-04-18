@@ -3,7 +3,7 @@
     <!-- 侧边栏 -->
     <el-aside width="200px" class="sidebar">
       <div class="logo">
-        <h2>JArsenal</h2>
+        <h2>JGuard</h2>
       </div>
       <el-menu
         :default-active="activeMenu"

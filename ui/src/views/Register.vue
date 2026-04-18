@@ -2,7 +2,7 @@
   <div class="register-container">
     <div class="register-card">
       <div class="register-header">
-        <h1 class="register-title">JArsenal</h1>
+        <h1 class="register-title">JGuard</h1>
         <p class="register-subtitle">用户注册</p>
       </div>
       <el-form ref="formRef" :model="form" :rules="rules" class="register-form">
