@@ -54,6 +54,7 @@ Full-stack application: Spring Boot 3.2.0 + Java 17 REST API with Vue 3 + Elemen
 - **PageHelper** - Pagination plugin, `PageHelper.startPage()` must be called immediately before query
 - **JWT (jjwt)** - Token-based authentication with BCrypt password hashing
 - **Redis** - Distributed rate limiting with Lua scripts (graceful degradation when unavailable)
+- **OpenTelemetry** - Distributed tracing with Micrometer Tracing bridge (traceId/spanId in MDC)
 - **Springdoc OpenAPI 2.x** - Swagger UI at `/swagger-ui.html`
 
 ### Frontend Tech Stack
@@ -69,12 +70,12 @@ com.jguard/
 ├── annotation/     # Custom annotations (@RateLimit)
 ├── aspect/         # AOP aspects (performance, rate limiting)
 ├── common/         # Result wrapper
-├── config/         # Spring configs (CORS, Redis, interceptors)
+├── config/         # Spring configs (CORS, Redis, interceptors, TracingConfig)
 ├── controller/     # REST controllers (AuthController, UserController)
 ├── dto/            # Request/Response DTOs with Jakarta Validation
 ├── entity/         # MyBatis entities
 ├── exception/      # BusinessException + GlobalExceptionHandler
-├── interceptor/    # AuthInterceptor, RequestLogInterceptor
+├── interceptor/    # AuthInterceptor, RequestLogInterceptor (OTel tracing)
 ├── mapper/         # MyBatis mapper interfaces
 ├── monitor/        # Actuator health indicators
 ├── security/       # UserContext (holds current user from JWT)
@@ -115,7 +116,9 @@ JWT expiration: 24 hours (`jwt.expiration: 86400000`)
 
 **API Response**: All responses use `Result<T>` wrapper. Pagination uses `PageResult<T>`.
 
-**Request Logging**: `RequestLogInterceptor` logs all requests with traceId (MDC) and duration. Slow requests (>3s) warn.
+**Request Logging**: `RequestLogInterceptor` logs all requests with OpenTelemetry traceId/spanId (MDC). Log format: `[traceId:%X{traceId:-}] [spanId:%X{spanId:-}]`. Slow requests (>3s) warn.
+
+**Distributed Tracing**: OpenTelemetry + Micrometer Tracing auto-generates traceId for all HTTP requests. Configure via `management.tracing.*` in application.yml. Export to Jaeger via OTLP (port 4317) when `OTEL_EXPORT_ENABLED=true`.
 
 ### Database
 - MySQL database `jguard`
@@ -127,3 +130,10 @@ JWT expiration: 24 hours (`jwt.expiration: 86400000`)
 - `/actuator/health` - Health status (DB + memory)
 - `/actuator/metrics` - Performance metrics
 - `/swagger-ui.html` - API documentation
+
+### Distributed Tracing (OpenTelemetry)
+- **traceId/spanId**: Auto-injected into MDC for all HTTP requests
+- **Log pattern**: `[traceId:%X{traceId:-}] [spanId:%X{spanId:-}]`
+- **Backend**: Jaeger (optional, via OTLP port 4317)
+- **Config**: `management.tracing.sampling.probability` (default 100% dev, 10% prod)
+- **Enable export**: Set `OTEL_EXPORT_ENABLED=true` and `OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317`

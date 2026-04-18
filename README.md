@@ -45,6 +45,8 @@ Java Guard - 基于 DDD 四层架构的企业级 RBAC 权限管理系统
 | Kafka | 7.6.0 | 领域事件消息队列 |
 | Caffeine | - | 本地缓存 |
 | Springdoc | 2.3.0 | OpenAPI 3.0 文档 |
+| OpenTelemetry | - | 分布式追踪 (Micrometer Tracing) |
+| Jaeger | 1.57 | 追踪后端 (可选) |
 
 ### 前端
 
@@ -358,6 +360,9 @@ kubectl get services -n jguard
 | `KAFKA_BOOTSTRAP_SERVERS` | Kafka 地址 | `localhost:9092` |
 | `JWT_SECRET` | JWT 密钥 (>=32字符) | **必须设置** |
 | `CORS_ALLOWED_ORIGINS` | CORS 白名单 | `http://localhost:3000` |
+| `OTEL_EXPORT_ENABLED` | 启用追踪导出 | `false` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Jaeger OTLP 地址 | `http://localhost:4317` |
+| `OTEL_SAMPLING_PROBABILITY` | 采样率 | `1.0` (100%) |
 
 ## 数据库迁移 (Flyway)
 
@@ -414,6 +419,55 @@ mvn jacoco:report
 | `/actuator/loggers` | 日志级别 |
 | `/api/v1/cache/metrics` | 权限缓存命中率 |
 | `/api/v1/cache/metrics/health` | 缓存健康状态 |
+
+## 分布式追踪
+
+基于 **OpenTelemetry + Jaeger** 的分布式追踪系统：
+
+### 功能特性
+
+- **自动追踪**: 所有 HTTP 请求自动生成 traceId/spanId
+- **日志关联**: MDC 自动注入 traceId/spanId，便于日志追踪
+- **向后兼容**: 保留 `X-Trace-Id` header 支持
+- **可配置采样**: 开发环境 100%，生产环境 10%
+
+### 配置
+
+```yaml
+# application.yml
+management:
+  tracing:
+    enabled: true
+    sampling:
+      probability: ${OTEL_SAMPLING_PROBABILITY:1.0}
+  otlp:
+    tracing:
+      export:
+        enabled: ${OTEL_EXPORT_ENABLED:false}  # 默认关闭，仅本地日志追踪
+```
+
+### 启用 Jaeger UI
+
+```bash
+# macOS
+brew install jaeger
+
+# 启动 Jaeger all-in-one
+./jaeger-all-in-one
+
+# Jaeger UI 地址
+http://localhost:16686
+
+# 启用导出 (设置环境变量)
+OTEL_EXPORT_ENABLED=true
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+```
+
+### 日志格式
+
+```
+2026-04-18 22:00:00.000 [http-nio-8080-exec-1] [traceId:8de89733b86624df] [spanId:380e72ce8dbbce90] INFO  c.j.i.i.RequestLogInterceptor - 请求开始 - POST /api/v1/auth/login
+```
 
 ## License
 

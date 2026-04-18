@@ -103,6 +103,15 @@ management:
   info:
     env:
       enabled: true
+  # OpenTelemetry 分布式追踪配置
+  tracing:
+    enabled: true
+    sampling:
+      probability: ${OTEL_SAMPLING_PROBABILITY:1.0}
+  otlp:
+    tracing:
+      export:
+        enabled: ${OTEL_EXPORT_ENABLED:false}  # 默认关闭导出，仅本地日志追踪
 
 # Swagger 配置
 springdoc:
@@ -120,7 +129,7 @@ logging:
     root: INFO
     com.jguard: DEBUG
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [traceId:%X{traceId:-}] [spanId:%X{spanId:-}] %-5level %logger{36} - %msg%n"
   file:
     name: logs/jguard.log
     max-size: 10MB
