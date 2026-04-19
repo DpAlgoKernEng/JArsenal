@@ -39,7 +39,6 @@ replay_pid*
 # IDE 配置
 .idea
 *.iml
-.vscode
 
 # macOS
 .DS_Store
